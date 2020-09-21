@@ -1,5 +1,10 @@
 # Lation
 
+## Setup Editor
+
+Install `Remote - WSL` extension (so you can connect to WSL in windows)
+Install `Python` extension (so you can select interpreter)
+
 ## Setup Environments
 
 ``` bash
