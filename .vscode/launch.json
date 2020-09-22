@@ -1,0 +1,42 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Encrypt File",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "args": [
+                "encrypt",
+                "--src",
+                "README.md",
+                "--dest",
+                "README.encrypted.md",
+                "--password",
+                "test",
+            ]
+        },
+        {
+            "name": "Decrypt File",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "args": [
+                "decrypt",
+                "--src",
+                "README.encrypted.md",
+                "--dest",
+                "README.md",
+                "--password",
+                "test",
+            ]
+        },
+    ]
+}
