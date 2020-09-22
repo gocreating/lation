@@ -43,3 +43,37 @@ pyenv activate lation
 # install required modules
 pip3 install -r lation/requirements.txt
 ```
+
+## Encrypt/Decrypt Files
+
+``` bash
+# oracle-cloud
+python lation.py encrypt \
+    --src secrets/instance-keys/oracle-cloud \
+    --dest secrets/instance-keys/oracle-cloud.encrypted \
+    --password p
+python lation.py decrypt \
+    --src secrets/instance-keys/oracle-cloud.encrypted \
+    --dest secrets/instance-keys/oracle-cloud \
+    --password p
+
+# oracle-cloud.pub
+python lation.py encrypt \
+    --src secrets/instance-keys/oracle-cloud.pub \
+    --dest secrets/instance-keys/oracle-cloud.pub.encrypted \
+    --password p
+python lation.py decrypt \
+    --src secrets/instance-keys/oracle-cloud.pub.encrypted \
+    --dest secrets/instance-keys/oracle-cloud.pub \
+    --password p
+
+# lation-vpn-client.ovpn
+python lation.py encrypt \
+    --src secrets/openvpn/lation-vpn-client.ovpn \
+    --dest secrets/openvpn/lation-vpn-client.ovpn.encrypted \
+    --password p
+python lation.py decrypt \
+    --src secrets/openvpn/lation-vpn-client.ovpn.encrypted \
+    --dest secrets/openvpn/lation-vpn-client.ovpn \
+    --password p
+```
