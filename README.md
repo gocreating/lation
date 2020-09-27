@@ -77,3 +77,11 @@ python lation.py decrypt \
     --dest secrets/openvpn/lation-vpn-client.ovpn \
     --password p
 ```
+
+## Connect to Instance
+
+``` bash
+chmod 400 ./secrets/instance-keys/oracle-cloud
+ssh -i ./secrets/instance-keys/oracle-cloud ubuntu@lation-1.combo.live
+ssh -i ./secrets/instance-keys/oracle-cloud ubuntu@lation-2.combo.live
+```
