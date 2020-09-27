@@ -38,5 +38,45 @@
                 "test",
             ]
         },
+        {
+            "name": "Export Data",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "args": [
+                "export-data",
+                "--host",
+                "h",
+                "--username",
+                "u",
+                "--password",
+                "p",
+                "--database",
+                "d",
+            ]
+        },
+        {
+            "name": "Import Data",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "args": [
+                "import-data",
+                "--host",
+                "h",
+                "--username",
+                "u",
+                "--password",
+                "p",
+                "--database",
+                "d",
+                "--module-name",
+                "m"
+            ]
+        }
     ]
 }

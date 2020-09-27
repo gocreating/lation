@@ -10,3 +10,6 @@ __pycache__/
 /secrets/**/*.*
 !/secrets/**/*.encrypted*
 /secrets/instance-keys/oracle-cloud
+
+# Build
+/exported-data
