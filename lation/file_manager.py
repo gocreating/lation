@@ -1,3 +1,4 @@
+import mimetypes
 import os
 import shutil
 
@@ -12,6 +13,10 @@ class FileManager():
         if not os.path.exists(target_path):
             os.makedirs(target_path)
         return target_path
+
+    @staticmethod
+    def get_mime_type(path):
+        return mimetypes.guess_type(path)[0]
 
     def __init__(self, source_path=None, destination_path=None):
         self.source_path = source_path
