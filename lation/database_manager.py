@@ -2,7 +2,6 @@ import ast
 import csv
 import json
 import os
-import shutil
 
 from sqlalchemy import create_engine, schema
 from sqlalchemy.orm import sessionmaker

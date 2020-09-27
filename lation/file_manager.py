@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from ansible_vault import Vault
 
