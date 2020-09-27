@@ -5,9 +5,9 @@ from ansible_vault import Vault
 
 class FileManager():
     @staticmethod
-    def prepare_dir(dir_path):
+    def prepare_dir(dir_path, delete_if_exist=False):
         target_path = os.path.join(os.getcwd(), dir_path)
-        if os.path.exists(target_path):
+        if os.path.exists(target_path) and delete_if_exist:
             shutil.rmtree(target_path, ignore_errors=True)
         if not os.path.exists(target_path):
             os.makedirs(target_path)

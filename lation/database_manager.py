@@ -9,6 +9,9 @@ from sqlalchemy.types import JSON
 
 from lation.core.importer import dynamic_import
 from lation.file_manager import FileManager
+from lation.logger import create_logger
+
+logger = create_logger()
 
 class DatabaseManager():
     def __init__(self, host, username, password, database, port=3306):
@@ -31,8 +34,9 @@ class DatabaseManager():
         return isinstance(column.type, JSON)
 
     def export_csv_from_db(self, target_dir):
-        dir_path = FileManager.prepare_dir(target_dir)
+        dir_path = FileManager.prepare_dir(target_dir, delete_if_exist=True)
         for table in self.tables:
+            logger.info(f'EXPORT TABLE {table.name}...')
             file_path = os.path.join(dir_path, f'{table.name}.csv')
             with open(file_path, 'w', newline='', encoding='utf-8') as csv_file:
                 column_names = [column.name for column in table.columns]
@@ -42,6 +46,7 @@ class DatabaseManager():
                 for row in rows:
                     row_dict = dict(row)
                     writer.writerow(row_dict)
+            logger.info(f'EXPORT TABLE {table.name} DONE')
 
     def import_csv_from_module(self, module_name):
         file_paths = dynamic_import(f'lation.modules.{module_name}.__lation__', 'data')
@@ -49,10 +54,13 @@ class DatabaseManager():
 
         for table in reversed(self.tables):
             session.execute(table.delete())
+            logger.info(f'DELETE TABLE {table.name}')
+        logger.info(f'DELETE TABLES FLUSHED')
 
         for file_path in file_paths:
             table = self.get_table_from_file_path(file_path)
             json_column_names = [column.name for column in table.columns if self.is_json_column(column)]
+            logger.info(f'IMPORT TABLE {table.name}...')
             with open(file_path, newline='', encoding='utf-8') as csv_file:
                 reader = csv.DictReader(csv_file)
                 for raw_row in reader:
@@ -66,4 +74,8 @@ class DatabaseManager():
                                 row[col] = raw_value
                     session.execute(table.insert(row))
             session.flush()
+            logger.info(f'IMPORT TABLE {table.name} FLUSHED')
+
+        logger.info(f'IMPORT TABLES COMMIT...')
         session.commit()
+        logger.info(f'IMPORT TABLES COMMITTED')
