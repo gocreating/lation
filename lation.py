@@ -13,7 +13,7 @@ Usage:
 @cli.command('encrypt')
 @click.option('--src')
 @click.option('--dest')
-@click.option('--password')
+@click.option('--password', prompt=True)
 def encrypt(src, dest, password):
     file_manager = FileManager(source_path=src, destination_path=dest)
     file_manager.encrypt(password)
@@ -25,7 +25,7 @@ Usage:
 @cli.command('decrypt')
 @click.option('--src')
 @click.option('--dest')
-@click.option('--password')
+@click.option('--password', prompt=True)
 def decrypt(src, dest, password):
     file_manager = FileManager(source_path=src, destination_path=dest)
     file_manager.decrypt(password)
