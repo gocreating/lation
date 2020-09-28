@@ -1,9 +1,10 @@
 import enum
+import io
 import os
 
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
+from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 
 from lation.file_manager import FileManager
 
@@ -21,6 +22,7 @@ class GoogleDriveManager():
 
     class LocalMIMETypeEnum(enum.Enum):
         CSV = 'text/csv'
+        TEXT = 'text/plain'
 
     # https://developers.google.com/drive/api/v3/manage-uploads
     @staticmethod
@@ -28,6 +30,13 @@ class GoogleDriveManager():
         if local_mime_type == GoogleDriveManager.LocalMIMETypeEnum.CSV.value:
             return GoogleDriveManager.RemoteMIMETypeEnum.DRIVE_SPREAD_SHEET.value
         return GoogleDriveManager.RemoteMIMETypeEnum.DRIVE_UNKNOWN.value
+
+    # https://developers.google.com/drive/api/v3/ref-export-formats
+    @staticmethod
+    def get_compatible_local_mime_type(remote_mime_type):
+        if remote_mime_type == GoogleDriveManager.RemoteMIMETypeEnum.DRIVE_SPREAD_SHEET.value:
+            return GoogleDriveManager.LocalMIMETypeEnum.CSV.value
+        return GoogleDriveManager.LocalMIMETypeEnum.TEXT.value
 
     @staticmethod
     def get_query_str(name=None, mime_type=None, trashed=None, parents=None):
@@ -62,7 +71,7 @@ class GoogleDriveManager():
         query_str = GoogleDriveManager.get_query_str(**query)
         while True:
             response = self.service.files().list(q=query_str,
-                                                 fields="nextPageToken, files(id, name, parents)",
+                                                 fields="nextPageToken, files(id, name, mimeType, parents)",
                                                  pageToken=page_token).execute()
             files = response.get('files', [])
             page_token = response.get('nextPageToken', None)
@@ -124,7 +133,7 @@ class GoogleDriveManager():
 
     def upload_dir(self, local_dir, remote_folders):
         folder = self.create_or_get_deep_folder(remote_folders)
-        _, local_dir_names, local_file_names = next(walk(local_dir))
+        _, local_dir_names, local_file_names = next(os.walk(local_dir))
 
         for local_file_name in local_file_names:
             local_file_path = os.path.join(local_dir, local_file_name)
@@ -134,10 +143,41 @@ class GoogleDriveManager():
                 'mimeType': GoogleDriveManager.get_compatible_remote_mime_type(mime_type),
                 'parents': [folder['id']],
             }
-            media = MediaFileUpload('exported-data/Session.csv', mimetype=mime_type)
+            media = MediaFileUpload(local_file_path, mimetype=mime_type)
             self.service.files().create(body=file_metadata,
                                         media_body=media,
                                         fields='id').execute()
+
+    def download_file_by_id(self, local_file_path, file_id, remote_mime_type=None):
+        if remote_mime_type in [en.value for en in GoogleDriveManager.RemoteMIMETypeEnum]:
+            request = self.service.files().export_media(fileId=file_id, mimeType=GoogleDriveManager.get_compatible_local_mime_type(remote_mime_type))
+        else:
+            request = self.service.files().get_media(fileId=file_id)
+        fh = io.FileIO(local_file_path, mode='wb')
+        downloader = MediaIoBaseDownload(fh, request)
+
+        done = False
+        while done is False:
+            status, done = downloader.next_chunk()
+            # print("Download %d%%." % int(status.progress() * 100))
+
+    def download_dir_by_id(self, local_dir_path, folder_id):
+        FileManager.prepare_dir(local_dir_path, delete_if_exist=True)
+        items = self.list_all({
+            'parents': folder_id,
+            'trashed': False,
+        })
+        for item in items:
+            if item['mimeType'] == GoogleDriveManager.RemoteMIMETypeEnum.DRIVE_FOLDER.value:
+                dir_path = os.path.join(local_dir_path, item['name'])
+                self.download_dir_by_id(dir_path, item['id'])
+            else:
+                file_path = os.path.join(local_dir_path, item['name'])
+                self.download_file_by_id(file_path, item['id'], remote_mime_type=item['mimeType'])
+
+    def download_dir(self, local_dir_path, remote_folders):
+        folder = self.get_deep_folder(remote_folders)
+        self.download_dir_by_id(local_dir_path, folder['id'])
 
     def delete_by_id(self, file_id):
         self.service.files().delete(fileId=file_id).execute()
