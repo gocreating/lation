@@ -8,19 +8,19 @@ from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 from lation.modules.base.file_system import FileSystem
 from lation.modules.base.storage import Storage, RemoteStorage
 
-# https://developers.google.com/drive/api/v3/about-auth
-SCOPES = [
-    'https://www.googleapis.com/auth/drive',
-]
-
 class GoogleDriveUtility():
     @staticmethod
-    def get_query_str(name=None, mime_type=None, trashed=None, parents=None):
+    def get_query_str(name=None, mime_type=None, not_mime_type=None, trashed=None, parents=None):
+        if mime_type != None and not_mime_type != None:
+            raise Exception('mime_type and not_mime_type are mutually exclusive')
+
         queries = []
         if name != None:
             queries.append(f"name = '{name}'")
         if mime_type != None:
             queries.append(f"mimeType = '{mime_type}'")
+        if not_mime_type != None:
+            queries.append(f"mimeType != '{mime_type}'")
         if trashed != None:
             if trashed == True:
                 queries.append('trashed = true')
@@ -44,6 +44,11 @@ class GoogleDriveStorage(RemoteStorage):
         SPREAD_SHEET = 'application/vnd.google-apps.spreadsheet' # Google Sheets
         UNKNOWN = 'application/vnd.google-apps.unknown'
 
+    # https://developers.google.com/drive/api/v3/about-auth
+    scopes = [
+        'https://www.googleapis.com/auth/drive',
+    ]
+
     file_fields = ['id', 'name', 'mimeType', 'parents']
 
     @staticmethod
@@ -59,7 +64,7 @@ class GoogleDriveStorage(RemoteStorage):
         if not credential_path:
             raise Exception('Credential path is required')
         super().__init__(**kwargs)
-        credentials = Credentials.from_service_account_file(credential_path, scopes=SCOPES)
+        credentials = Credentials.from_service_account_file(credential_path, scopes=GoogleDriveStorage.scopes)
         self.service = build('drive', 'v3', credentials=credentials, cache_discovery=False)
         self.current_working_folder_id = None
         self.fs = FileSystem()
@@ -91,6 +96,20 @@ class GoogleDriveStorage(RemoteStorage):
         folder = self.service.files().create(body=file_metadata,
                                              fields=file_fields).execute()
         return folder
+
+    def _get_file_by_name(self, file_name, parent_folder_id=None):
+        files = self._list_all_items({
+            'name': file_name,
+            'parents': parent_folder_id,
+            'not_mime_type': GoogleDriveStorage.MIMETypeEnum.FOLDER.value,
+            'trashed': False,
+        })
+        if len(files) == 0:
+            raise Exception(f'File `{file_name}` does not exist')
+        elif len(files) == 1:
+            return files[0]
+        else:
+            raise Exception(f'Detect duplicate file `{file_name}`')
 
     def _get_folder_by_name(self, folder_name, parent_folder_id=None, create_on_not_exist=False):
         folders = self._list_all_items({
@@ -223,6 +242,13 @@ class GoogleDriveStorage(RemoteStorage):
         while done is False:
             status, done = downloader.next_chunk()
             # print("Download %d%%." % int(status.progress() * 100))
+
+    def download_file(self, remote_names, local_names, **kwargs):
+        self.fs.create_directory(local_names)
+        *remote_folder_names, remote_file_name = remote_names
+        folder = self._get_folder_by_names(remote_folder_names, root_folder_id=self.current_working_folder_id)
+        remote_file = self._get_file_by_name(remote_file_name, parent_folder_id=folder['id'])
+        self._download_file(remote_file, [*local_names, remote_file_name])
 
     def download_directory(self, remote_names, local_names, **kwargs):
         self.fs.create_directory(local_names)
