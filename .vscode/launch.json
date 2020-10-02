@@ -77,6 +77,131 @@
                 "--module-name",
                 "m"
             ]
-        }
+        },
+        {
+            "name": "[Google Drive Storage] Sample List",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "args": [
+                "google-drive",
+                "--credential-path",
+                "./secrets/google-api-keys/lation-drive.json",
+                "list",
+                "--name",
+                "combo-db-backup",
+            ]
+        },
+        {
+            "name": "[Google Drive Storage] Sample Create Dir",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "args": [
+                "google-drive",
+                "--credential-path",
+                "./secrets/google-api-keys/lation-drive.json",
+                "create-dir",
+                "--name",
+                "combo-db-backup/2020_10_03_12_07_00",
+            ]
+        },
+        {
+            "name": "[Google Drive Storage] Sample Delete Dir",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "args": [
+                "google-drive",
+                "--credential-path",
+                "./secrets/google-api-keys/lation-drive.json",
+                "delete-dir",
+                "--name",
+                "combo-db-backup",
+            ]
+        },
+        {
+            "name": "[Google Drive Storage] Sample Upload File",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "args": [
+                "google-drive",
+                "--credential-path",
+                "./secrets/google-api-keys/lation-drive.json",
+                "upload-file",
+                "--local",
+                "exported-data/users.csv",
+                "--remote",
+                "combo-db-backup",
+            ]
+        },
+        {
+            "name": "[Google Drive Storage] Sample Upload Dir",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "args": [
+                "google-drive",
+                "--credential-path",
+                "./secrets/google-api-keys/lation-drive.json",
+                "upload-dir",
+                "--local",
+                "exported-data",
+                "--remote",
+                "combo-db-backup",
+            ]
+        },
+        {
+            "name": "[Google Drive Storage] Sample Download File",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "args": [
+                "google-drive",
+                "--credential-path",
+                "./secrets/google-api-keys/lation-drive.json",
+                "download-file",
+                "--remote",
+                "combo-db-backup/users.csv",
+                "--local",
+                "download-data",
+            ]
+        },
+        {
+            "name": "[Google Drive Storage] Sample Download Dir",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "args": [
+                "google-drive",
+                "--credential-path",
+                "./secrets/google-api-keys/lation-drive.json",
+                "download-dir",
+                "--remote",
+                "combo-db-backup",
+                "--local",
+                "download-data",
+            ]
+        },
     ]
 }

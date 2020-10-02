@@ -137,8 +137,7 @@ class GoogleDriveStorage(RemoteStorage):
         return folder
 
     def _delete_item(self, item_id):
-        response = self.service.files().delete(fileId=item_id).execute()
-        return response
+        self.service.files().delete(fileId=item_id).execute()
 
     def change_directory(self, serialized_name):
         self.current_working_folder_id = None
@@ -190,7 +189,7 @@ class GoogleDriveStorage(RemoteStorage):
 
     def delete_directory(self, name, **kwargs):
         folder = self._get_folder_by_names(name, root_folder_id=self.current_working_folder_id)
-        return self._delete_item(folder['id'])
+        self._delete_item(folder['id'])
 
     def _upload_file(self, local_names, remote_folder_id):
         local_mime_type = self.fs.get_mime_type(local_names)

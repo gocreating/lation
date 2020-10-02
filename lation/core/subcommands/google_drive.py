@@ -1,4 +1,5 @@
 import click
+import json
 
 from lation.core.command import cli
 from lation.modules.base.google_drive_storage import GoogleDriveStorage
@@ -22,7 +23,7 @@ Usage:
 def google_drive_list(google_drive_storage, name):
     name = google_drive_storage.deserialize_name(name)
     results = google_drive_storage.list_directory(name)
-    print(results)
+    print(json.dumps(results, indent=4))
 
 """
 Usage:
@@ -34,7 +35,7 @@ Usage:
 def google_drive_create_dir(google_drive_storage, name):
     name = google_drive_storage.deserialize_name(name)
     results = google_drive_storage.create_directory(name)
-    print(results)
+    print(json.dumps(results, indent=4))
 
 """
 Usage:
@@ -45,8 +46,7 @@ Usage:
 @click.option('--name')
 def google_drive_delete_dir(google_drive_storage, name):
     name = google_drive_storage.deserialize_name(name)
-    results = google_drive_storage.delete_directory(name)
-    print(results)
+    google_drive_storage.delete_directory(name)
 
 """
 Usage:
