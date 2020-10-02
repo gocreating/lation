@@ -1,4 +1,5 @@
 import enum
+import io
 
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
@@ -35,11 +36,24 @@ class GoogleDriveUtility():
 class GoogleDriveStorage(RemoteStorage):
     # https://developers.google.com/drive/api/v3/mime-types
     class MIMETypeEnum(enum.Enum):
-        FOLDER = 'application/vnd.google-apps.folder'
-        SPREAD_SHEET = 'application/vnd.google-apps.spreadsheet'
+        DOCUMENT = 'application/vnd.google-apps.document' # Google Docs
+        DRAWING = 'application/vnd.google-apps.drawing' # Google Drawing
+        FILE = 'application/vnd.google-apps.file' # Google Drive file
+        FOLDER = 'application/vnd.google-apps.folder' # Google Drive folder
+        PRESENTATION= 'application/vnd.google-apps.presentation' # Google Slides
+        SPREAD_SHEET = 'application/vnd.google-apps.spreadsheet' # Google Sheets
         UNKNOWN = 'application/vnd.google-apps.unknown'
 
     file_fields = ['id', 'name', 'mimeType', 'parents']
+
+    @staticmethod
+    def is_google_doc_format(mime_type):
+        return mime_type in [
+            GoogleDriveStorage.MIMETypeEnum.DOCUMENT.value,
+            GoogleDriveStorage.MIMETypeEnum.SPREAD_SHEET.value,
+            GoogleDriveStorage.MIMETypeEnum.DRAWING.value,
+            GoogleDriveStorage.MIMETypeEnum.PRESENTATION.value
+        ]
 
     def __init__(self, credential_path=None, **kwargs):
         if not credential_path:
@@ -48,6 +62,7 @@ class GoogleDriveStorage(RemoteStorage):
         credentials = Credentials.from_service_account_file(credential_path, scopes=SCOPES)
         self.service = build('drive', 'v3', credentials=credentials, cache_discovery=False)
         self.current_working_folder_id = None
+        self.fs = FileSystem()
 
     def _list_all_items(self, query=None):
         page_token = None
@@ -116,14 +131,24 @@ class GoogleDriveStorage(RemoteStorage):
             self.current_working_folder_id = current_working_folder['id']
 
     def to_remote_mime_type(self, local_mime_type):
-        if local_mime_type == Storage.MIMETypeEnum.CSV.value:
-            return GoogleDriveStorage.MIMETypeEnum.SPREAD_SHEET.value
-        return GoogleDriveStorage.MIMETypeEnum.UNKNOWN.value
+        return local_mime_type
 
+    # https://developers.google.com/drive/api/v3/ref-export-formats
     def to_local_mime_type(self, remote_mime_type):
-        if remote_mime_type == GoogleDriveStorage.MIMETypeEnum.SPREAD_SHEET.value:
+        if remote_mime_type == GoogleDriveStorage.MIMETypeEnum.DOCUMENT.value:
+            return Storage.MIMETypeEnum.TEXT.value
+        elif remote_mime_type == GoogleDriveStorage.MIMETypeEnum.SPREAD_SHEET.value:
             return Storage.MIMETypeEnum.CSV.value
-        return Storage.MIMETypeEnum.TEXT.value
+        else:
+            raise Exception(f'Incompatible mime type: {remote_mime_type}')
+
+    def to_local_extension(self, remote_mime_type):
+        if remote_mime_type == GoogleDriveStorage.MIMETypeEnum.DOCUMENT.value:
+            return 'txt'
+        elif remote_mime_type == GoogleDriveStorage.MIMETypeEnum.SPREAD_SHEET.value:
+            return 'csv'
+        else:
+            return None
 
     def list_directory(self, name=None, **kwargs):
         if not name:
@@ -148,17 +173,15 @@ class GoogleDriveStorage(RemoteStorage):
         folder = self._get_folder_by_names(name, root_folder_id=self.current_working_folder_id)
         return self._delete_item(folder['id'])
 
-    def _upload_file(self, local_names, remote_folder_id, fs=None):
-        if not fs:
-            fs = FileSystem()
-        local_mime_type = fs.get_mime_type(local_names)
+    def _upload_file(self, local_names, remote_folder_id):
+        local_mime_type = self.fs.get_mime_type(local_names)
         remote_mime_type = self.to_remote_mime_type(local_mime_type)
         file_metadata = {
             'name': local_names[-1],
             'mimeType': remote_mime_type,
             'parents': [remote_folder_id],
         }
-        media = MediaFileUpload(fs.serialize_name(local_names), mimetype=local_mime_type)
+        media = MediaFileUpload(self.fs.serialize_name(local_names), mimetype=local_mime_type)
         file_fields = ','.join(GoogleDriveStorage.file_fields)
         uploaded_file = self.service.files().create(body=file_metadata,
                                                     media_body=media,
@@ -169,15 +192,45 @@ class GoogleDriveStorage(RemoteStorage):
         folder = self._get_folder_by_names(remote_names, root_folder_id=self.current_working_folder_id, create_on_not_exist=True)
         self._upload_file(local_names, folder['id'])
 
-    def upload_directory(self, local_names, remote_names, fs=None, **kwargs):
-        if not fs:
-            fs = FileSystem()
+    def upload_directory(self, local_names, remote_names, **kwargs):
         folder = self._get_folder_by_names(remote_names, root_folder_id=self.current_working_folder_id, create_on_not_exist=True)
-        local_dir = fs.serialize_name(local_names)
-        items = fs.list_directory(local_names)
+        local_dir = self.fs.serialize_name(local_names)
+        items = self.fs.list_directory(local_names)
         for item in items:
             local_items = [*local_names, item]
-            if fs.is_file(local_items):
-                self._upload_file(local_items, folder['id'], fs=fs)
-            elif fs.is_directory(local_items):
+            if self.fs.is_file(local_items):
+                self._upload_file(local_items, folder['id'])
+            elif self.fs.is_directory(local_items):
                 self.upload_directory(local_items, [*remote_names, item])
+
+    def _download_file(self, remote_file, local_names):
+        remote_mime_type = remote_file['mimeType']
+        file_id = remote_file['id']
+        if GoogleDriveStorage.is_google_doc_format(remote_mime_type):
+            local_mime_type = self.to_local_mime_type(remote_mime_type)
+            local_extension = self.to_local_extension(remote_mime_type)
+            if local_extension:
+                local_names[-1] = f'{local_names[-1]}.{local_extension}'
+            request = self.service.files().export_media(fileId=file_id,
+                                                        mimeType=local_mime_type)
+        else:
+            request = self.service.files().get_media(fileId=file_id)
+
+        fh = io.FileIO(self.fs.serialize_name(local_names), mode='wb')
+        downloader = MediaIoBaseDownload(fh, request)
+
+        done = False
+        while done is False:
+            status, done = downloader.next_chunk()
+            # print("Download %d%%." % int(status.progress() * 100))
+
+    def download_directory(self, remote_names, local_names, **kwargs):
+        self.fs.create_directory(local_names)
+        folder = self._get_folder_by_names(remote_names, root_folder_id=self.current_working_folder_id)
+        items = self.list_directory(remote_names)
+        for item in items:
+            local_items = [*local_names, item['name']]
+            if item['mimeType'] == GoogleDriveStorage.MIMETypeEnum.FOLDER.value:
+                self.download_directory([*remote_names, item['name']], local_items)
+            else:
+                self._download_file(item, local_items)
