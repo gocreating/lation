@@ -39,43 +39,38 @@
             ]
         },
         {
-            "name": "Export Data",
+            "name": "[DB] Export",
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/lation.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceRoot}",
+            "env": {
+                "APP": "combo",
+            },
             "args": [
-                "export-data",
-                "--host",
-                "h",
-                "--username",
-                "u",
-                "--password",
-                "p",
-                "--database",
-                "d",
+                "db",
+                "--url",
+                "mysql+pymysql://user:pass@host:port/db",
+                "export",
             ]
         },
         {
-            "name": "Import Data",
+            "name": "[DB] Reset",
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/lation.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceRoot}",
+            "env": {
+                "APP": "combo",
+            },
             "args": [
-                "import-data",
-                "--host",
-                "h",
-                "--username",
-                "u",
-                "--password",
-                "p",
-                "--database",
-                "d",
-                "--module-name",
-                "m"
+                "db",
+                "--url",
+                "mysql+pymysql://user:pass@host:port/db",
+                "--model-agnostic",
+                "reset",
             ]
         },
         {
