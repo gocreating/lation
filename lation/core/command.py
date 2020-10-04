@@ -1,7 +1,25 @@
 import click
 
-from lation.database_manager import DatabaseManager
 from lation.file_manager import FileManager
+
+# https://github.com/pallets/click/issues/257#issuecomment-403312784
+class Mutex(click.Option):
+    def __init__(self, *args, **kwargs):
+        self.not_required_if:list = kwargs.pop("not_required_if")
+
+        assert self.not_required_if, "'not_required_if' parameter required"
+        kwargs["help"] = (kwargs.get("help", "") + "Option is mutually exclusive with " + ", ".join(self.not_required_if) + ".").strip()
+        super(Mutex, self).__init__(*args, **kwargs)
+
+    def handle_parse_result(self, ctx, opts, args):
+        current_opt:bool = self.name in opts
+        for mutex_opt in self.not_required_if:
+            if mutex_opt in opts:
+                if current_opt:
+                    raise click.UsageError("Illegal usage: '" + str(self.name) + "' is mutually exclusive with " + str(mutex_opt) + ".")
+                else:
+                    self.prompt = None
+        return super(Mutex, self).handle_parse_result(ctx, opts, args)
 
 @click.group()
 def cli():
@@ -30,31 +48,3 @@ Usage:
 def decrypt(src, dest, password):
     file_manager = FileManager(source_path=src, destination_path=dest)
     file_manager.decrypt(password)
-
-"""
-Usage:
-    python lation.py export-data --host h --username u --password p --database d
-"""
-@cli.command('export-data')
-@click.option('--host')
-@click.option('--username')
-@click.option('--password')
-@click.option('--database')
-@click.option('--dest-dir', default='./exported-data')
-def export_data(host, username, password, database, dest_dir):
-    database_manager = DatabaseManager(host, username, password, database)
-    database_manager.export_csv_from_db(dest_dir)
-
-"""
-Usage:
-    python lation.py import-data --host h --username u --password p --database d
-"""
-@cli.command('import-data')
-@click.option('--host')
-@click.option('--username')
-@click.option('--password')
-@click.option('--database')
-@click.option('--module-name')
-def import_data(host, username, password, database, module_name):
-    database_manager = DatabaseManager(host, username, password, database)
-    database_manager.import_csv_from_module(module_name)
