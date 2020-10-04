@@ -42,6 +42,7 @@ pyenv activate lation
 
 # install required modules
 pip3 install -r lation/requirements.txt
+# pip freeze | xargs pip uninstall -y
 ```
 
 ## Encrypt/Decrypt Files
@@ -65,6 +66,16 @@ python lation.py encrypt \
 python lation.py decrypt \
     --src secrets/instance-keys/oracle-cloud.pub.encrypted \
     --dest secrets/instance-keys/oracle-cloud.pub \
+    --password p
+
+# lation-drive.json
+python lation.py encrypt \
+    --src secrets/google-api-keys/lation-drive.json \
+    --dest secrets/google-api-keys/lation-drive.json.encrypted \
+    --password p
+python lation.py decrypt \
+    --src secrets/google-api-keys/lation-drive.json.encrypted \
+    --dest secrets/google-api-keys/lation-drive.json \
     --password p
 
 # lation-vpn-client.ovpn
