@@ -5,6 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "[APP] Run",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/run.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "env": {
+                "APP": "combo",
+            },
+        },
+        {
             "name": "[Vault] Sample Encrypt File",
             "type": "python",
             "request": "launch",

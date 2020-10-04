@@ -8,7 +8,7 @@ from sqlalchemy.types import JSON
 
 from lation.core.env import get_env
 from lation.core.logger import create_logger
-from lation.core.module import dynamic_import
+from lation.core.module import modules
 from lation.core.orm import Base
 from lation.modules.base.file_system import FileSystem
 
@@ -42,9 +42,6 @@ class Database():
 
     def export(self, dir_path):
         self.fs.create_directory(self.fs.deserialize_name(dir_path))
-        if not self.model_agnostic:
-            dynamic_import(f'lation.modules.{APP}.models')
-
         for table in self.metadata.sorted_tables:
             self.logger.info(f'EXPORT TABLE {table.name}...')
             file_path = os.path.join(dir_path, f'{table.name}.csv')
@@ -59,8 +56,7 @@ class Database():
             self.logger.info(f'EXPORT TABLE {table.name} DONE')
 
     def reset(self):
-        file_paths = dynamic_import(f'lation.modules.{APP}.__lation__', 'data')
-
+        file_paths = modules[APP].config.data
         session = self.Session()
         if self.model_agnostic:
             for table in reversed(self.metadata.sorted_tables):
@@ -68,7 +64,6 @@ class Database():
                 self.logger.info(f'DELETE TABLE {table.name}')
             self.logger.info(f'DELETE TABLES FLUSHED')
         else:
-            dynamic_import(f'lation.modules.{APP}.models')
             self.metadata.drop_all(self.engine)
             self.logger.info(f'DROP TABLES DONE')
             self.metadata.create_all(self.engine)

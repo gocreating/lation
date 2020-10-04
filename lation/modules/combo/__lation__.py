@@ -1,5 +1,5 @@
+parent_modules = ['base']
 data = [
-    'exported-data/Session.csv',
     'exported-data/products.csv',
     'exported-data/line_users.csv',
     'exported-data/users.csv',
