@@ -1,7 +1,5 @@
 import click
 
-from lation.file_manager import FileManager
-
 # https://github.com/pallets/click/issues/257#issuecomment-403312784
 class Mutex(click.Option):
     def __init__(self, *args, **kwargs):
