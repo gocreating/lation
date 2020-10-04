@@ -9,8 +9,8 @@ from sqlalchemy.types import JSON
 from lation.core.env import get_env
 from lation.core.importer import dynamic_import
 from lation.core.logger import create_logger
+from lation.core.orm import Base
 from lation.modules.base.file_system import FileSystem
-from lation.modules.base.models.base import Base
 
 APP = get_env('APP')
 

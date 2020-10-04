@@ -2,7 +2,7 @@ import enum
 
 from sqlalchemy import Column, DateTime, String, Text
 
-from lation.modules.base.models.base import Base
+from lation.core.orm import Base
 
 class Session(Base):
     __tablename__ = 'Session'
