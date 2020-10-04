@@ -5,37 +5,35 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Encrypt File",
+            "name": "[Vault] Sample Encrypt File",
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/lation.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceRoot}",
             "args": [
+                "vault",
+                "--password",
+                "p",
                 "encrypt",
                 "--src",
-                "README.md",
-                "--dest",
-                "README.encrypted.md",
-                "--password",
-                "test",
+                ".gitignore",
             ]
         },
         {
-            "name": "Decrypt File",
+            "name": "[Vault] Sample Decrypt File",
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/lation.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceRoot}",
             "args": [
+                "vault",
+                "--password",
+                "p",
                 "decrypt",
                 "--src",
-                "README.encrypted.md",
-                "--dest",
-                "README.md",
-                "--password",
-                "test",
+                ".gitignore.encrypted",
             ]
         },
         {
