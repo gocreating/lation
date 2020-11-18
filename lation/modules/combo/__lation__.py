@@ -1,4 +1,4 @@
-parent_modules = ['base']
+parent_modules = ['base_flask']
 data = [
     'exported-data/products.csv',
     'exported-data/line_users.csv',

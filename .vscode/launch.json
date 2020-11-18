@@ -5,12 +5,27 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "[APP] Run",
+            "name": "[APP] Run Base Flask",
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/run.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceRoot}",
+            "gevent": true,
+            "justMyCode": false,
+            "env": {
+                "APP": "base_flask",
+            },
+        },
+        {
+            "name": "[APP] Run Combo",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/run.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "gevent": true,
+            "justMyCode": false,
             "env": {
                 "APP": "combo",
             },
