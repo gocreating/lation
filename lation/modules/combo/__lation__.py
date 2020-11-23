@@ -1,4 +1,4 @@
-parent_modules = ['base_flask']
+parent_modules = ['base_fastapi']
 data = [
     'exported-data/products.csv',
     'exported-data/line_users.csv',

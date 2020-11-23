@@ -1,14 +1,20 @@
-from lation.modules.base_flask.base_flask import BaseFlask
+from pydantic import BaseModel
 
-class ComboFlaskApp(BaseFlask):
+from lation.modules.base_fastapi.base_fastapi import BaseFastAPI
+
+class Combo(BaseModel):
+    status: int
+    data: str
+
+class ComboFastApp(BaseFastAPI):
     def __init__(self):
         super().__init__()
 
-        @self.route('/combo')
+        @self.get('/combo', response_model=Combo)
         def combo():
             return {
                 'status': 0,
                 'data': 'Welcome to combo api',
             }
 
-app = ComboFlaskApp()
+app = ComboFastApp()
