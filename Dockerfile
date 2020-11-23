@@ -1,4 +1,7 @@
 FROM python:3.8-slim
+
+ARG APP
+
 WORKDIR /app
 
 RUN apt-get update
@@ -12,8 +15,8 @@ RUN apt-get autoremove -y gcc
 
 COPY . /app
 
-ENV APP combo
+ENV APP=${APP}
 
-CMD ["sh", "-c", "gunicorn --config gunicorn_config.py lation.modules.$APP.app:app"]
+ENTRYPOINT ["sh", "/app/docker-entrypoint.sh"]
 
 EXPOSE 8000

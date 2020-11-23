@@ -19,6 +19,7 @@ greenlet==0.4.17
 gunicorn==20.0.4
 h11==0.11.0
 httplib2==0.18.1
+httptools==0.1.1
 idna==2.10
 itsdangerous==1.1.0
 Jinja2==2.11.2
@@ -41,6 +42,7 @@ starlette==0.13.6
 uritemplate==3.0.1
 urllib3==1.25.10
 uvicorn==0.12.3
+uvloop==0.14.0
 vine==5.0.0
 Werkzeug==1.0.1
 wincertstore==0.2
