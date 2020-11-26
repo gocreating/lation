@@ -1,6 +1,7 @@
 FROM python:3.8-slim
 
 ARG APP
+ARG IMAGE_TAG
 
 WORKDIR /app
 
@@ -16,6 +17,7 @@ RUN apt-get autoremove -y gcc
 COPY . /app
 
 ENV APP=${APP}
+ENV IMAGE_TAG=${IMAGE_TAG}
 
 ENTRYPOINT ["sh", "/app/docker-entrypoint.sh"]
 
