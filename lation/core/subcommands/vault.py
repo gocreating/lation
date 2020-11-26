@@ -18,7 +18,7 @@ Usage:
 @click.pass_obj
 @click.option('--src', required=True)
 @click.option('--dest')
-def db_export(vault, src, dest):
+def vault_encrypt(vault, src, dest):
     vault.encrypt(src, dest=dest)
 
 """
@@ -29,7 +29,7 @@ Usage:
 @click.pass_obj
 @click.option('--src', required=True)
 @click.option('--dest')
-def db_export(vault, src, dest):
+def vault_decrypt(vault, src, dest):
     try:
         vault.decrypt(src, dest=dest)
     except Exception as e:
