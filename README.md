@@ -23,6 +23,7 @@ eval "$(pyenv virtualenv-init -)"
 ``` bash
 # for ubuntu, following are required to install
 sudo apt-get install -y zlib1g-dev openssl libssl-dev libbz2-dev libreadline-dev libsqlite3-dev libffi-dev
+sudo apt-get install -y libpq-dev # for postgres
 pyenv install 3.8.5
 ```
 
@@ -49,44 +50,52 @@ pip3 install -r lation/requirements.txt
 
 ``` bash
 # oracle-cloud
-python lation.py encrypt \
-    --src secrets/instance-keys/oracle-cloud \
-    --dest secrets/instance-keys/oracle-cloud.encrypted \
-    --password p
-python lation.py decrypt \
-    --src secrets/instance-keys/oracle-cloud.encrypted \
-    --dest secrets/instance-keys/oracle-cloud \
-    --password p
+APP=base python lation.py vault \
+    --password p \
+    encrypt \
+        --src secrets/instance-keys/oracle-cloud \
+        --dest secrets/instance-keys/oracle-cloud.encrypted
+APP=base python lation.py vault \
+    --password p \
+    decrypt \
+        --src secrets/instance-keys/oracle-cloud.encrypted \
+        --dest secrets/instance-keys/oracle-cloud
 
 # oracle-cloud.pub
-python lation.py encrypt \
-    --src secrets/instance-keys/oracle-cloud.pub \
-    --dest secrets/instance-keys/oracle-cloud.pub.encrypted \
-    --password p
-python lation.py decrypt \
-    --src secrets/instance-keys/oracle-cloud.pub.encrypted \
-    --dest secrets/instance-keys/oracle-cloud.pub \
-    --password p
+APP=base python lation.py vault \
+    --password p \
+    encrypt \
+        --src secrets/instance-keys/oracle-cloud.pub \
+        --dest secrets/instance-keys/oracle-cloud.pub.encrypted
+APP=base python lation.py vault \
+    --password p \
+    decrypt \
+        --src secrets/instance-keys/oracle-cloud.pub.encrypted \
+        --dest secrets/instance-keys/oracle-cloud.pub
 
 # lation-drive.json
-python lation.py encrypt \
-    --src secrets/google-api-keys/lation-drive.json \
-    --dest secrets/google-api-keys/lation-drive.json.encrypted \
-    --password p
-python lation.py decrypt \
-    --src secrets/google-api-keys/lation-drive.json.encrypted \
-    --dest secrets/google-api-keys/lation-drive.json \
-    --password p
+APP=base python lation.py vault \
+    --password p \
+    encrypt \
+        --src secrets/google-api-keys/lation-drive.json \
+        --dest secrets/google-api-keys/lation-drive.json.encrypted
+APP=base python lation.py vault \
+    --password p \
+    decrypt \
+        --src secrets/google-api-keys/lation-drive.json.encrypted \
+        --dest secrets/google-api-keys/lation-drive.json
 
 # lation-vpn-client.ovpn
-python lation.py encrypt \
-    --src secrets/openvpn/lation-vpn-client.ovpn \
-    --dest secrets/openvpn/lation-vpn-client.ovpn.encrypted \
-    --password p
-python lation.py decrypt \
-    --src secrets/openvpn/lation-vpn-client.ovpn.encrypted \
-    --dest secrets/openvpn/lation-vpn-client.ovpn \
-    --password p
+APP=base python lation.py vault \
+    --password p \
+    encrypt \
+        --src secrets/openvpn/lation-vpn-client.ovpn \
+        --dest secrets/openvpn/lation-vpn-client.ovpn.encrypted
+APP=base python lation.py vault \
+    --password p \
+    decrypt \
+        --src secrets/openvpn/lation-vpn-client.ovpn.encrypted \
+        --dest secrets/openvpn/lation-vpn-client.ovpn
 ```
 
 ## Connect to Instance
