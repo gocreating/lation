@@ -85,6 +85,11 @@ class Database():
                             else:
                                 row[col] = raw_value
                     session.execute(table.insert(row))
+
+            # Fix postgres sequence, see <https://stackoverflow.com/a/37972960/2443984>
+            if session.bind.dialect.name == 'postgresql':
+                session.execute(f'SELECT setval(pg_get_serial_sequence(\'{table.fullname}\', \'id\'), coalesce(max(id)+1, 1), false) FROM {table.fullname};')
+
             session.flush()
             self.logger.info(f'IMPORT TABLE {table.name} FLUSHED')
 
