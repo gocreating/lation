@@ -105,3 +105,8 @@ chmod 400 ./secrets/instance-keys/oracle-cloud
 ssh -i ./secrets/instance-keys/oracle-cloud ubuntu@lation-1.combo.live
 ssh -i ./secrets/instance-keys/oracle-cloud ubuntu@lation-2.combo.live
 ```
+
+## Postgres Sequence Issue when id exists
+
+- <https://stackoverflow.com/a/40281835/2443984>
+- <https://stackoverflow.com/a/37972960/2443984>
