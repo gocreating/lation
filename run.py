@@ -19,6 +19,6 @@ if __name__ == '__main__':
         http_server.serve_forever()
     elif module.name in asgi_module_names or any([asgi_module_name in parent_module_names for asgi_module_name in asgi_module_names]):
         module_app = dynamic_import(f'{module.module_path}.app')
-        uvicorn.run(module_app.app, host='0.0.0.0', port=8000, log_level='info')
+        uvicorn.run(module_app.app, host='0.0.0.0', port=8000, log_level='info', loop='none')
     else:
         module.start_app()

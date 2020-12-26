@@ -3,13 +3,17 @@ jobs:
   setup_environment_variable:
     docker:
       - image: circleci/python:3.8
+    environment:
+      # https://circleci.com/docs/2.0/pipeline-variables/#pipeline-values
+      CI_PIPELINE_NUMBER: << pipeline.number >>
+      CI_PIPELINE_GIT_REVISION: << pipeline.git.revision >>
     steps:
       - checkout
       - run:
           name: Setup Environment Variable
           command: |
-            IMAGE_BUILD_NUM=$CIRCLE_BUILD_NUM
-            IMAGE_BUILD_HASH=$(echo $CIRCLE_SHA1 | cut -c 1-8)
+            IMAGE_BUILD_NUM=$CI_PIPELINE_NUMBER
+            IMAGE_BUILD_HASH=$(echo $CI_PIPELINE_GIT_REVISION | cut -c 1-8)
             TAG=release-$IMAGE_BUILD_NUM-$IMAGE_BUILD_HASH
             mkdir -p ./my-persist-workspace
             touch ./my-persist-workspace/persist-env-var.txt
@@ -78,12 +82,85 @@ jobs:
           name: Cleanup
           command: |
             rm -rf /tmp/deploy_server_id_rsa
-
+  issue_certificates:
+    docker:
+      - image: certbot/dns-google:v1.4.0
+    environment:
+      # https://letsencrypt.org/zh-tw/docs/acme-protocol-updates/#acme-v2-rfc-8555
+      # ACME Endpoints:
+      # - production: https://acme-v02.api.letsencrypt.org/directory
+      # - staging:    https://acme-staging-v02.api.letsencrypt.org/directory
+      ACME_SERVER: https://acme-staging-v02.api.letsencrypt.org/directory
+    steps:
+      - run:
+          name: Certbot
+          command: |
+            # please transform the private key into base64 format with following command, and save it into ci server's environment variable
+            # `cat secrets/google-api-keys/lation-cloud-dns-bot.json | base64 -w 0`
+            echo $CLOUD_DNS_BOT_SECRET_BASE64 | base64 -d > /tmp/dns-google-credentials.json
+            certbot certonly \
+              --dns-google \
+              --dns-google-credentials /tmp/dns-google-credentials.json \
+              --dns-google-propagation-seconds 60 \
+              --agree-tos \
+              --non-interactive \
+              --email $CERTBOT_EMAIL \
+              -d $CERTBOT_ROOT_DOMAIN,*.$CERTBOT_ROOT_DOMAIN \
+              --server $ACME_SERVER
+            mkdir -p ./certbot-workspace
+            cp -r /etc/letsencrypt/archive/* ./certbot-workspace
+      - store_artifacts:
+          path: /etc/letsencrypt/archive
+          destination: letsencrypt
+      - persist_to_workspace:
+          root: ./certbot-workspace
+          paths:
+            - "*"
+      - run:
+          name: Cleanup
+          command: |
+            rm -rf /tmp/dns-google-credentials.json
+  upload_certificates_to_google_drive:
+    docker:
+      - image: circleci/python:3.8
+    environment:
+      CI_PIPELINE_NUMBER: << pipeline.number >>
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ./certbot-workspace
+      - run:
+          name: Install Dependencies
+          command: |
+            pip3 install -r lation/requirements.txt
+      - run:
+          name: Decrypt Google Drive API Credentials
+          command: |
+            APP=base python lation.py vault \
+              --password $VAULT_PASSWORD \
+              decrypt \
+                --src secrets/google-api-keys/lation-drive.json.encrypted \
+                --dest /tmp/lation-drive.json
+      - run:
+          name: Upload Files
+          command: |
+            APP=base python lation.py google-drive \
+              --credential-path /tmp/lation-drive.json \
+              upload-dir \
+                --local ./certbot-workspace \
+                --remote certificates/pipeline-$CI_PIPELINE_NUMBER
+      - run:
+          name: Cleanup
+          command: |
+            rm -rf /tmp/lation-drive.json
 workflows:
   version: 2
-  build_image_and_deploy:
+  build_image_and_deploy_workflow:
     jobs:
-      - setup_environment_variable
+      - setup_environment_variable:
+          filters:
+            branches:
+              only: master
       - release_image:
           requires:
             - setup_environment_variable
@@ -97,3 +174,14 @@ workflows:
           filters:
             branches:
               only: master
+  renew_tls_certificates_workflow:
+    jobs:
+      # https://circleci.com/docs/2.0/workflows/#holding-a-workflow-for-a-manual-approval
+      - request_issue_certificates:
+          type: approval
+      - issue_certificates:
+          requires:
+            - request_issue_certificates
+      - upload_certificates_to_google_drive:
+          requires:
+            - issue_certificates

@@ -52,58 +52,6 @@ pip3 install -r lation/requirements.txt
 # pip freeze | xargs pip uninstall -y
 ```
 
-## Encrypt/Decrypt Files
-
-``` bash
-# oracle-cloud
-APP=base python lation.py vault \
-    --password p \
-    encrypt \
-        --src secrets/instance-keys/oracle-cloud \
-        --dest secrets/instance-keys/oracle-cloud.encrypted
-APP=base python lation.py vault \
-    --password p \
-    decrypt \
-        --src secrets/instance-keys/oracle-cloud.encrypted \
-        --dest secrets/instance-keys/oracle-cloud
-
-# oracle-cloud.pub
-APP=base python lation.py vault \
-    --password p \
-    encrypt \
-        --src secrets/instance-keys/oracle-cloud.pub \
-        --dest secrets/instance-keys/oracle-cloud.pub.encrypted
-APP=base python lation.py vault \
-    --password p \
-    decrypt \
-        --src secrets/instance-keys/oracle-cloud.pub.encrypted \
-        --dest secrets/instance-keys/oracle-cloud.pub
-
-# lation-drive.json
-APP=base python lation.py vault \
-    --password p \
-    encrypt \
-        --src secrets/google-api-keys/lation-drive.json \
-        --dest secrets/google-api-keys/lation-drive.json.encrypted
-APP=base python lation.py vault \
-    --password p \
-    decrypt \
-        --src secrets/google-api-keys/lation-drive.json.encrypted \
-        --dest secrets/google-api-keys/lation-drive.json
-
-# lation-vpn-client.ovpn
-APP=base python lation.py vault \
-    --password p \
-    encrypt \
-        --src secrets/openvpn/lation-vpn-client.ovpn \
-        --dest secrets/openvpn/lation-vpn-client.ovpn.encrypted
-APP=base python lation.py vault \
-    --password p \
-    decrypt \
-        --src secrets/openvpn/lation-vpn-client.ovpn.encrypted \
-        --dest secrets/openvpn/lation-vpn-client.ovpn
-```
-
 ## Connect to Instance
 
 ``` bash
