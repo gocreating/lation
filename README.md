@@ -20,6 +20,12 @@ eval "$(pyenv init -)"
 eval "$(pyenv virtualenv-init -)"
 ```
 
+Add following to `~/.zshrc`
+
+```
+export PYENV_VIRTUALENV_DISABLE_PROMPT=1
+```
+
 ``` bash
 # for ubuntu, following are required to install
 sudo apt-get install -y zlib1g-dev openssl libssl-dev libbz2-dev libreadline-dev libsqlite3-dev libffi-dev
@@ -102,8 +108,8 @@ APP=base python lation.py vault \
 
 ``` bash
 chmod 400 ./secrets/instance-keys/oracle-cloud
-ssh -i ./secrets/instance-keys/oracle-cloud ubuntu@lation-1.combo.live
-ssh -i ./secrets/instance-keys/oracle-cloud ubuntu@lation-2.combo.live
+ssh -i ./secrets/instance-keys/oracle-cloud ubuntu@dev.lation.app
+ssh -i ./secrets/instance-keys/oracle-cloud ubuntu@prod.lation.app
 ```
 
 ## Postgres Sequence Issue when id exists
