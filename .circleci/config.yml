@@ -8,10 +8,14 @@ jobs:
       - run:
           name: Setup Environment Variable
           command: |
-            TAG=release-$(echo $CIRCLE_SHA1 | cut -c 1-8)-$CIRCLE_BUILD_NUM
+            IMAGE_BUILD_NUM=$CIRCLE_BUILD_NUM
+            IMAGE_BUILD_HASH=$(echo $CIRCLE_SHA1 | cut -c 1-8)
+            TAG=release-$IMAGE_BUILD_NUM-$IMAGE_BUILD_HASH
             mkdir -p ./my-persist-workspace
             touch ./my-persist-workspace/persist-env-var.txt
-            echo "export IMAGE_TAG=$TAG" > ./my-persist-workspace/persist-env-var.txt
+            echo "export IMAGE_BUILD_NUM=$IMAGE_BUILD_NUM" >> ./my-persist-workspace/persist-env-var.txt
+            echo "export IMAGE_BUILD_HASH=$IMAGE_BUILD_HASH" >> ./my-persist-workspace/persist-env-var.txt
+            echo "export IMAGE_TAG=$TAG" >> ./my-persist-workspace/persist-env-var.txt
       - persist_to_workspace:
           root: ./my-persist-workspace
           paths:
@@ -68,8 +72,8 @@ jobs:
             envsubst < ./deploy/combo/docker-compose.prod.yml > /tmp/docker-compose.prod.yml
             cp /tmp/docker-compose.prod.yml ./deploy/combo/docker-compose.prod.yml
 
-            scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@prod.lation.app:/home/ubuntu/lation-deploy-$CIRCLE_BUILD_NUM
-            ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@prod.lation.app "sudo docker-compose -f lation-deploy-$CIRCLE_BUILD_NUM/combo/docker-compose.prod.yml up -d"
+            scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@prod.lation.app:/home/ubuntu/lation-deploy-$IMAGE_TAG
+            ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@prod.lation.app "sudo docker-compose -f lation-deploy-$IMAGE_TAG/combo/docker-compose.prod.yml up -d"
       - run:
           name: Cleanup
           command: |
