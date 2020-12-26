@@ -4,6 +4,6 @@ services:
     image: gocreating/lation:$IMAGE_TAG
     ports:
       # external port: internal port
-      - "80:8000"
+      - "443:8000"
     environment:
       - APP=combo
