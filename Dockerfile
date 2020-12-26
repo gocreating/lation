@@ -8,7 +8,7 @@ WORKDIR /app
 RUN apt-get update
 
 # for postgres
-RUN apt-get install -y libpq-dev gcc
+# RUN apt-get install -y libpq-dev gcc
 
 COPY ./lation/requirements.txt /app/lation/requirements.txt
 RUN pip install -r /app/lation/requirements.txt
