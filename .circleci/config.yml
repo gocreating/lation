@@ -90,7 +90,7 @@ jobs:
       # ACME Endpoints:
       # - production: https://acme-v02.api.letsencrypt.org/directory
       # - staging:    https://acme-staging-v02.api.letsencrypt.org/directory
-      ACME_SERVER: https://acme-staging-v02.api.letsencrypt.org/directory
+      ACME_SERVER: https://acme-v02.api.letsencrypt.org/directory
     steps:
       - run:
           name: Certbot
