@@ -24,6 +24,43 @@ jobs:
           root: ./my-persist-workspace
           paths:
             - persist-env-var.txt
+  prepare_certificates:
+    docker:
+      - image: circleci/python:3.8
+    environment:
+      SOURCE_PIPELINE_NUMBER: 45
+    steps:
+      - checkout
+      - run:
+          name: Install Dependencies
+          command: |
+            pip3 install -r lation/requirements.txt
+      - run:
+          name: Decrypt Google Drive API Credentials
+          command: |
+            APP=base python lation.py vault \
+              --password $VAULT_PASSWORD \
+              decrypt \
+                --src secrets/google-api-keys/lation-drive.json.encrypted \
+                --dest /tmp/lation-drive.json
+      - run:
+          name: Download Certificates
+          command: |
+            mkdir -p ./my-persist-workspace/certificates
+            APP=base python lation.py google-drive \
+                --credential-path /tmp/lation-drive.json \
+                download-file \
+                    --remote certificates/pipeline-$SOURCE_PIPELINE_NUMBER/$CERTBOT_ROOT_DOMAIN/fullchain1.pem \
+                    --local my-persist-workspace/certificates
+            APP=base python lation.py google-drive \
+                --credential-path /tmp/lation-drive.json \
+                download-file \
+                    --remote certificates/pipeline-$SOURCE_PIPELINE_NUMBER/$CERTBOT_ROOT_DOMAIN/privkey1.pem \
+                    --local my-persist-workspace/certificates
+      - persist_to_workspace:
+          root: ./my-persist-workspace
+          paths:
+            - certificates
   release_image:
     docker:
       - image: circleci/python:3.8
@@ -33,9 +70,10 @@ jobs:
           at: ./my-persist-workspace
       - setup_remote_docker
       - run:
-          name: Retrieve Persisted Environment Variable
+          name: Retrieve Persisted Environment Variables and Certificates
           command: |
             cat ./my-persist-workspace/persist-env-var.txt >> $BASH_ENV
+            cp ./my-persist-workspace/certificates/* ./deploy/certificates
       - run:
           name: Build Docker Image
           command: |
@@ -161,9 +199,14 @@ workflows:
           filters:
             branches:
               only: master
+      - prepare_certificates:
+          filters:
+            branches:
+              only: master
       - release_image:
           requires:
             - setup_environment_variable
+            - prepare_certificates
           filters:
             branches:
               only: master
