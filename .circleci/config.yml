@@ -1,11 +1,10 @@
 version: 2.1
 jobs:
-  build:
+  setup_environment_variable:
     docker:
       - image: circleci/python:3.8
     steps:
       - checkout
-      - setup_remote_docker
       - run:
           name: Setup Environment Variable
           command: |
@@ -13,6 +12,21 @@ jobs:
             mkdir -p ./my-persist-workspace
             touch ./my-persist-workspace/persist-env-var.txt
             echo "export IMAGE_TAG=$TAG" > ./my-persist-workspace/persist-env-var.txt
+      - persist_to_workspace:
+          root: ./my-persist-workspace
+          paths:
+            - persist-env-var.txt
+  release_image:
+    docker:
+      - image: circleci/python:3.8
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ./my-persist-workspace
+      - setup_remote_docker
+      - run:
+          name: Retrieve Persisted Environment Variable
+          command: |
             cat ./my-persist-workspace/persist-env-var.txt >> $BASH_ENV
       - run:
           name: Build Docker Image
@@ -28,8 +42,19 @@ jobs:
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASS
             docker push gocreating/lation
+  deploy_prod:
+    docker:
+      - image: circleci/python:3.8
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ./my-persist-workspace
       - run:
-          name: Deploy
+          name: Retrieve Persisted Environment Variable
+          command: |
+            cat ./my-persist-workspace/persist-env-var.txt >> $BASH_ENV
+      - run:
+          name: Setup SSH
           command: |
             # prepare envsubst
             sudo apt-get install -y gettext-base
@@ -38,15 +63,34 @@ jobs:
             # `cat secrets/instance-keys/oracle-cloud | base64 -w 0`
             echo $DEPLOY_SERVER_PRIVATE_KEY_BASE64 | base64 -d > /tmp/deploy_server_id_rsa
             chmod 400 /tmp/deploy_server_id_rsa
-
+      - run:
+          name: Deploy with SSH
+          command: |
             envsubst < ./deploy/combo/docker-compose.prod.yml > /tmp/docker-compose.prod.yml
             cp /tmp/docker-compose.prod.yml ./deploy/combo/docker-compose.prod.yml
 
             scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@prod.lation.app:/home/ubuntu/lation-deploy-$CIRCLE_BUILD_NUM
             ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@prod.lation.app "sudo docker-compose -f lation-deploy-$CIRCLE_BUILD_NUM/combo/docker-compose.prod.yml up -d"
-
+      - run:
+          name: Cleanup
+          command: |
             rm -rf /tmp/deploy_server_id_rsa
-      - persist_to_workspace:
-          root: ./my-persist-workspace
-          paths:
-            - persist-env-var.txt
+
+workflows:
+  version: 2
+  build_image_and_deploy:
+    jobs:
+      - setup_environment_variable
+      - release_image:
+          requires:
+            - setup_environment_variable
+          filters:
+            branches:
+              only: master
+      - deploy_prod:
+          requires:
+            - setup_environment_variable
+            - release_image
+          filters:
+            branches:
+              only: master
