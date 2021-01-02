@@ -26,10 +26,11 @@ Add following to `~/.zshrc`
 export PYENV_VIRTUALENV_DISABLE_PROMPT=1
 ```
 
+Install python:
+
 ``` bash
 # for ubuntu, following are required to install
-sudo apt-get install -y zlib1g-dev openssl libssl-dev libbz2-dev libreadline-dev libsqlite3-dev libffi-dev
-sudo apt-get install -y libpq-dev # for postgres
+sudo apt-get install -y zlib1g-dev openssl libssl-dev libbz2-dev libreadline-dev libsqlite3-dev libffi-dev build-essential
 pyenv install 3.8.5
 ```
 
