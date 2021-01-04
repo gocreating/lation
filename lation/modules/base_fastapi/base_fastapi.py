@@ -1,6 +1,7 @@
 import os
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 class Liveness(BaseModel):
@@ -13,6 +14,11 @@ class Version(BaseModel):
 class BaseFastAPI(FastAPI):
     def __init__(self):
         super().__init__()
+        self.add_middleware(CORSMiddleware,
+                            allow_origins=['*'],
+                            allow_credentials=True,
+                            allow_methods=['*'],
+                            allow_headers=['*'])
 
         @self.get('/', response_model=Liveness)
         def liveness():
