@@ -87,7 +87,7 @@ jobs:
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASS
             docker push gocreating/lation
-  deploy_prod:
+  deploy_combo_prod:
     docker:
       - image: circleci/python:3.8
     steps:
@@ -114,8 +114,41 @@ jobs:
             envsubst < ./deploy/combo/docker-compose.prod.yml > /tmp/docker-compose.prod.yml
             cp /tmp/docker-compose.prod.yml ./deploy/combo/docker-compose.prod.yml
 
-            scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@prod.lation.app:/home/ubuntu/lation-deploy-$IMAGE_TAG
-            ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@prod.lation.app "sudo docker-compose -f lation-deploy-$IMAGE_TAG/combo/docker-compose.prod.yml up -d"
+            scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@prod.lation.app:/home/ubuntu/lation-deploy-combo-$IMAGE_TAG
+            ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@prod.lation.app "sudo docker-compose -f lation-deploy-combo-$IMAGE_TAG/combo/docker-compose.prod.yml up -d"
+      - run:
+          name: Cleanup
+          command: |
+            rm -rf /tmp/deploy_server_id_rsa
+  deploy_stock_prod:
+    docker:
+      - image: circleci/python:3.8
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ./my-persist-workspace
+      - run:
+          name: Retrieve Persisted Environment Variable
+          command: |
+            cat ./my-persist-workspace/persist-env-var.txt >> $BASH_ENV
+      - run:
+          name: Setup SSH
+          command: |
+            # prepare envsubst
+            sudo apt-get install -y gettext-base
+
+            # please transform the private key into base64 format with following command, and save it into ci server's environment variable
+            # `cat secrets/instance-keys/oracle-cloud | base64 -w 0`
+            echo $DEPLOY_SERVER_PRIVATE_KEY_BASE64 | base64 -d > /tmp/deploy_server_id_rsa
+            chmod 400 /tmp/deploy_server_id_rsa
+      - run:
+          name: Deploy with SSH
+          command: |
+            envsubst < ./deploy/stock/docker-compose.prod.yml > /tmp/docker-compose.prod.yml
+            cp /tmp/docker-compose.prod.yml ./deploy/stock/docker-compose.prod.yml
+
+            scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@prod.lation.app:/home/ubuntu/lation-deploy-stock-$IMAGE_TAG
+            ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@prod.lation.app "sudo docker-compose -f lation-deploy-stock-$IMAGE_TAG/stock/docker-compose.prod.yml up -d"
       - run:
           name: Cleanup
           command: |
@@ -210,8 +243,27 @@ workflows:
           filters:
             branches:
               only: master
-      - deploy_prod:
+      - request_deploy_combo_prod:
+          type: approval
+          filters:
+            branches:
+              only: master
+      - deploy_combo_prod:
           requires:
+            - request_deploy_combo_prod
+            - setup_environment_variable
+            - release_image
+          filters:
+            branches:
+              only: master
+      - request_deploy_stock_prod:
+          type: approval
+          filters:
+            branches:
+              only: master
+      - deploy_stock_prod:
+          requires:
+            - request_deploy_stock_prod
             - setup_environment_variable
             - release_image
           filters:
