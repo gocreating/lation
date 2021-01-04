@@ -1,0 +1,9 @@
+version: "3"
+services:
+  combo:
+    image: gocreating/lation:$IMAGE_TAG
+    ports:
+      # external port: internal port
+      - "5555:8000"
+    environment:
+      - APP=stock
