@@ -57,8 +57,8 @@ pip3 install -r lation/requirements.txt
 
 ``` bash
 chmod 400 ./secrets/instance-keys/oracle-cloud
-ssh -i ./secrets/instance-keys/oracle-cloud ubuntu@dev.lation.app
-ssh -i ./secrets/instance-keys/oracle-cloud ubuntu@prod.lation.app
+ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubuntu@dev.lation.app
+ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubuntu@prod.lation.app
 ```
 
 ## Postgres Sequence Issue when id exists
