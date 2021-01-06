@@ -7,3 +7,5 @@ services:
       - "5555:8000"
     environment:
       - APP=stock
+      - SMTP_USER=$SMTP_USER
+      - SMTP_PASSWORD=$SMTP_PASSWORD

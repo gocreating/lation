@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from fastapi import APIRouter
 from wordcloud import WordCloud
 
+from lation.modules.base.models.notification import Notification
 from lation.modules.base.ptt_client import PttClient
 
 router = APIRouter()
@@ -43,3 +44,9 @@ async def ptt_crawler(board: str, search: str):
                    font_path=str((Path(__file__).parent / '../data/TaipeiSansTCBeta-Regular.ttf').resolve())).generate(' '.join(cut_words))
     wc.to_file((Path(__file__).parent / '../static/latest-push-content-cut-words.png').resolve())
     return cut_words
+
+@router.get('/test-smtp', tags=['misc'])
+async def test_smtp():
+    notification = Notification()
+    notification.send_email((Path(__file__).parent / '../data/email_template.html').resolve())
+    return None
