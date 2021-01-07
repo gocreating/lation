@@ -4,6 +4,7 @@ import os
 
 from sqlalchemy import create_engine, schema
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.schema import CreateSchema, DropSchema
 from sqlalchemy.types import JSON
 
 from lation.core.env import get_env
@@ -23,11 +24,9 @@ class Database():
         self.engine = create_engine(url)
         self.Session = sessionmaker(bind=self.engine)
         self.model_agnostic = model_agnostic
-        if model_agnostic:
-            metadata = schema.MetaData()
-            metadata.reflect(bind=self.engine)
-            self.metadata = metadata
-        else:
+        existing_metadata = schema.MetaData()
+        existing_metadata.reflect(bind=self.engine, schema=APP)
+        self.existing_metadata = existing_metadata
             self.metadata = Base.metadata
         self.fs = FileSystem()
         self.logger = create_logger()
@@ -35,7 +34,7 @@ class Database():
     def get_table_from_file_path(self, file_path):
         filename = os.path.basename(file_path)
         table_name = os.path.splitext(filename)[0]
-        return self.metadata.tables[table_name]
+        return self.metadata.tables[f'{APP}.{table_name}']
 
     def is_json_column(self, column):
         return isinstance(column.type, JSON)
@@ -55,20 +54,23 @@ class Database():
                     writer.writerow(row_dict)
             self.logger.info(f'EXPORT TABLE {table.name} DONE')
 
-    def reset(self):
-        file_paths = modules[APP].config.data
-        session = self.Session()
-        if self.model_agnostic:
-            for table in reversed(self.metadata.sorted_tables):
-                session.execute(table.delete())
-                self.logger.info(f'DELETE TABLE {table.name}')
-            self.logger.info(f'DELETE TABLES FLUSHED')
-        else:
-            self.metadata.drop_all(self.engine)
-            self.logger.info(f'DROP TABLES DONE')
-            self.metadata.create_all(self.engine)
-            self.logger.info(f'CREATE TABLES DONE')
+    def drop_schema(self, schema_name):
+        self.engine.execute(DropSchema(schema_name))
+    
+    def create_schema(self, schema_name):
+        self.engine.execute(CreateSchema(schema_name))
 
+    def drop_tables(self):
+        self.existing_metadata.drop_all(self.engine)
+
+    def create_tables(self):
+            self.metadata.create_all(self.engine)
+
+    def install_data(self, module_name):
+        for parent_module in modules[module_name].parent_modules:
+            self.install_data(parent_module.name)
+        file_paths = modules[module_name].config.data
+        session = self.Session()
         for file_path in file_paths:
             table = self.get_table_from_file_path(file_path)
             json_column_names = [column.name for column in table.columns if self.is_json_column(column)]
@@ -96,3 +98,11 @@ class Database():
         self.logger.info(f'IMPORT TABLES COMMIT...')
         session.commit()
         self.logger.info(f'IMPORT TABLES COMMITTED')
+
+    def reset(self):
+        if self.engine.dialect.has_schema(self.engine, schema=APP):
+            self.drop_tables()
+            self.drop_schema(APP)
+        self.create_schema(APP)
+        self.create_tables()
+        self.install_data(APP)
