@@ -27,7 +27,7 @@ class Database():
         existing_metadata = schema.MetaData()
         existing_metadata.reflect(bind=self.engine, schema=APP)
         self.existing_metadata = existing_metadata
-            self.metadata = Base.metadata
+        self.metadata = Base.metadata
         self.fs = FileSystem()
         self.logger = create_logger()
 
@@ -64,7 +64,7 @@ class Database():
         self.existing_metadata.drop_all(self.engine)
 
     def create_tables(self):
-            self.metadata.create_all(self.engine)
+        self.metadata.create_all(self.engine)
 
     def install_data(self, module_name):
         for parent_module in modules[module_name].parent_modules:
