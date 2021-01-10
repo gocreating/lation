@@ -2,15 +2,20 @@ from pathlib import Path
 
 import jieba
 from bs4 import BeautifulSoup
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from wordcloud import WordCloud
 
+from lation.modules.base.cache import CacheRegistry, MemoryCache
 from lation.modules.base.models.notification import Notification
 from lation.modules.base.ptt_client import PttClient
 
 router = APIRouter()
 
 jieba.set_dictionary((Path(__file__).parent / '../data/dict.txt.big.txt').resolve())
+
+def memory_cache():
+    from lation.modules.stock.app import StockFastApp
+    return CacheRegistry.get(StockFastApp.CACHE_KEY)
 
 def get_first_matched_link(html):
     soup = BeautifulSoup(html, 'html.parser')
@@ -31,7 +36,11 @@ def get_cut_words(lines):
     return cut_words
 
 @router.get('/ptt/latest-push-content-cut-words', tags=['stock'])
-async def ptt_crawler(board: str, search: str):
+async def ptt_crawler(board: str, search: str, cache: MemoryCache = Depends(memory_cache)):
+    cached_response = cache.get('ptt')
+    if cached_response != None:
+        return cached_response
+
     ptt_client = PttClient()
     res = ptt_client.search(board, search)
     target_link = get_first_matched_link(res.text)
@@ -43,6 +52,7 @@ async def ptt_crawler(board: str, search: str):
                    background_color='white',
                    font_path=str((Path(__file__).parent / '../data/TaipeiSansTCBeta-Regular.ttf').resolve())).generate(' '.join(cut_words))
     wc.to_file((Path(__file__).parent / '../static/latest-push-content-cut-words.png').resolve())
+    cache.set('ptt', cut_words)
     return cut_words
 
 @router.get('/test-smtp', tags=['misc'])
