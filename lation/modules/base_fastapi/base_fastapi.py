@@ -4,6 +4,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from lation.core.database import Database
+from lation.core.env import get_env
+
+DB_URL = get_env('DB_URL')
+
+
 class Liveness(BaseModel):
     status: int
 
@@ -29,3 +35,12 @@ class BaseFastAPI(FastAPI):
             IMAGE_TAG = os.getenv('IMAGE_TAG')
             version = IMAGE_TAG if IMAGE_TAG else 'local'
             return {'status': 0, 'data': version}
+
+    def init_database(self):
+        @self.on_event('startup')
+        async def on_startup():
+            self.database = Database(url=DB_URL)
+
+        @self.on_event('shutdown')
+        async def on_shutdown():
+            pass

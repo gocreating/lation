@@ -3,11 +3,15 @@ from pathlib import Path
 import jieba
 from bs4 import BeautifulSoup
 from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 from wordcloud import WordCloud
 
 from lation.modules.base.cache import CacheRegistry, MemoryCache
 from lation.modules.base.models.notification import Notification
 from lation.modules.base.ptt_client import PttClient
+from lation.modules.base_fastapi.dependencies.session import session
+from lation.modules.stock.models.user import User
+from lation.modules.stock.routers import schemas
 
 router = APIRouter()
 
@@ -60,3 +64,10 @@ async def test_smtp():
     notification = Notification()
     notification.send_email((Path(__file__).parent / '../data/email_template.html').resolve())
     return None
+
+@router.post('/users', tags=['misc'], response_model=schemas.User)
+async def create_user(user: schemas.UserCreate, session: Session = Depends(session)):
+    user = User(provider=user.provider)
+    session.add(user)
+    session.commit()
+    return user

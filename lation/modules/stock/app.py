@@ -14,10 +14,11 @@ class StockFastApp(BaseFastAPI):
 
     def __init__(self):
         super().__init__()
+        super().init_database()
         self.mount('/static', StaticFiles(directory=(Path(__file__).parent / './static').resolve()), name='static')
         self.include_router(ptt.router)
         self.init_cache_registry()
-    
+
     def init_cache_registry(self):
         cls = self.__class__
 

@@ -21,8 +21,8 @@ class Database():
                        model_agnostic=False):
         if not url:
             url = f'{dialect}+{driver}://{username}:{password}@{host}:{port}/{database}'
-        self.engine = create_engine(url)
-        self.Session = sessionmaker(bind=self.engine)
+        self.engine = create_engine(url, pool_size=1)
+        self.Session = sessionmaker(bind=self.engine, autoflush=False, autocommit=False)
         self.model_agnostic = model_agnostic
         existing_metadata = schema.MetaData()
         existing_metadata.reflect(bind=self.engine, schema=APP)
@@ -30,6 +30,13 @@ class Database():
         self.metadata = Base.metadata
         self.fs = FileSystem()
         self.logger = create_logger()
+
+    def get_session(self):
+        try:
+            session = self.Session()
+            return session
+        finally:
+            session.close()
 
     def get_table_from_file_path(self, file_path):
         filename = os.path.basename(file_path)
@@ -70,7 +77,7 @@ class Database():
         for parent_module in modules[module_name].parent_modules:
             self.install_data(parent_module.name)
         file_paths = modules[module_name].config.data
-        session = self.Session()
+        session = self.get_session()
         for file_path in file_paths:
             table = self.get_table_from_file_path(file_path)
             json_column_names = [column.name for column in table.columns if self.is_json_column(column)]
