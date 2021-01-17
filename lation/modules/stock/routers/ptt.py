@@ -2,14 +2,15 @@ from pathlib import Path
 
 import jieba
 from bs4 import BeautifulSoup
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from wordcloud import WordCloud
 
 from lation.modules.base.cache import CacheRegistry, MemoryCache
 from lation.modules.base.models.notification import Notification
 from lation.modules.base.ptt_client import PttClient
-from lation.modules.base_fastapi.dependencies.session import session
+from lation.modules.base_fastapi.decorators import managed_transaction
+from lation.modules.base_fastapi.dependencies import get_session
 from lation.modules.stock.models.user import User
 from lation.modules.stock.routers import schemas
 
@@ -66,8 +67,10 @@ async def test_smtp():
     return None
 
 @router.post('/users', tags=['misc'], response_model=schemas.User)
-async def create_user(user: schemas.UserCreate, session: Session = Depends(session)):
+@managed_transaction
+async def create_user(user: schemas.UserCreate, session: Session = Depends(get_session)):
     user = User(provider=user.provider)
     session.add(user)
-    session.commit()
+    if user.provider == 'error':
+        raise HTTPException(status_code=403)
     return user

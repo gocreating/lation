@@ -74,6 +74,9 @@ class Database():
     def create_tables(self):
         self.metadata.create_all(self.engine)
 
+    def dispose(self):
+        self.engine.dispose()
+
     def install_data(self, module_name):
         for parent_module in modules[module_name].parent_modules:
             self.install_data(parent_module.name)
