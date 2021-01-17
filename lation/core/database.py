@@ -3,7 +3,7 @@ import csv
 import os
 
 from sqlalchemy import create_engine, schema
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.schema import CreateSchema, DropSchema
 from sqlalchemy.types import JSON
 
@@ -22,7 +22,8 @@ class Database():
         if not url:
             url = f'{dialect}+{driver}://{username}:{password}@{host}:{port}/{database}'
         self.engine = create_engine(url, pool_size=1)
-        self.Session = sessionmaker(bind=self.engine, autoflush=False, autocommit=False)
+        SessionFactory = sessionmaker(bind=self.engine, autoflush=False, autocommit=False)
+        self.Session = scoped_session(SessionFactory)
         self.model_agnostic = model_agnostic
         existing_metadata = schema.MetaData()
         existing_metadata.reflect(bind=self.engine, schema=APP)
@@ -63,7 +64,7 @@ class Database():
 
     def drop_schema(self, schema_name):
         self.engine.execute(DropSchema(schema_name))
-    
+
     def create_schema(self, schema_name):
         self.engine.execute(CreateSchema(schema_name))
 
