@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from lation.core.database import Database
+from lation.core.database.database import Database
 from lation.core.env import get_env
 from lation.modules.base_fastapi.routers import system
 
