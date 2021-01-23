@@ -8,7 +8,7 @@ from wordcloud import WordCloud
 
 from lation.modules.base.cache import CacheRegistry, MemoryCache
 from lation.modules.base.models.notification import Notification
-from lation.modules.base.ptt_client import PttClient
+from lation.modules.base.http_client import PttWebClient
 from lation.modules.base_fastapi.decorators import managed_transaction
 from lation.modules.base_fastapi.dependencies import get_session
 from lation.modules.stock.models.user import User
@@ -46,10 +46,10 @@ async def ptt_crawler(board: str, search: str, cache: MemoryCache = Depends(memo
     if cached_response != None:
         return cached_response
 
-    ptt_client = PttClient()
-    res = ptt_client.search(board, search)
+    ptt_web_client = PttWebClient()
+    res = ptt_web_client.search(board, search)
     target_link = get_first_matched_link(res.text)
-    res = ptt_client.get(target_link)
+    res = ptt_web_client.get(target_link)
     push_contents = get_push_contents(res.text)
     lines = [push_content.getText()[2:] for push_content in push_contents]
     cut_words = get_cut_words(lines)
