@@ -28,14 +28,13 @@ class OAuth2:
 class AuthorizationCodeProvider(OAuth2):
 
     def __init__(self,
-                 client_id:str, client_secret:str,
-                 authorization_endpoint:str, token_endpoint:str,
-                 redirect_uri:str, userinfo_endpoint:str=None):
+                 client_id:str, client_secret:str, redirect_uri:str,
+                 authorization_endpoint:str=None, token_endpoint:str=None, userinfo_endpoint:str=None):
         self.client_id = client_id
         self.client_secret = client_secret
+        self.redirect_uri = redirect_uri
         self.authorization_endpoint = authorization_endpoint
         self.token_endpoint = token_endpoint
-        self.redirect_uri = redirect_uri
         self.userinfo_endpoint = userinfo_endpoint
 
     def get_authorization_url(self, scope:str=None, state:str=None, **kwargs) -> str:
@@ -61,6 +60,9 @@ class AuthorizationCodeProvider(OAuth2):
             'client_id': self.client_id,
             'client_secret': self.client_secret,
         })
+        # TODO: check status code
+        if 'error' in data:
+            raise Exception(data['error'])
         return data
 
     def request_resource(self, url:str, token_data:dict) -> dict:
@@ -85,6 +87,14 @@ class GoogleScheme(AuthorizationCodeProvider):
     class AccessTypeEnum(enum.Enum):
         OFFLINE = 'offline'
         ONLINE = 'online'
+
+    def __init__(self, client_id:str, client_secret:str, redirect_uri:str):
+        super().__init__(client_id=client_id,
+                         client_secret=client_secret,
+                         redirect_uri=redirect_uri,
+                         authorization_endpoint='https://accounts.google.com/o/oauth2/v2/auth',
+                         token_endpoint='https://oauth2.googleapis.com/token',
+                         userinfo_endpoint='https://openidconnect.googleapis.com/v1/userinfo')
 
     def get_authorization_url(self,
                               *args,
@@ -111,9 +121,9 @@ class GoogleScheme(AuthorizationCodeProvider):
         return {
             'access_token': data['access_token'],
             'token_type': data['token_type'],
-            'refresh_token': data['refresh_token'],
             'expires_in': data['expires_in'],
             'scope': data['scope'],
+            'refresh_token': data.get('refresh_token'),
         }
 
     def request_userinfo(self, token_data:dict) -> dict:
@@ -136,6 +146,14 @@ class LineScheme(AuthorizationCodeProvider):
         OPENID = (0, 'openid')
         PROFILE = (1, 'profile')
         EMAIL = (2, 'email')
+
+    def __init__(self, client_id:str, client_secret:str, redirect_uri:str):
+        super().__init__(client_id=client_id,
+                         client_secret=client_secret,
+                         redirect_uri=redirect_uri,
+                         authorization_endpoint='https://access.line.me/oauth2/v2.1/authorize',
+                         token_endpoint='https://api.line.me/oauth2/v2.1/token',
+                         userinfo_endpoint='https://api.line.me/v2/profile')
 
     def get_authorization_url(self,
                               *args,
@@ -162,8 +180,6 @@ class LineScheme(AuthorizationCodeProvider):
 
     def request_token(self, code:str) -> dict:
         data = super().request_token(code)
-        if 'error' in data:
-            raise Exception(data['error'])
         return {
             'access_token': data['access_token'],
             'token_type': data['token_type'],
