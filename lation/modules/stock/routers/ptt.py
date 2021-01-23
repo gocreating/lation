@@ -8,10 +8,10 @@ from wordcloud import WordCloud
 
 from lation.modules.base.cache import CacheRegistry, MemoryCache
 from lation.modules.base.models.notification import Notification
-from lation.modules.base.http_client import PttWebClient
 from lation.modules.base_fastapi.decorators import managed_transaction
 from lation.modules.base_fastapi.dependencies import get_session
 from lation.modules.stock.models.user import User
+from lation.modules.stock.ptt_web_client import PttWebClient
 from lation.modules.stock.routers import schemas
 
 router = APIRouter()

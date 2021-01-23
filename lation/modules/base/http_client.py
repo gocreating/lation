@@ -25,10 +25,24 @@ class HttpClient:
         action = getattr(requests, http_verb.value)
         return action(url, *args, **kwargs)
 
+    @staticmethod
+    def get_url(url:str, *args, params:dict=None, **kwargs) -> Response:
+        return HttpClient.request_url(HttpClient.VerbEnum.GET, url, *args, params=params, **kwargs)
+
+    @staticmethod
+    def post_url(url:str, *args, data:dict=None, **kwargs) -> Response:
+        return HttpClient.request_url(HttpClient.VerbEnum.POST, url, *args, data=data, **kwargs)
+
+    @staticmethod
+    def post_url_json(url:str, *args, **kwargs) -> dict:
+        res = HttpClient.post_url(url, *args, **kwargs)
+        data = res.json()
+        return data
+
     def __init__(self, host=None):
         self.host = host
 
-    def get_url(self, path_or_url:str) -> str:
+    def render_url(self, path_or_url:str) -> str:
         if HttpClient.is_valid_url(path_or_url):
             return path_or_url
         else:
@@ -36,26 +50,13 @@ class HttpClient:
                 raise Exception(f'Host cannot be empty when requesting path: {path_or_url}')
             return f'{self.host}{path_or_url}'
 
-    def request(self, http_verb:VerbEnum, path_or_url:str, *args, **kwargs) -> Response:
-        url = self.get_url(path_or_url)
-        return HttpClient.request_url(http_verb, url, *args, **kwargs)
+    def get(self, path_or_url:str, *args, **kwargs) -> Response:
+        return HttpClient.get_url(self.render_url(path_or_url), *args, **kwargs)
 
-    def get(self, path_or_url:str, params:dict=None, **kwargs) -> Response:
-        return self.request(HttpClient.VerbEnum.GET, path_or_url, params=params, **kwargs)
+    def post(self, path_or_url:str, *args, **kwargs) -> Response:
+        return HttpClient.post_url(self.render_url(path_or_url), *args, **kwargs)
 
-    def post(self, path_or_url:str, data:dict=None, **kwargs) -> Response:
-        return self.request(HttpClient.VerbEnum.POST, path_or_url, data=data, **kwargs)
+    def post_json(self, path_or_url:str, *args, **kwargs) -> dict:
+        return HttpClient.post_url_json(self.render_url(path_or_url), *args, **kwargs)
 
-    def post_json(self, *args, **kwargs) -> dict:
-        response = self.post(*args, **kwargs)
-        data = response.json()
-        return data
-
-
-class PttWebClient(HttpClient):
-
-    def __init__(self):
-        super().__init__(host='https://www.ptt.cc')
-
-    def search(self, board:str, query_str:str) -> Response:
-        return self.get(f'/bbs/{board}/search', params={ 'q': query_str })
+Response = Response
