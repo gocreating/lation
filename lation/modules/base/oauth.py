@@ -3,13 +3,14 @@ import random
 from typing import List
 from urllib.parse import urlencode
 
+import jwt
 import requests
 from pydantic import BaseModel
 
 from lation.modules.base.http_client import HttpClient
 from lation.modules.base.schemas.oauth import \
-    GoogleAuthorizationSchema, GoogleTokenSchema, GoogleUserinfoSchema, \
-    LineAuthorizationSchema, LineTokenSchema, LineUserinfoSchema
+    GoogleAuthorizationSchema, GoogleTokenSchema, GoogleIdTokenPayloadSchema, GoogleUserinfoSchema, \
+    LineAuthorizationSchema, LineTokenSchema, LineIdTokenPayloadSchema, LineUserinfoSchema
 
 class OAuth2:
 
@@ -69,6 +70,9 @@ class AuthorizationCodeProvider(OAuth2):
             raise Exception(data['error'])
         return data
 
+    def decode_id_token(self, id_token:str) -> BaseModel:
+        raise NotImplementedError
+
     def request_resource(self, url:str, token_data:BaseModel) -> dict:
         data = HttpClient.post_url_json(url, headers={
             'Authorization': f'{token_data.token_type} {token_data.access_token}',
@@ -122,6 +126,10 @@ class GoogleScheme(AuthorizationCodeProvider):
         dict_data = super().request_token_by_code(auth_data.code)
         return GoogleTokenSchema(**dict_data)
 
+    def decode_id_token(self, id_token:str) -> GoogleIdTokenPayloadSchema:
+        payload = jwt.decode(id_token, algorithm='HS256', options={'verify_signature': False})
+        return GoogleIdTokenPayloadSchema(**payload)
+
     def request_userinfo(self, token_data:GoogleTokenSchema) -> GoogleUserinfoSchema:
         dict_data = super().request_userinfo(token_data)
         return GoogleUserinfoSchema(**dict_data)
@@ -162,6 +170,10 @@ class LineScheme(AuthorizationCodeProvider):
     def request_token(self, auth_data:LineAuthorizationSchema) -> LineTokenSchema:
         dict_data = super().request_token_by_code(auth_data.code)
         return LineTokenSchema(**dict_data)
+
+    def decode_id_token(self, id_token:str) -> LineIdTokenPayloadSchema:
+        payload = jwt.decode(id_token, algorithm='HS256', options={'verify_signature': False})
+        return LineIdTokenPayloadSchema(**payload)
 
     def request_userinfo(self, token_data:LineTokenSchema) -> LineUserinfoSchema:
         dict_data = super().request_userinfo(token_data)
