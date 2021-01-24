@@ -4,8 +4,12 @@ from typing import List
 from urllib.parse import urlencode
 
 import requests
+from pydantic import BaseModel
 
 from lation.modules.base.http_client import HttpClient
+from lation.modules.base.schemas.oauth import \
+    GoogleAuthorizationSchema, GoogleTokenSchema, GoogleUserinfoSchema, \
+    LineAuthorizationSchema, LineTokenSchema, LineUserinfoSchema
 
 class OAuth2:
 
@@ -52,7 +56,7 @@ class AuthorizationCodeProvider(OAuth2):
     def handle_authorization_response(self, *args, **kwargs):
         raise NotImplementedError
 
-    def request_token(self, code:str) -> dict:
+    def request_token_by_code(self, code:str) -> dict:
         data = HttpClient.post_url_json(self.token_endpoint, data={
             'grant_type': OAuth2.GrantTypeEnum.AUTHORIZATION_CODE.value,
             'code': code,
@@ -65,14 +69,13 @@ class AuthorizationCodeProvider(OAuth2):
             raise Exception(data['error'])
         return data
 
-    def request_resource(self, url:str, token_data:dict) -> dict:
-        token_type, access_token = token_data['token_type'], token_data['access_token']
+    def request_resource(self, url:str, token_data:BaseModel) -> dict:
         data = HttpClient.post_url_json(url, headers={
-            'Authorization': f'{token_type} {access_token}',
+            'Authorization': f'{token_data.token_type} {token_data.access_token}',
         })
         return data
 
-    def request_userinfo(self, token_data:dict) -> dict:
+    def request_userinfo(self, token_data:BaseModel) -> dict:
         return self.request_resource(self.userinfo_endpoint, token_data)
 
 
@@ -94,7 +97,7 @@ class GoogleScheme(AuthorizationCodeProvider):
                          redirect_uri=redirect_uri,
                          authorization_endpoint='https://accounts.google.com/o/oauth2/v2/auth',
                          token_endpoint='https://oauth2.googleapis.com/token',
-                         userinfo_endpoint='https://openidconnect.googleapis.com/v1/userinfo')
+                         userinfo_endpoint='https://openidconnect.googleapis.com/v1/userinfo') # alternative: 'https://www.googleapis.com/oauth2/v3/userinfo'
 
     def get_authorization_url(self,
                               *args,
@@ -109,35 +112,19 @@ class GoogleScheme(AuthorizationCodeProvider):
         return super().get_authorization_url(*args, **kwargs, scope=scope, access_type=access_type.value)
 
     def handle_authorization_response(self,
-                                      state:str=None, code:str=None, scope:str=None) -> dict:
-        return {
-            'state': state,
-            'code': code,
-            'scope': scope,
-        }
+                                      state:str=None, code:str=None, scope:str=None,
+                                      error:str=None) -> GoogleAuthorizationSchema:
+        if not code:
+            raise Exception(error)
+        return GoogleAuthorizationSchema(state=state, code=code, scope=scope)
 
-    def request_token(self, code:str) -> dict:
-        data = super().request_token(code)
-        return {
-            'access_token': data['access_token'],
-            'token_type': data['token_type'],
-            'expires_in': data['expires_in'],
-            'scope': data['scope'],
-            'refresh_token': data.get('refresh_token'),
-        }
+    def request_token(self, auth_data:GoogleAuthorizationSchema) -> GoogleTokenSchema:
+        dict_data = super().request_token_by_code(auth_data.code)
+        return GoogleTokenSchema(**dict_data)
 
-    def request_userinfo(self, token_data:dict) -> dict:
-        data = super().request_userinfo(token_data)
-        return {
-            'sub': data['sub'],
-            'name': data['name'],
-            'given_name': data['given_name'],
-            'family_name': data['family_name'],
-            'picture': data['picture'],
-            'email': data['email'],
-            'email_verified': data['email_verified'],
-            'locale': data['locale'],
-        }
+    def request_userinfo(self, token_data:GoogleTokenSchema) -> GoogleUserinfoSchema:
+        dict_data = super().request_userinfo(token_data)
+        return GoogleUserinfoSchema(**dict_data)
 
 
 class LineScheme(AuthorizationCodeProvider):
@@ -167,32 +154,15 @@ class LineScheme(AuthorizationCodeProvider):
     def handle_authorization_response(self,
                                       state:str=None,
                                       code:str=None, friendship_status_changed:bool=False,
-                                      error:str=None, error_description:str=None) -> dict:
-        if code:
-            # will receive `state`, `code`, and `friendship_status_changed`
-            return {
-                'code': code,
-                'friendship_status_changed': friendship_status_changed,
-            }
-        elif error:
-            # will receive `state`, `error`, and `error_description`
-            raise Exception(error)
+                                      error:str=None, error_description:str=None) -> LineAuthorizationSchema:
+        if not code:
+            raise Exception(f'{error}: {error_description}')
+        return LineAuthorizationSchema(code=code, state=state, friendship_status_changed=friendship_status_changed)
 
-    def request_token(self, code:str) -> dict:
-        data = super().request_token(code)
-        return {
-            'access_token': data['access_token'],
-            'token_type': data['token_type'],
-            'refresh_token': data['refresh_token'],
-            'expires_in': data['expires_in'],
-            'scope': data['scope'],
-            # 'id_token': data['id_token'],
-        }
+    def request_token(self, auth_data:LineAuthorizationSchema) -> LineTokenSchema:
+        dict_data = super().request_token_by_code(auth_data.code)
+        return LineTokenSchema(**dict_data)
 
-    def request_userinfo(self, token_data:dict) -> dict:
-        data = super().request_userinfo(token_data)
-        return {
-            'userId': data['userId'],
-            'displayName': data['displayName'],
-            'pictureUrl': data['pictureUrl'],
-        }
+    def request_userinfo(self, token_data:LineTokenSchema) -> LineUserinfoSchema:
+        dict_data = super().request_userinfo(token_data)
+        return LineUserinfoSchema(**dict_data)
