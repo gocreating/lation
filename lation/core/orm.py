@@ -2,6 +2,7 @@ import datetime
 
 from sqlalchemy import Column, ForeignKey, Integer, DateTime
 from sqlalchemy.ext.declarative import declarative_base, declared_attr, has_inherited_table
+from sqlalchemy.schema import MetaData
 from sqlalchemy.sql import func
 
 from lation.core.database.types import STRING_S_SIZE, String
@@ -69,4 +70,4 @@ class BaseClass:
     createdAt = Column(DateTime, index=True, server_default=func.now())
     updatedAt = Column(DateTime, index=True, server_default=func.now(), onupdate=func.now())
 
-Base = declarative_base(cls=BaseClass)
+Base = declarative_base(cls=BaseClass, metadata=MetaData(schema=APP))
