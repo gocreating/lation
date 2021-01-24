@@ -7,6 +7,7 @@ from lation.modules.base_fastapi.routers import system
 
 DB_URL = get_env('DB_URL')
 
+global_get_session = None
 
 class BaseFastAPI(FastAPI):
     def __init__(self):
@@ -21,7 +22,10 @@ class BaseFastAPI(FastAPI):
     def init_database(self):
         @self.on_event('startup')
         async def on_startup():
-            self.state.database = Database(url=DB_URL)
+            global global_get_session
+            database = Database(url=DB_URL)
+            global_get_session = database.get_session
+            self.state.database = database
 
         @self.on_event('shutdown')
         async def on_shutdown():
