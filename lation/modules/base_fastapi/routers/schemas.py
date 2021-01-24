@@ -1,8 +1,22 @@
+import enum
+from typing import Generic, Optional, TypeVar
+
 from pydantic import BaseModel
+from pydantic.generics import GenericModel
 
-class Liveness(BaseModel):
-    status: int
 
-class Version(BaseModel):
-    status: int
-    data: str
+DataT = TypeVar('DataT')
+
+class StatusEnum(int, enum.Enum):
+    SUCCESS = 0
+    FAILED = 1
+
+class Response(GenericModel, Generic[DataT]):
+    status: StatusEnum
+    data: Optional[DataT]
+
+class LivenessSchema(BaseModel):
+    pass
+
+class VersionSchema(BaseModel):
+    __root__: str
