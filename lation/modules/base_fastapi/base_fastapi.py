@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from lation.core.database.database import Database
 from lation.core.env import get_env
-from lation.modules.base_fastapi.routers import system
+from lation.modules.base_fastapi.routers import oauth, system
 
 
 DB_URL = get_env('DB_URL')
@@ -17,6 +17,7 @@ class BaseFastAPI(FastAPI):
                             allow_credentials=True,
                             allow_methods=['*'],
                             allow_headers=['*'])
+        self.include_router(oauth.router)
         self.include_router(system.router)
 
     def init_database(self):

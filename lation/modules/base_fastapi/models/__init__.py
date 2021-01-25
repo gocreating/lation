@@ -1,1 +1,1 @@
-from . import end_user
+from . import end_user, oauth_user

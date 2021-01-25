@@ -9,8 +9,10 @@ from pydantic import BaseModel
 
 from lation.modules.base.http_client import HttpClient
 from lation.modules.base.schemas.oauth import \
-    GoogleAuthorizationSchema, GoogleTokenSchema, GoogleIdTokenPayloadSchema, GoogleUserinfoSchema, \
-    LineAuthorizationSchema, LineTokenSchema, LineIdTokenPayloadSchema, LineUserinfoSchema
+    BaseAuthorizationSchema, BaseTokenSchema, BaseIdTokenPayloadSchema, BaseUserInfoSchema, \
+    GoogleAuthorizationSchema, GoogleTokenSchema, GoogleIdTokenPayloadSchema, GoogleUserInfoSchema, \
+    LineAuthorizationSchema, LineTokenSchema, LineIdTokenPayloadSchema, LineUserInfoSchema
+
 
 class OAuth2:
 
@@ -34,13 +36,12 @@ class AuthorizationCodeProvider(OAuth2):
 
     def __init__(self,
                  client_id:str, client_secret:str, redirect_uri:str,
-                 authorization_endpoint:str=None, token_endpoint:str=None, userinfo_endpoint:str=None):
+                 authorization_endpoint:str=None, token_endpoint:str=None):
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
         self.authorization_endpoint = authorization_endpoint
         self.token_endpoint = token_endpoint
-        self.userinfo_endpoint = userinfo_endpoint
 
     def get_authorization_url(self, scope:str=None, state:str=None, **kwargs) -> str:
         query = {
@@ -54,10 +55,10 @@ class AuthorizationCodeProvider(OAuth2):
         query.update(kwargs)
         return f'{self.authorization_endpoint}?{urlencode(query)}'
 
-    def handle_authorization_response(self, *args, **kwargs):
+    def handle_authorization_response(self, *args, **kwargs) -> BaseAuthorizationSchema:
         raise NotImplementedError
 
-    def request_token_by_code(self, code:str) -> dict:
+    def request_token_by_code(self, code:str) -> BaseTokenSchema:
         data = HttpClient.post_url_json(self.token_endpoint, data={
             'grant_type': OAuth2.GrantTypeEnum.AUTHORIZATION_CODE.value,
             'code': code,
@@ -70,20 +71,26 @@ class AuthorizationCodeProvider(OAuth2):
             raise Exception(data['error'])
         return data
 
-    def decode_id_token(self, id_token:str) -> BaseModel:
-        raise NotImplementedError
-
-    def request_resource(self, url:str, token_data:BaseModel) -> dict:
+    def request_restricted_resource(self, url:str, token:BaseTokenSchema) -> dict:
         data = HttpClient.post_url_json(url, headers={
-            'Authorization': f'{token_data.token_type} {token_data.access_token}',
+            'Authorization': f'{token.token_type} {token.access_token}',
         })
         return data
 
-    def request_userinfo(self, token_data:BaseModel) -> dict:
-        return self.request_resource(self.userinfo_endpoint, token_data)
+
+class OIDCProvider(AuthorizationCodeProvider):
+
+    def get_user_info_endpoint(self) -> str:
+        raise NotImplementedError
+
+    def decode_id_token(self, id_token:str) -> BaseIdTokenPayloadSchema:
+        raise NotImplementedError
+
+    def request_user_info(self, token:BaseTokenSchema) -> dict:
+        return self.request_restricted_resource(self.get_user_info_endpoint(), token)
 
 
-class GoogleScheme(AuthorizationCodeProvider):
+class GoogleScheme(OIDCProvider):
 
     # must begin with the openid value and then include the profile value, the email value, or both
     class ScopeEnum(enum.Enum):
@@ -100,8 +107,7 @@ class GoogleScheme(AuthorizationCodeProvider):
                          client_secret=client_secret,
                          redirect_uri=redirect_uri,
                          authorization_endpoint='https://accounts.google.com/o/oauth2/v2/auth',
-                         token_endpoint='https://oauth2.googleapis.com/token',
-                         userinfo_endpoint='https://openidconnect.googleapis.com/v1/userinfo') # alternative: 'https://www.googleapis.com/oauth2/v3/userinfo'
+                         token_endpoint='https://oauth2.googleapis.com/token')
 
     def get_authorization_url(self,
                               *args,
@@ -122,20 +128,24 @@ class GoogleScheme(AuthorizationCodeProvider):
             raise Exception(error)
         return GoogleAuthorizationSchema(state=state, code=code, scope=scope)
 
-    def request_token(self, auth_data:GoogleAuthorizationSchema) -> GoogleTokenSchema:
-        dict_data = super().request_token_by_code(auth_data.code)
+    def request_token(self, auth:GoogleAuthorizationSchema) -> GoogleTokenSchema:
+        dict_data = super().request_token_by_code(auth.code)
         return GoogleTokenSchema(**dict_data)
 
     def decode_id_token(self, id_token:str) -> GoogleIdTokenPayloadSchema:
         payload = jwt.decode(id_token, algorithm='HS256', options={'verify_signature': False})
         return GoogleIdTokenPayloadSchema(**payload)
 
-    def request_userinfo(self, token_data:GoogleTokenSchema) -> GoogleUserinfoSchema:
-        dict_data = super().request_userinfo(token_data)
-        return GoogleUserinfoSchema(**dict_data)
+    def get_user_info_endpoint(self) -> str:
+        # or alternative: 'https://www.googleapis.com/oauth2/v3/userinfo'
+        return 'https://openidconnect.googleapis.com/v1/userinfo'
+
+    def request_user_info(self, token:GoogleTokenSchema) -> GoogleUserInfoSchema:
+        dict_data = super().request_user_info(token)
+        return GoogleUserInfoSchema(**dict_data)
 
 
-class LineScheme(AuthorizationCodeProvider):
+class LineScheme(OIDCProvider):
 
     class ScopeEnum(enum.Enum):
         OPENID = (0, 'openid')
@@ -147,8 +157,7 @@ class LineScheme(AuthorizationCodeProvider):
                          client_secret=client_secret,
                          redirect_uri=redirect_uri,
                          authorization_endpoint='https://access.line.me/oauth2/v2.1/authorize',
-                         token_endpoint='https://api.line.me/oauth2/v2.1/token',
-                         userinfo_endpoint='https://api.line.me/v2/profile')
+                         token_endpoint='https://api.line.me/oauth2/v2.1/token')
 
     def get_authorization_url(self,
                               *args,
@@ -167,14 +176,17 @@ class LineScheme(AuthorizationCodeProvider):
             raise Exception(f'{error}: {error_description}')
         return LineAuthorizationSchema(code=code, state=state, friendship_status_changed=friendship_status_changed)
 
-    def request_token(self, auth_data:LineAuthorizationSchema) -> LineTokenSchema:
-        dict_data = super().request_token_by_code(auth_data.code)
+    def request_token(self, auth:LineAuthorizationSchema) -> LineTokenSchema:
+        dict_data = super().request_token_by_code(auth.code)
         return LineTokenSchema(**dict_data)
 
     def decode_id_token(self, id_token:str) -> LineIdTokenPayloadSchema:
         payload = jwt.decode(id_token, algorithm='HS256', options={'verify_signature': False})
         return LineIdTokenPayloadSchema(**payload)
 
-    def request_userinfo(self, token_data:LineTokenSchema) -> LineUserinfoSchema:
-        dict_data = super().request_userinfo(token_data)
-        return LineUserinfoSchema(**dict_data)
+    def get_user_info_endpoint(self) -> str:
+        return 'https://api.line.me/v2/profile'
+
+    def request_user_info(self, token:LineTokenSchema) -> LineUserInfoSchema:
+        dict_data = super().request_user_info(token)
+        return LineUserInfoSchema(**dict_data)

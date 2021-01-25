@@ -5,6 +5,7 @@ from sqlalchemy.ext.declarative import declarative_base, declared_attr, has_inhe
 from sqlalchemy.schema import MetaData
 from sqlalchemy.sql import func
 
+from lation.core.database.database import Database
 from lation.core.database.types import STRING_S_SIZE, String
 from lation.core.env import get_env
 
@@ -53,7 +54,6 @@ class SingleTableInheritanceMixin:
 
 # https://docs.sqlalchemy.org/en/14/orm/declarative_mixins.html#augmenting-the-base
 class BaseClass:
-    __table_args__ = {'schema': APP}
 
     # https://docs.sqlalchemy.org/en/13/orm/extensions/declarative/api.html#sqlalchemy.ext.declarative.declared_attr.cascading
     @declared_attr.cascading
@@ -70,4 +70,4 @@ class BaseClass:
     createdAt = Column(DateTime, index=True, server_default=func.now())
     updatedAt = Column(DateTime, index=True, server_default=func.now(), onupdate=func.now())
 
-Base = declarative_base(cls=BaseClass, metadata=MetaData(schema=APP))
+Base = declarative_base(cls=BaseClass, metadata=Database.get_metadata())

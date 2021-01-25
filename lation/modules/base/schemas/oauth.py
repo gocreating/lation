@@ -1,37 +1,70 @@
 import enum
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel
+
+
+"""
+Base OAuth
+"""
+
+class BaseAuthorizationSchema(BaseModel):
+    code: str
+    state: Optional[str]
+
+class BaseTokenSchema(BaseModel):
+    access_token: str
+    token_type: str
+    expires_in: Optional[int]
+    refresh_token: Optional[str]
+    scope: Optional[str]
+
+
+"""
+Base OIDC
+"""
+
+# https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
+class BaseIdTokenSchema(BaseModel):
+    id_token: str
+
+# https://openid.net/specs/openid-connect-core-1_0.html#IDToken
+class BaseIdTokenPayloadSchema(BaseModel):
+    iss: str
+    sub: str
+    aud: str
+    exp: int
+    iat: int
+
+    auth_time: Optional[int]
+    nonce: Optional[str]
+    acr: Optional[str]
+    amr: Optional[List[str]]
+    azp: Optional[str]
+
+    at_hash: Optional[str]
+    c_hash: Optional[str]
+
+class BaseUserInfoSchema(BaseModel):
+    pass
 
 
 """
 Google
 """
 
-class GoogleAuthorizationSchema(BaseModel):
-    state: str
-    code: str
-    scope: str
+# https://developers.google.com/identity/protocols/oauth2/openid-connect#confirmxsrftoken
+class GoogleAuthorizationSchema(BaseAuthorizationSchema):
+    scope: Optional[str]
 
 # https://developers.google.com/identity/protocols/oauth2/openid-connect#exchangecode
-class GoogleTokenSchema(BaseModel):
-    access_token: str
-    expires_in: int
-    id_token: str
-    scope: str
-    token_type: str
-    refresh_token: Optional[str] = None
+class GoogleTokenSchema(BaseTokenSchema, BaseIdTokenSchema):
+    pass
 
 # https://developers.google.com/identity/protocols/oauth2/openid-connect#an-id-tokens-payload
-class GoogleIdTokenPayloadSchema(BaseModel):
-    aud: str
-    exp: int
-    iat: int
-    iss: str = 'https://accounts.google.com'
-    sub: str
+class GoogleIdTokenPayloadSchema(BaseIdTokenPayloadSchema):
+    iss: Literal['https://accounts.google.com']
 
-    at_hash: Optional[str]
-    azp: Optional[str]
     email: Optional[str]
     email_verified: Optional[bool]
     family_name: Optional[str]
@@ -39,12 +72,11 @@ class GoogleIdTokenPayloadSchema(BaseModel):
     hd: Optional[str]
     locale: Optional[str]
     name: Optional[str]
-    nonce: Optional[str]
     picture: Optional[str]
     profile: Optional[str]
 
 # https://developers.google.com/identity/protocols/oauth2/openid-connect#obtainuserinfo
-class GoogleUserinfoSchema(BaseModel):
+class GoogleUserInfoSchema(BaseUserInfoSchema):
     sub: str
     name: str
     given_name: str
@@ -60,45 +92,25 @@ Line
 """
 
 # https://developers.line.biz/zh-hant/docs/line-login/integrate-line-login/#receiving-the-authorization-code
-class LineAuthorizationSchema(BaseModel):
-    code: str
-    state: str
-    friendship_status_changed: bool
+class LineAuthorizationSchema(BaseAuthorizationSchema):
+    friendship_status_changed: Optional[bool]
 
 # https://developers.line.biz/zh-hant/docs/line-login/integrate-line-login/#response
 # https://developers.line.biz/zh-hant/reference/line-login/#issue-token-response
-class LineTokenSchema(BaseModel):
-    access_token: str
-    expires_in: int
+class LineTokenSchema(BaseTokenSchema, BaseIdTokenSchema):
     id_token: Optional[str]
-    refresh_token: str
-    scope: str
-    token_type: str
 
 # https://developers.line.biz/zh-hant/docs/line-login/integrate-line-login/#payload
-class LineIdTokenPayloadSchema(BaseModel):
+class LineIdTokenPayloadSchema(BaseIdTokenPayloadSchema):
+    iss: Literal['https://access.line.me']
+    amr: List[Literal['pwd', 'lineautologin', 'lineqr', 'linesso']]
 
-    class AmrEnum(str, enum.Enum):
-        PWD = 'pwd'
-        LINEAUTOLOGIN = 'lineautologin'
-        LINEQR = 'lineqr'
-        LINESSO = 'linesso'
-
-    iss: str = 'https://access.line.me'
-    sub: str
-    aud: str
-    exp: int
-    iat: int
-    amr: List[AmrEnum]
-
-    auth_time: Optional[int]
-    nonce: Optional[str]
     name: Optional[str]
     picture: Optional[str]
     email: Optional[str]
 
 # https://developers.line.biz/zh-hant/reference/line-login/#get-profile-response
-class LineUserinfoSchema(BaseModel):
+class LineUserInfoSchema(BaseUserInfoSchema):
     userId: str
     displayName: str
     pictureUrl: Optional[str]
