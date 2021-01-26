@@ -11,7 +11,7 @@ from lation.core.env import get_env
 from lation.modules.base.oauth import GoogleScheme, LineScheme
 from lation.modules.base.schemas.oauth import GoogleAuthorizationSchema, LineAuthorizationSchema
 from lation.modules.base_fastapi.decorators import managed_transaction
-from lation.modules.base_fastapi.dependencies import get_session
+from lation.modules.base_fastapi.dependencies import Cookie, get_session
 from lation.modules.base_fastapi.models.end_user import EndUser
 from lation.modules.base_fastapi.models.oauth_user import GoogleUser, GoogleUserToken, LineUser, LineUserToken
 from lation.modules.base_fastapi.routers.schemas import ResponseSchema, StatusEnum
@@ -47,9 +47,11 @@ def auth_google():
             response_model=ResponseSchema)
 @managed_transaction
 def auth_google_callback(auth:GoogleAuthorizationSchema=Depends(google_scheme.handle_authorization_response),
-                         session:Session=Depends(get_session)):
-    google_user = GoogleUser.login(session, auth)
-    google_user.end_user.login()
+                         session:Session=Depends(get_session),
+                         cookie:Cookie=Depends()):
+    google_user_token = GoogleUser.login(session, auth)
+    login_end_user_token = google_user_token.oauth_user.end_user.login()
+    cookie.set_access_token(login_end_user_token.value)
     return ResponseSchema(status=StatusEnum.SUCCESS)
 
 
@@ -68,7 +70,9 @@ def auth_line():
             response_model=ResponseSchema)
 @managed_transaction
 def auth_line_callback(auth:LineAuthorizationSchema=Depends(line_scheme.handle_authorization_response),
-                       session:Session=Depends(get_session)):
-    line_user = LineUser.login(session, auth)
-    line_user.end_user.login()
+                       session:Session=Depends(get_session),
+                       cookie:Cookie=Depends()):
+    line_user_token = LineUser.login(session, auth)
+    login_end_user_token = line_user_token.oauth_user.end_user.login()
+    cookie.set_access_token(login_end_user_token.value)
     return ResponseSchema(status=StatusEnum.SUCCESS)
