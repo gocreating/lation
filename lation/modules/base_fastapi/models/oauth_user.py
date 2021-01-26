@@ -27,7 +27,7 @@ class OAuthUser(Base, JoinedTableInheritanceMixin):
     profile = Column(JSON)
 
     @classmethod
-    def login(cls, session:Session, auth:BaseAuthorizationSchema) -> OAuthUser:
+    def login(cls, session:Session, auth:BaseAuthorizationSchema) -> OAuthUserToken:
         raise NotImplementedError
 
 
@@ -54,7 +54,7 @@ class GoogleUser(OAuthUser):
     }
 
     @classmethod
-    def login(cls, session:Session, auth:GoogleAuthorizationSchema) -> GoogleUser:
+    def login(cls, session:Session, auth:GoogleAuthorizationSchema) -> GoogleUserToken:
         from lation.modules.base_fastapi.routers.oauth import google_scheme
 
         token = google_scheme.request_token(auth)
@@ -86,7 +86,7 @@ class GoogleUser(OAuthUser):
                                             scope=token.scope,
                                             id_token=token.id_token)
         session.add(google_user_token)
-        return google_user
+        return google_user_token
 
 
 class GoogleUserToken(OAuthUserToken, OIDCMixin):
@@ -103,7 +103,7 @@ class LineUser(OAuthUser):
     }
 
     @classmethod
-    def login(cls, session:Session, auth:LineAuthorizationSchema) -> LineUser:
+    def login(cls, session:Session, auth:LineAuthorizationSchema) -> LineUserToken:
         from lation.modules.base_fastapi.routers.oauth import line_scheme
 
         token = line_scheme.request_token(auth)
@@ -135,7 +135,7 @@ class LineUser(OAuthUser):
                                         scope=token.scope,
                                         id_token=token.id_token)
         session.add(line_user_token)
-        return line_user
+        return line_user_token
 
 
 class LineUserToken(OAuthUserToken, OIDCMixin):
