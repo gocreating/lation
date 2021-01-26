@@ -2,10 +2,9 @@ import os
 
 from fastapi import APIRouter
 
+from lation.core.env import IMAGE_TAG
 from lation.modules.base_fastapi.routers.schemas import LivenessSchema, Response, StatusEnum, VersionSchema
 
-
-IMAGE_TAG = os.getenv('IMAGE_TAG')
 
 router = APIRouter()
 

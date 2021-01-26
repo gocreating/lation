@@ -1,12 +1,12 @@
 import datetime
 
-from sqlalchemy import Column, ForeignKey, Integer, DateTime
+from sqlalchemy import Column, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base, declared_attr, has_inherited_table
 from sqlalchemy.schema import MetaData
 from sqlalchemy.sql import func
 
 from lation.core.database.database import Database
-from lation.core.database.types import STRING_S_SIZE, String
+from lation.core.database.types import STRING_S_SIZE, DateTime, Integer, String
 from lation.core.env import get_env
 
 APP = get_env('APP')

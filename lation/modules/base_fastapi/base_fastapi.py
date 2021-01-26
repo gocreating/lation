@@ -10,6 +10,7 @@ DB_URL = get_env('DB_URL')
 
 
 class BaseFastAPI(FastAPI):
+
     def __init__(self):
         super().__init__()
         self.add_middleware(CORSMiddleware,
