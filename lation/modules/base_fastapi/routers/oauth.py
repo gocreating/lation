@@ -14,7 +14,7 @@ from lation.modules.base_fastapi.decorators import managed_transaction
 from lation.modules.base_fastapi.dependencies import get_session
 from lation.modules.base_fastapi.models.end_user import EndUser
 from lation.modules.base_fastapi.models.oauth_user import GoogleUser, GoogleUserToken, LineUser, LineUserToken
-from lation.modules.base_fastapi.routers.schemas import Response, StatusEnum
+from lation.modules.base_fastapi.routers.schemas import ResponseSchema, StatusEnum
 
 
 HOST = get_env('HOST')
@@ -44,13 +44,13 @@ def auth_google():
 
 @router.get('/auth/google/callback',
             tags=['oauth'], summary='Callback of google oauth redirect uri',
-            response_model=Response)
+            response_model=ResponseSchema)
 @managed_transaction
 def auth_google_callback(auth:GoogleAuthorizationSchema=Depends(google_scheme.handle_authorization_response),
                          session:Session=Depends(get_session)):
     google_user = GoogleUser.login(session, auth)
     google_user.end_user.login()
-    return Response(status=StatusEnum.SUCCESS)
+    return ResponseSchema(status=StatusEnum.SUCCESS)
 
 
 @router.get('/auth/line',
@@ -65,10 +65,10 @@ def auth_line():
 
 @router.get('/auth/line/callback',
             tags=['oauth'], summary='Callback of line oauth redirect uri',
-            response_model=Response)
+            response_model=ResponseSchema)
 @managed_transaction
 def auth_line_callback(auth:LineAuthorizationSchema=Depends(line_scheme.handle_authorization_response),
                        session:Session=Depends(get_session)):
     line_user = LineUser.login(session, auth)
     line_user.end_user.login()
-    return Response(status=StatusEnum.SUCCESS)
+    return ResponseSchema(status=StatusEnum.SUCCESS)

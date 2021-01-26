@@ -11,7 +11,7 @@ class StatusEnum(int, enum.Enum):
     SUCCESS = 0
     FAILED = 1
 
-class Response(GenericModel, Generic[DataT]):
+class ResponseSchema(GenericModel, Generic[DataT]):
     status: StatusEnum
     data: Optional[DataT]
 
