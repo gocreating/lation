@@ -1,4 +1,3 @@
-from urllib.parse import urlencode
 from typing import Optional
 
 import requests
