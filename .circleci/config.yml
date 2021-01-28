@@ -274,6 +274,9 @@ workflows:
       # https://circleci.com/docs/2.0/workflows/#holding-a-workflow-for-a-manual-approval
       - request_issue_certificates:
           type: approval
+          filters:
+            branches:
+              only: master
       - issue_certificates:
           requires:
             - request_issue_certificates
