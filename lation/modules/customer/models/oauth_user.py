@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session, backref, relationship
 
 from lation.core.database.types import JSON, STRING_L_SIZE, STRING_M_SIZE, STRING_S_SIZE, STRING_XS_SIZE, Integer, String
 from lation.core.orm import Base, JoinedTableInheritanceMixin
-from lation.modules.base.schemas.oauth import BaseAuthorizationSchema, GoogleAuthorizationSchema, LineAuthorizationSchema
-from lation.modules.base_fastapi.models.end_user import EndUser, EndUserEmail
+from lation.modules.base.models.end_user import EndUser, EndUserEmail
+from lation.modules.customer.schemas.oauth import BaseAuthorizationSchema, GoogleAuthorizationSchema, LineAuthorizationSchema
 
 
 class OIDCMixin:
@@ -55,7 +55,7 @@ class GoogleUser(OAuthUser):
 
     @classmethod
     def login(cls, session:Session, auth:GoogleAuthorizationSchema) -> GoogleUserToken:
-        from lation.modules.base_fastapi.routers.oauth import google_scheme
+        from lation.modules.customer.routers.oauth import google_scheme
 
         token = google_scheme.request_token(auth)
         id_token_payload_data = google_scheme.decode_id_token(token.id_token)
@@ -104,7 +104,7 @@ class LineUser(OAuthUser):
 
     @classmethod
     def login(cls, session:Session, auth:LineAuthorizationSchema) -> LineUserToken:
-        from lation.modules.base_fastapi.routers.oauth import line_scheme
+        from lation.modules.customer.routers.oauth import line_scheme
 
         token = line_scheme.request_token(auth)
         id_token_payload_data = line_scheme.decode_id_token(token.id_token)

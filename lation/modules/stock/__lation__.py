@@ -1,4 +1,4 @@
-parent_modules = ['base_fastapi']
+parent_modules = ['customer']
 data = [
     'lation/modules/stock/data/user.csv',
 ]
