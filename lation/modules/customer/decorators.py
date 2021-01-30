@@ -28,7 +28,8 @@ def managed_oauth_flow(success_url:str, fail_url:str):
             except Exception as e:
                 # TODO: narrow down catch scopes
                 session.rollback()
-                return RedirectResponse(f'{fail_url}?status={StatusEnum.FAILED}&error={quote_plus(str(e))}')
+                # return RedirectResponse(f'{fail_url}?status={StatusEnum.FAILED}&error={quote_plus(str(e))}')
+                return RedirectResponse(f'{fail_url}?status={StatusEnum.FAILED}&error={quote_plus("Login failed")}')
 
         return wrap_func
 
