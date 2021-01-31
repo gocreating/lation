@@ -1,3 +1,5 @@
+import os
+
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine
@@ -17,7 +19,10 @@ class Migration:
         alembic_cfg = Config()
         alembic_cfg.set_main_option('sqlalchemy.url', str(self.db_url).replace('%', '%%'))
         alembic_cfg.set_main_option('script_location', './lation/core/migration')
-        alembic_cfg.set_main_option('version_locations', './lation/core/migration/versions')
+        version_location = './lation/core/migration/versions'
+        if not os.path.exists(version_location):
+            os.makedirs(version_location)
+        alembic_cfg.set_main_option('version_locations', version_location)
         return alembic_cfg
 
     def revision(self):
