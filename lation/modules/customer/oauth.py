@@ -129,7 +129,7 @@ class GoogleScheme(OIDCProvider):
                                       state:str=None, code:str=None, scope:str=None,
                                       error:str=None) -> GoogleAuthorizationSchema:
         if not code:
-            raise Exception(error)
+            return None
         return GoogleAuthorizationSchema(state=state, code=code, scope=scope)
 
     def request_token(self, auth:GoogleAuthorizationSchema) -> GoogleTokenSchema:
@@ -177,7 +177,7 @@ class LineScheme(OIDCProvider):
                                       code:str=None, friendship_status_changed:bool=False,
                                       error:str=None, error_description:str=None) -> LineAuthorizationSchema:
         if not code:
-            raise Exception(f'{error}: {error_description}')
+            return None
         return LineAuthorizationSchema(code=code, state=state, friendship_status_changed=friendship_status_changed)
 
     def request_token(self, auth:LineAuthorizationSchema) -> LineTokenSchema:
