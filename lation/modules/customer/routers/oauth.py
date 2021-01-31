@@ -8,7 +8,7 @@ from starlette.responses import RedirectResponse
 from lation.core.env import get_env
 from lation.modules.base_fastapi.decorators import managed_transaction
 from lation.modules.base_fastapi.dependencies import get_session
-from lation.modules.customer.decorators import managed_oauth_flow
+from lation.modules.customer.decorators import oauth_login_flow
 from lation.modules.customer.models.oauth_user import GoogleUser, GoogleUserToken, LineUser, LineUserToken
 from lation.modules.customer.oauth import GoogleScheme, LineScheme
 from lation.modules.customer.schemas.oauth import GoogleAuthorizationSchema, LineAuthorizationSchema
@@ -33,8 +33,10 @@ router = APIRouter()
 
 
 @router.get('/auth/google',
-            tags=['oauth'], summary='Initiate google oauth redirection',
-            status_code=status.HTTP_307_TEMPORARY_REDIRECT, response_class=RedirectResponse)
+            tags=['oauth_user'],
+            summary='Initiate google oauth redirection',
+            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+            response_class=RedirectResponse)
 def auth_google():
     url = google_scheme.get_authorization_url(scopes=[GoogleScheme.ScopeEnum.EMAIL,
                                                       GoogleScheme.ScopeEnum.OPENID,
@@ -43,10 +45,12 @@ def auth_google():
 
 
 @router.get('/auth/google/callback',
-            tags=['oauth'], summary='Callback of google oauth redirect uri',
-            status_code=status.HTTP_307_TEMPORARY_REDIRECT, response_class=RedirectResponse)
+            tags=['oauth_user'],
+            summary='Callback of google oauth redirect uri',
+            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+            response_class=RedirectResponse)
 @managed_transaction
-@managed_oauth_flow(OAUTH_SUCCESS_REDIRECT_URL, OAUTH_FAIL_REDIRECT_URL)
+@oauth_login_flow(OAUTH_SUCCESS_REDIRECT_URL, OAUTH_FAIL_REDIRECT_URL)
 def auth_google_callback(auth:GoogleAuthorizationSchema=Depends(google_scheme.handle_authorization_response),
                          session:Session=Depends(get_session)):
     google_user_token = GoogleUser.login(session, auth)
@@ -55,8 +59,10 @@ def auth_google_callback(auth:GoogleAuthorizationSchema=Depends(google_scheme.ha
 
 
 @router.get('/auth/line',
-            tags=['oauth'], summary='Initiate line oauth redirection',
-            status_code=status.HTTP_307_TEMPORARY_REDIRECT, response_class=RedirectResponse)
+            tags=['oauth_user'],
+            summary='Initiate line oauth redirection',
+            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+            response_class=RedirectResponse)
 def auth_line():
     url = line_scheme.get_authorization_url(scopes=[LineScheme.ScopeEnum.EMAIL,
                                                     LineScheme.ScopeEnum.OPENID,
@@ -65,10 +71,12 @@ def auth_line():
 
 
 @router.get('/auth/line/callback',
-            tags=['oauth'], summary='Callback of line oauth redirect uri',
-            status_code=status.HTTP_307_TEMPORARY_REDIRECT, response_class=RedirectResponse)
+            tags=['oauth_user'],
+            summary='Callback of line oauth redirect uri',
+            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+            response_class=RedirectResponse)
 @managed_transaction
-@managed_oauth_flow(OAUTH_SUCCESS_REDIRECT_URL, OAUTH_FAIL_REDIRECT_URL)
+@oauth_login_flow(OAUTH_SUCCESS_REDIRECT_URL, OAUTH_FAIL_REDIRECT_URL)
 def auth_line_callback(auth:LineAuthorizationSchema=Depends(line_scheme.handle_authorization_response),
                        session:Session=Depends(get_session)):
     line_user_token = LineUser.login(session, auth)

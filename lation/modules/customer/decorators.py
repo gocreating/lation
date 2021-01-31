@@ -11,7 +11,7 @@ from lation.modules.base_fastapi.dependencies import get_session
 from lation.modules.base_fastapi.routers.schemas import StatusEnum
 
 
-def managed_oauth_flow(success_url:str, fail_url:str):
+def oauth_login_flow(success_url:str, fail_url:str):
 
     def decorator(func):
 
@@ -20,7 +20,7 @@ def managed_oauth_flow(success_url:str, fail_url:str):
             try:
                 end_user_token = await call_fn(func, *args, session=session, **kwargs)
                 if not isinstance(end_user_token, EndUserToken):
-                    raise Exception('The path operation decorated with `@managed_oauth_flow` should return value of type `EndUserToken`')
+                    raise Exception('The path operation decorated with `@oauth_login_flow` should return value of type `EndUserToken`')
                 session.commit()
                 response = RedirectResponse(f'{success_url}?status={StatusEnum.SUCCESS}')
                 response.lation_set_access_token(end_user_token.value)
