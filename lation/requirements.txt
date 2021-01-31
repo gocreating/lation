@@ -11,7 +11,6 @@ click==7.1.2
 cryptography==3.1
 cycler==0.10.0
 fastapi==0.61.2
-Flask==1.1.2
 gevent==20.9.0
 google-api-core==1.22.2
 google-api-python-client==1.12.2
