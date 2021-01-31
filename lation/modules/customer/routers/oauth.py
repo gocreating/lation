@@ -66,7 +66,22 @@ def auth_google_callback(auth:GoogleAuthorizationSchema=Depends(google_scheme.ha
 def auth_line():
     url = line_scheme.get_authorization_url(scopes=[LineScheme.ScopeEnum.EMAIL,
                                                     LineScheme.ScopeEnum.OPENID,
-                                                    LineScheme.ScopeEnum.PROFILE])
+                                                    LineScheme.ScopeEnum.PROFILE],
+                                            bot_prompt=LineScheme.BotPromptEnum.NORMAL)
+    return RedirectResponse(url=url)
+
+
+@router.get('/auth/line/aggressive-bot-prompt',
+            tags=['oauth_user'],
+            summary='Initiate line oauth redirection to aggressively prompt bot consent screen',
+            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+            response_class=RedirectResponse)
+def auth_line():
+    url = line_scheme.get_authorization_url(scopes=[LineScheme.ScopeEnum.EMAIL,
+                                                    LineScheme.ScopeEnum.OPENID,
+                                                    LineScheme.ScopeEnum.PROFILE],
+                                            prompt=LineScheme.ConsentEnum.CONSENT,
+                                            bot_prompt=LineScheme.BotPromptEnum.AGGRESSIVE)
     return RedirectResponse(url=url)
 
 

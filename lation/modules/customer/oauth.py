@@ -156,6 +156,13 @@ class LineScheme(OIDCProvider):
         PROFILE = (1, 'profile')
         EMAIL = (2, 'email')
 
+    class ConsentEnum(enum.Enum):
+        CONSENT = 'consent'
+
+    class BotPromptEnum(enum.Enum):
+        NORMAL = 'normal'
+        AGGRESSIVE = 'aggressive'
+
     def __init__(self, client_id:str, client_secret:str, redirect_uri:str):
         super().__init__(client_id=client_id,
                          client_secret=client_secret,
@@ -167,10 +174,18 @@ class LineScheme(OIDCProvider):
                               *args,
                               scope:str=None,
                               scopes:List[ScopeEnum]=None,
+                              consent:ConsentEnum=None,
+                              bot_prompt:BotPromptEnum=None,
                               **kwargs) -> str:
         if scopes:
             scope = self.make_scope(scopes)
-        return super().get_authorization_url(*args, scope=scope, **kwargs)
+        if consent:
+            kwargs.update({'consent': consent.value})
+        if bot_prompt:
+            kwargs.update({'bot_prompt': bot_prompt.value})
+        return super().get_authorization_url(*args,
+                                             scope=scope,
+                                             **kwargs)
 
     def handle_authorization_response(self,
                                       state:str=None,
