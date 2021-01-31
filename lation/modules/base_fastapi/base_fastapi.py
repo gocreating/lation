@@ -2,6 +2,8 @@ from typing import Optional
 
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 
 from lation.core.database.database import Database
 from lation.core.env import DEV, get_env
@@ -15,11 +17,14 @@ class BaseFastAPI(FastAPI):
 
     def __init__(self):
         super().__init__()
+        if not DEV:
+            self.add_middleware(HTTPSRedirectMiddleware)
         self.add_middleware(CORSMiddleware,
                             allow_origins=['*'],
                             allow_credentials=True,
                             allow_methods=['*'],
                             allow_headers=['*'])
+        self.add_middleware(GZipMiddleware)
         self.include_router(system.router)
 
     def init_database(self):
