@@ -1,7 +1,7 @@
 import click
 
 from lation.core.command import Mutex, cli
-from lation.core.database import Database
+from lation.core.database.database import Database
 from lation.core.env import get_env
 
 APP = get_env('APP')

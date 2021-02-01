@@ -1,31 +1,46 @@
-import os
+from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 
-class Liveness(BaseModel):
-    status: int
+from lation.core.database.database import Database
+from lation.core.env import DEV, get_env
+from lation.modules.base_fastapi.routers import system
 
-class Version(BaseModel):
-    status: int
-    data: str
+
+DB_URL = get_env('DB_URL')
+
 
 class BaseFastAPI(FastAPI):
+
     def __init__(self):
         super().__init__()
+        if not DEV:
+            self.add_middleware(HTTPSRedirectMiddleware)
         self.add_middleware(CORSMiddleware,
                             allow_origins=['*'],
                             allow_credentials=True,
                             allow_methods=['*'],
                             allow_headers=['*'])
+        self.add_middleware(GZipMiddleware)
+        self.include_router(system.router)
 
-        @self.get('/', response_model=Liveness)
-        def liveness():
-            return {'status': 0}
+    def init_database(self):
+        @self.on_event('startup')
+        async def on_startup():
+            self.state.database = Database(url=DB_URL)
 
-        @self.get('/version', response_model=Version)
-        def version():
-            IMAGE_TAG = os.getenv('IMAGE_TAG')
-            version = IMAGE_TAG if IMAGE_TAG else 'local'
-            return {'status': 0, 'data': version}
+        @self.on_event('shutdown')
+        async def on_shutdown():
+            if self.state.database:
+                self.state.database.dispose()
+
+
+def lation_set_cookie(self, *args, secure:Optional[bool]=None, httponly:Optional[bool]=True, **kwargs):
+    if secure is None:
+        secure = True if not DEV else False
+    self.set_cookie(*args, secure=secure, httponly=httponly, **kwargs)
+
+Response.lation_set_cookie = lation_set_cookie

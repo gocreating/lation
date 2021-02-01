@@ -8,7 +8,7 @@ from lation.core.module import dynamic_import, load_modules
 monkey.patch_all()
 
 wsgi_module_names = ['base_flask']
-asgi_module_names = ['base_fastapi']
+asgi_module_names = ['base_fastapi', 'customer']
 
 if __name__ == '__main__':
     module = load_modules()

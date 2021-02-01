@@ -15,3 +15,6 @@ __pycache__/
 /exported-data
 /download-data
 /logs
+
+# App
+/lation/core/migration/versions

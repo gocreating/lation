@@ -5,19 +5,20 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from lation.modules.base.cache import CacheRegistry, MemoryCache
-from lation.modules.base_fastapi.base_fastapi import BaseFastAPI
-from lation.modules.stock.routers import ptt
+from lation.modules.customer.customer import CustomerApp
+from lation.modules.stock.routers import experiment, ptt
 
 
-class StockFastApp(BaseFastAPI):
+class StockFastApp(CustomerApp):
     CACHE_KEY = 'API_RESPONSE_MEMORY_CACHE'
 
     def __init__(self):
         super().__init__()
         self.mount('/static', StaticFiles(directory=(Path(__file__).parent / './static').resolve()), name='static')
         self.include_router(ptt.router)
+        self.include_router(experiment.router)
         self.init_cache_registry()
-    
+
     def init_cache_registry(self):
         cls = self.__class__
 
