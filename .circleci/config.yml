@@ -132,14 +132,14 @@ jobs:
       - run:
           name: Generate Revision Script
           command: |
-            APP=base python lation.py migration --url $STOCK_DB_URL revision --force
+            APP=stock python lation.py migration --url $STOCK_DB_URL revision --force
       - store_artifacts:
           path: ./lation/core/migration/versions
           destination: migrate_versions
       - run:
           name: Upgrade Database
           command: |
-            APP=base python lation.py migration --url $STOCK_DB_URL upgrade
+            APP=stock python lation.py migration --url $STOCK_DB_URL upgrade
   deploy_stock_prod:
     docker:
       - image: circleci/python:3.8
