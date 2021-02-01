@@ -12,8 +12,8 @@ from lation.core.logger import create_logger
 from lation.core.module import modules
 from lation.modules.base.file_system import FileSystem
 
-APP = get_env('APP')
 
+APP = get_env('APP')
 
 class Database():
 

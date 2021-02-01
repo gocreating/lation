@@ -33,9 +33,13 @@ Usage:
     APP=combo python lation.py migration --url u revision
 """
 @migration.command('revision')
+@click.option('--force', is_flag=True, help='Set this option to force drop alembic version table and clear version location')
 @click.pass_obj
-def migration_upgrade(migration):
-    migration.revision()
+def migration_revision(migration, force):
+    if force:
+        migration.force_revision()
+    else:
+        migration.revision()
 
 """
 Usage:
