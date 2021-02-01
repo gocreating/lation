@@ -120,6 +120,26 @@ jobs:
           name: Cleanup
           command: |
             rm -rf /tmp/deploy_server_id_rsa
+  migrate_stock_prod:
+    docker:
+      - image: circleci/python:3.8
+    steps:
+      - checkout
+      - run:
+          name: Install Dependencies
+          command: |
+            pip3 install -r lation/requirements.txt
+      - run:
+          name: Generate Revision Script
+          command: |
+            APP=base python lation.py migration --url $STOCK_DB_URL revision --force
+      - store_artifacts:
+          path: ./lation/core/migration/versions
+          destination: migrate_versions
+      - run:
+          name: Upgrade Database
+          command: |
+            APP=base python lation.py migration --url $STOCK_DB_URL upgrade
   deploy_stock_prod:
     docker:
       - image: circleci/python:3.8
@@ -261,11 +281,14 @@ workflows:
           filters:
             branches:
               only: master
-      - deploy_stock_prod:
+      - migrate_stock_prod:
           requires:
             - request_deploy_stock_prod
             - setup_environment_variable
             - release_image
+      - deploy_stock_prod:
+          requires:
+            - migrate_stock_prod
           filters:
             branches:
               only: master
