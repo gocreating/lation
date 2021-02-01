@@ -4,6 +4,7 @@ import shutil
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import MetaData, create_engine
+from sqlalchemy.schema import CreateSchema
 
 from lation.core.env import get_env
 
@@ -43,10 +44,13 @@ class Migration:
         command.downgrade(self.alembic_cfg, revision)
 
     def force_revision(self):
+        schema_name = APP
         engine = create_engine(self.db_url, pool_size=1)
-        metadata = MetaData(schema=APP)
+        metadata = MetaData(schema=schema_name)
         metadata.reflect(bind=engine)
-        alembic_version_table = metadata.tables.get(f'{APP}.alembic_version')
+        alembic_version_table = metadata.tables.get(f'{schema_name}.alembic_version')
+        if not engine.dialect.has_schema(engine, schema=schema_name):
+            engine.execute(CreateSchema(schema_name))
         if alembic_version_table is not None:
             metadata.drop_all(engine, [alembic_version_table], checkfirst=True)
         version_location = self.get_version_location()
