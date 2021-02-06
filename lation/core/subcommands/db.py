@@ -31,19 +31,28 @@ def db(ctx, url, dialect, driver, username, password, host, port, database_name,
 
 """
 Usage:
-    APP=combo python lation.py db --url u export
+    APP=myapp python lation.py db --url u install-data
+"""
+@db.command('install-data')
+@click.pass_obj
+def db_install_data(database):
+    database.install_data(APP)
+
+"""
+Usage:
+    APP=myapp python lation.py db --url u reset
+"""
+@db.command('reset')
+@click.pass_obj
+def db_reset(database):
+    database.reset()
+
+"""
+Usage:
+    APP=myapp python lation.py db --url u export
 """
 @db.command('export')
 @click.pass_obj
 @click.option('--dest-dir', default='./exported-data')
 def db_export(database, dest_dir):
     database.export(dest_dir)
-
-"""
-Usage:
-    APP=combo python lation.py db --url u reset
-"""
-@db.command('reset')
-@click.pass_obj
-def db_reset(database):
-    database.reset()

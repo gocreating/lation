@@ -6,8 +6,9 @@ from sqlalchemy.schema import MetaData
 from sqlalchemy.sql import func
 
 from lation.core.database.database import Database
-from lation.core.database.types import STRING_S_SIZE, DateTime, Integer, String
+from lation.core.database.types import STRING_M_SIZE, STRING_S_SIZE, DateTime, Integer, String
 from lation.core.env import get_env
+
 
 APP = get_env('APP')
 
@@ -67,6 +68,7 @@ class BaseClass:
                 return None
         return Column(Integer, primary_key=True)
 
+    lation_id = Column(String(STRING_M_SIZE), nullable=True, index=True)
     created_at = Column(DateTime, index=True, server_default=func.now())
     updated_at = Column(DateTime, index=True, server_default=func.now(), onupdate=func.now())
 
