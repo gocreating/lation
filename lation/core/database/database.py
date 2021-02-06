@@ -27,6 +27,7 @@ class Database():
                        dialect=None, driver=None, username=None, password=None, host=None, port=None, database=None,
                        model_agnostic=False):
         from lation.core.orm import Base
+        from lation.modules.base.models.lation_data import LationData
 
         if not url:
             url = f'{dialect}+{driver}://{username}:{password}@{host}:{port}/{database}'
@@ -40,7 +41,10 @@ class Database():
         self.metadata = Base.metadata
         self.fs = FileSystem()
         self.logger = create_logger()
+
         self.Base = Base
+        self.LationData = LationData
+        self.lation_id_map = {}
 
     def get_session(self):
         try:
@@ -114,7 +118,7 @@ class Database():
     def install_data(self, module_name):
         for parent_module in modules[module_name].parent_modules:
             self.install_data(parent_module.name)
-        start_time = time.process_time()
+        start_time = time.time()
         partial_csv_file_paths = modules[module_name].config.data
         if len(partial_csv_file_paths) == 0:
             self.logger.info(f'[{module_name}] NO DATA, SKIPPED')
@@ -123,6 +127,9 @@ class Database():
         session = self.get_session()
 
         for partial_csv_file_path in partial_csv_file_paths:
+            current_table_lation_id_map = {}
+            current_table_lation_id_unflushed_instance_map = {}
+
             csv_file_path = os.path.join('lation', 'modules', module_name, partial_csv_file_path)
             tablename = self.find_tablename_by_file_path(csv_file_path)
             model_class = self.find_model_class_by_tablename(tablename)
@@ -133,38 +140,93 @@ class Database():
             with open(csv_file_path, newline='', encoding='utf-8') as csv_file:
                 reader = csv.DictReader(csv_file)
                 for csv_data in reader:
-                    # load data
-                    if csv_data == '':
-                        continue
                     attribute_data = {}
-                    for attribute_name in csv_data.keys():
-                        csv_value = csv_data[attribute_name]
-                        if csv_value == '':
-                            continue
-                        if attribute_name in json_type_attribute_names:
-                            attribute_data[attribute_name] = ast.literal_eval(csv_value)
-                        else:
-                            attribute_data[attribute_name] = csv_value
 
-                    # validate lation_id
-                    lation_id = attribute_data.get('lation_id')
+                    # resolve lation_id
+                    lation_id = csv_data.get('lation_id')
                     if not lation_id:
                         raise Exception(f'Attribute `lation_id` is required for csv file `{csv_file_path}`')
                     lation_id_parts = lation_id.split('.')
                     if len(lation_id_parts) < 2 or lation_id_parts[0] != module_name:
                         lation_id = f'{module_name}.{lation_id}'
                         attribute_data['lation_id'] = lation_id
+                        del csv_data['lation_id']
+
+                    for attribute_name in csv_data.keys():
+                        csv_value = csv_data[attribute_name]
+                        attribute_name_parts = attribute_name.split('/')
+                        if csv_value == '':
+                            continue
+
+                        # resolve primitive data type
+                        if len(attribute_name_parts) == 1:
+                            if attribute_name in json_type_attribute_names:
+                                attribute_data[attribute_name] = ast.literal_eval(csv_value)
+                            else:
+                                attribute_data[attribute_name] = csv_value
+
+                        # resolve foreign key
+                        elif len(attribute_name_parts) == 2 and attribute_name_parts[1] == 'fk':
+                            foreign_lation_id_parts = csv_value.split('.')
+                            if len(foreign_lation_id_parts) < 2:
+                                foreign_lation_id = f'{module_name}.{csv_value}'
+                            elif len(foreign_lation_id_parts) == 2:
+                                foreign_lation_id = csv_value
+                            elif len(foreign_lation_id_parts) > 2:
+                                raise NotImplementedError
+                            # foreign_instance = session.query(model_class).filter(model_class.lation_id == foreign_lation_id).one_or_none()
+                            foreign_instance_id = self.lation_id_map[foreign_lation_id]
+                            if not foreign_instance_id:
+                                raise Exception(f'Foreign lation_id `{foreign_lation_id}` not found')
+                            attribute_data[attribute_name_parts[0]] = foreign_instance_id
+
+                        else:
+                            raise NotImplementedError
 
                     # upsert instance
                     instance = session.query(model_class).filter(model_class.lation_id == lation_id).one_or_none()
                     if instance:
                         for attribute_name in attribute_data:
                             setattr(instance, attribute_name, attribute_data[attribute_name])
+                        current_table_lation_id_map[lation_id] = instance.id
+                        # self.lation_id_map[lation_id] = instance.id
                     else:
                         instance = model_class(**attribute_data)
                         session.add(instance)
+                        current_table_lation_id_unflushed_instance_map[lation_id] = instance
 
-            # Fix postgres sequence, see <https://stackoverflow.com/a/37972960/2443984>
+            # flush to get instance ids
+            session.flush()
+
+            # refresh id
+            for lation_id in current_table_lation_id_unflushed_instance_map:
+                instance = current_table_lation_id_unflushed_instance_map[lation_id]
+                # self.lation_id_map[lation_id] = instance.id
+                current_table_lation_id_map[lation_id] = instance.id
+
+            self.lation_id_map.update(current_table_lation_id_map)
+
+            # rebalance lation data
+            LationData = self.LationData
+            lation_data = session.query(LationData).filter(LationData.model == tablename).all()
+            deleted_ids = []
+            for ld in lation_data:
+                if not self.lation_id_map.get(ld.model_lation_id):
+                    deleted_ids.append(ld.model_id)
+            if len(deleted_ids) > 0:
+                self.logger.info(f'[{module_name}] DELETE IDs {deleted_ids} FROM TABLE `{tablename}`...')
+                instances = session.query(model_class).filter(model_class.id.in_(deleted_ids)).all()
+                for instance in instances:
+                    session.delete(instance)
+
+            session.query(LationData).filter(LationData.model == tablename).delete()
+            for current_table_lation_id in current_table_lation_id_map:
+                lation_data = LationData(model=tablename,
+                                         model_lation_id=current_table_lation_id,
+                                         model_id=current_table_lation_id_map[current_table_lation_id])
+                session.add(lation_data)
+
+            # fix postgres sequence, see <https://stackoverflow.com/a/37972960/2443984>
             if session.bind.dialect.name == 'postgresql':
                 for table in inspector.tables:
                     session.execute(f'SELECT setval(pg_get_serial_sequence(\'{table.fullname}\', \'id\'), coalesce(max(id)+1, 1), false) FROM {table.fullname};')
@@ -175,7 +237,7 @@ class Database():
         self.logger.info(f'[{module_name}] COMMIT...')
         session.commit()
         self.logger.info(f'[{module_name}] COMMITTED')
-        self.logger.info(f'[{module_name}] INSTALL DATA DONE IN {time.process_time() - start_time}s')
+        self.logger.info(f'[{module_name}] INSTALL DATA DONE IN {time.time() - start_time}s')
 
     def reset(self):
         if self.engine.dialect.has_schema(self.engine, schema=APP):
