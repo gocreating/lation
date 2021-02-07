@@ -8,6 +8,7 @@ from lation.modules.base_fastapi.base_fastapi import BaseFastAPI
 class CustomerApp(BaseFastAPI):
 
     ACCESS_TOKEN_COOKIE_KEY = 'ACCESS-TOKEN'
+    ACCESS_TOKEN_HEADER_KEY = 'X-ACCESS-TOKEN'
 
     def __init__(self):
         from lation.modules.customer.routers import oauth, user
