@@ -69,7 +69,8 @@ class BaseClass:
         return Column(Integer, primary_key=True)
 
     lation_id = Column(String(STRING_M_SIZE), nullable=True, index=True)
-    created_at = Column(DateTime, index=True, server_default=func.now())
-    updated_at = Column(DateTime, index=True, server_default=func.now(), onupdate=func.now())
+    create_time = Column(DateTime, index=True, server_default=func.now())
+    update_time = Column(DateTime, index=True, server_default=func.now(), onupdate=func.now())
+
 
 Base = declarative_base(cls=BaseClass, metadata=Database.get_metadata())
