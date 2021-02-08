@@ -29,7 +29,12 @@ def get_push_contents(html):
 
 def get_cut_words(lines):
     stop_words_file_path = (Path(__file__).parent / '../data/stop_words.txt').resolve()
-    stop_words = [word.strip() for word in open(stop_words_file_path, 'r', encoding='utf-8').readlines()] + [' ']
+    custom_stop_words_file_path = (Path(__file__).parent / '../data/custom_stop_words.txt').resolve()
+    stop_words = (
+        [word.strip() for word in open(stop_words_file_path, 'r', encoding='utf-8').readlines()] +
+        [word.strip() for word in open(custom_stop_words_file_path, 'r', encoding='utf-8').readlines()] +
+        [' ']
+    )
     cut_words = []
     for line in lines:
         cut_words += [cut_word for cut_word in jieba.cut(line, cut_all=False) if cut_word not in stop_words]
