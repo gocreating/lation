@@ -16,6 +16,7 @@ from lation.modules.base.file_system import FileSystem
 
 
 APP = get_env('APP')
+DEBUG_SQL = get_env('DEBUG_SQL')
 
 class Database():
 
@@ -31,7 +32,8 @@ class Database():
 
         if not url:
             url = f'{dialect}+{driver}://{username}:{password}@{host}:{port}/{database}'
-        self.engine = create_engine(url, pool_size=1)
+        echo = bool(DEBUG_SQL)
+        self.engine = create_engine(url, pool_size=1, echo=echo, logging_name='lation.engine')
         SessionFactory = sessionmaker(bind=self.engine, autoflush=False, autocommit=False)
         self.Session = scoped_session(SessionFactory)
         self.model_agnostic = model_agnostic
@@ -40,7 +42,8 @@ class Database():
         self.existing_metadata = existing_metadata
         self.metadata = Base.metadata
         self.fs = FileSystem()
-        self.logger = create_logger()
+        if not echo:
+            self.logger = create_logger()
 
         self.Base = Base
         self.LationData = LationData

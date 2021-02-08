@@ -28,6 +28,7 @@
             "justMyCode": false,
             "env": {
                 "APP": "stock",
+                // "DEBUG_SQL": "TRUE",
                 "DEV": "TRUE",
                 "DB_URL": "mysql+pymysql://user:pass@host:port/db",
                 "HOST": "http://localhost:8000",
