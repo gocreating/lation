@@ -19,12 +19,14 @@ class BaseFastAPI(FastAPI):
         super().__init__()
         if not DEV:
             self.add_middleware(HTTPSRedirectMiddleware)
+        # FIXME: The order of CORSMiddleware matters
+        # https://github.com/tiangolo/fastapi/issues/1663
+        self.add_middleware(GZipMiddleware)
         self.add_middleware(CORSMiddleware,
                             allow_origins=['*'],
                             allow_credentials=True,
                             allow_methods=['*'],
                             allow_headers=['*'])
-        self.add_middleware(GZipMiddleware)
         self.include_router(system.router)
 
     def init_database(self):
