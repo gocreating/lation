@@ -11,12 +11,14 @@ class CustomerApp(BaseFastAPI):
     ACCESS_TOKEN_HEADER_KEY = 'X-ACCESS-TOKEN'
 
     def __init__(self):
-        from lation.modules.customer.routers import oauth, user
+        from lation.modules.customer.routers import oauth, product, subscription, user
 
         super().__init__()
         super().init_database()
         self.include_router(user.router)
         self.include_router(oauth.router)
+        self.include_router(product.router)
+        self.include_router(subscription.router)
 
 
 def lation_set_access_token(self, token_value:str, **kwargs):
