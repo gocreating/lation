@@ -136,6 +136,8 @@ class Database():
             csv_file_path = os.path.join('lation', 'modules', module_name, partial_csv_file_path)
             tablename = self.find_tablename_by_file_path(csv_file_path)
             model_class = self.find_model_class_by_tablename(tablename)
+            if not model_class:
+                raise Exception(f'Table `{tablename}` does not exist')
             inspector = inspect(model_class)
             json_type_attribute_names = [attr.key for attr in inspector.mapper.column_attrs if self.is_json_attribute(attr)]
             self.logger.info(f'[{module_name}] INTO TABLE `{tablename}` FROM PATH `{csv_file_path}`')
