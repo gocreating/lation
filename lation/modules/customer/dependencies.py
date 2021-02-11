@@ -25,7 +25,7 @@ async def get_access_token(access_token_cookie:Optional[str]=Security(access_tok
     else:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Access token required')
 
-def login_required(request:Request, access_token:str=Depends(get_access_token), session:Session=Depends(get_session)):
+async def login_required(request:Request, access_token:str=Depends(get_access_token), session:Session=Depends(get_session)):
     end_user_token = session.query(EndUserToken)\
         .filter(EndUserToken.value == access_token, EndUserToken.is_active == True)\
         .one_or_none()
@@ -33,6 +33,6 @@ def login_required(request:Request, access_token:str=Depends(get_access_token), 
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid access token')
     request.state.end_user_token = end_user_token
 
-def get_current_user(request:Request) -> EndUser:
+async def get_current_user(request:Request) -> EndUser:
     end_user_token = request.state.end_user_token
     return end_user_token.end_user
