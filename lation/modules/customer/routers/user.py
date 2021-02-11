@@ -32,7 +32,7 @@ def get_me(end_user=Depends(get_current_user)):
             dependencies=[Depends(login_required)],
             response_model=Response[LineFriendshipSchema])
 def get_line_user_friendship(end_user=Depends(get_current_user),
-                                    session:Session=Depends(get_session)):
+                             session:Session=Depends(get_session)):
     line_user_token = session.query(LineUserToken)\
         .join(LineUserToken.oauth_user)\
         .filter(OAuthUser.end_user_id == end_user.id)\
