@@ -4,11 +4,14 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 
-class UserSchema(BaseModel):
+class EndUserSchema(BaseModel):
     id: int
 
     class Config:
         orm_mode = True
+
+class LineFriendshipSchema(BaseModel):
+    is_friend: bool
 
 class PlanSchema(BaseModel):
     id: int
