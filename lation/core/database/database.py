@@ -7,7 +7,7 @@ import time
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.schema import CreateSchema, DropSchema, MetaData
-from sqlalchemy.types import JSON
+from sqlalchemy.types import JSON, Boolean
 
 from lation.core.env import get_env
 from lation.core.logger import create_logger
@@ -79,6 +79,9 @@ class Database():
     def is_json_attribute(self, attribute):
         return isinstance(attribute.columns[0].type, JSON)
 
+    def is_boolean_attribute(self, attribute):
+        return isinstance(attribute.columns[0].type, Boolean)
+
     def export(self, dir_path):
         self.fs.create_directory(self.fs.deserialize_name(dir_path))
         for table in self.metadata.sorted_tables:
@@ -140,6 +143,7 @@ class Database():
                 raise Exception(f'Table `{tablename}` does not exist')
             inspector = inspect(model_class)
             json_type_attribute_names = [attr.key for attr in inspector.mapper.column_attrs if self.is_json_attribute(attr)]
+            boolean_type_attribute_names = [attr.key for attr in inspector.mapper.column_attrs if self.is_boolean_attribute(attr)]
             self.logger.info(f'[{module_name}] INTO TABLE `{tablename}` FROM PATH `{csv_file_path}`')
 
             with open(csv_file_path, newline='', encoding='utf-8') as csv_file:
@@ -167,6 +171,8 @@ class Database():
                         if len(attribute_name_parts) == 1:
                             if attribute_name in json_type_attribute_names:
                                 attribute_data[attribute_name] = ast.literal_eval(csv_value)
+                            elif attribute_name in boolean_type_attribute_names:
+                                attribute_data[attribute_name] = (csv_value.lower() == 'true')
                             else:
                                 attribute_data[attribute_name] = csv_value
 
