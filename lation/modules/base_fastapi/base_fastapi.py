@@ -11,7 +11,7 @@ from lation.modules.base_fastapi.routers import system
 
 
 DB_URL = get_env('DB_URL')
-
+FRONTEND_HOST = get_env('FRONTEND_HOST')
 
 class BaseFastAPI(FastAPI):
 
@@ -23,7 +23,7 @@ class BaseFastAPI(FastAPI):
         # https://github.com/tiangolo/fastapi/issues/1663
         self.add_middleware(GZipMiddleware)
         self.add_middleware(CORSMiddleware,
-                            allow_origins=['*'],
+                            allow_origins=[FRONTEND_HOST],
                             allow_credentials=True,
                             allow_methods=['*'],
                             allow_headers=['*'])
