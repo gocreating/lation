@@ -13,7 +13,7 @@ Usage:
 """
 @job_cmd_group.command('scheduler')
 def job_scheduler():
-    Scheduler.run()
+    Scheduler.run_forever()
 
 """
 Usage:

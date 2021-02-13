@@ -10,6 +10,7 @@ from lation.core.database.database import Database
 from lation.core.database.types import STRING_L_SIZE, STRING_S_SIZE, STRING_XS_SIZE, Boolean, DateTime, Integer, String
 from lation.core.env import get_env
 from lation.core.orm import Base
+from lation.core.utils import call_fn, coro
 
 
 DB_URL = get_env('DB_URL')
@@ -42,22 +43,27 @@ class CronJob(Base):
             return False
         return croniter.match(self.schedule, datetime.utcnow())
 
-    def execute(self):
-        func = Scheduler.get_cron_job(self.name)
+    @coro # allow to execute async job func
+    async def execute(self):
+        func = Scheduler.get_cron_job_func(self.name)
         if not func:
             raise Exception(f'Cron job `{self.name}` is not registered')
-        func(self)
+        await call_fn(func, self)
 
 
 class Scheduler():
 
     fn_map = {}
+    config_map = {}
 
     @staticmethod
-    def register_cron_job():
+    def register_cron_job(execute_once_initialized=False):
 
         def decorator(func):
             Scheduler.fn_map[func.__name__] = func
+            Scheduler.config_map[func.__name__] = {
+                'execute_once_initialized': execute_once_initialized,
+            }
 
             @functools.wraps(func)
             def wrapped_func(*args, **kwargs):
@@ -68,37 +74,58 @@ class Scheduler():
         return decorator
 
     @staticmethod
-    def get_cron_job(fn_name):
+    def get_cron_job_func(fn_name):
         return Scheduler.fn_map.get(fn_name)
 
     @staticmethod
-    def run():
+    def get_cron_job_config(fn_name):
+        return Scheduler.config_map.get(fn_name)
+
+    @staticmethod
+    def get_cron_jobs(session):
+        try:
+            cron_jobs = session.query(CronJob).all()
+        except Exception as e:
+            print(e)
+            cron_jobs = []
+        return cron_jobs
+
+    @staticmethod
+    def run_forever():
         database = Database(url=DB_URL)
 
+        # execute initialized round
+        session = database.get_session()
+        cron_jobs = Scheduler.get_cron_jobs(session)
+        for cron_job in cron_jobs:
+            config = Scheduler.get_cron_job_config(cron_job.name)
+            if config['execute_once_initialized']:
+                Scheduler.execute_cron_job(session, cron_job)
+
+        # execute scheduled rounds
         while True:
             utc_now = datetime.utcnow()
             seconds_to_next_minute = 60 - utc_now.second
             time.sleep(seconds_to_next_minute)
 
-            try:
-                session = database.get_session()
-                cron_jobs = session.query(CronJob).all()
-            except Exception as e:
-                print(e)
-                cron_jobs = []
-
+            session = database.get_session()
+            cron_jobs = Scheduler.get_cron_jobs(session)
             for cron_job in cron_jobs:
                 if cron_job.should_execute:
-                    cron_job_log = CronJobLog(cron_job=cron_job)
-                    session.add(cron_job_log)
-                    session.flush()
-                    try:
-                        execute_time = datetime.utcnow()
-                        cron_job.execute()
-                    except Exception as e:
-                        cron_job_log.exception = repr(e)
-                    finally:
-                        cron_job_log.execute_time = execute_time
-                        cron_job_log.finish_time = datetime.utcnow()
-                        cron_job.latest_cron_job_log_id = cron_job_log.id
-                        session.commit()
+                    Scheduler.execute_cron_job(session, cron_job)
+
+    @staticmethod
+    def execute_cron_job(session, cron_job):
+        cron_job_log = CronJobLog(cron_job=cron_job)
+        session.add(cron_job_log)
+        session.flush()
+        try:
+            execute_time = datetime.utcnow()
+            cron_job.execute()
+        except Exception as e:
+            cron_job_log.exception = repr(e)
+        finally:
+            cron_job_log.execute_time = execute_time
+            cron_job_log.finish_time = datetime.utcnow()
+            cron_job.latest_cron_job_log_id = cron_job_log.id
+            session.commit()
