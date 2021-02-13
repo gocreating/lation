@@ -14,7 +14,7 @@ jieba.set_dictionary((Path(__file__).parent / '../data/dict.txt.big.txt').resolv
 router = APIRouter()
 
 def memory_cache():
-    from lation.modules.stock.app import StockFastApp
+    from lation.modules.stock.stock import StockFastApp
     return CacheRegistry.get(StockFastApp.CACHE_KEY)
 
 def get_first_matched_link(html):

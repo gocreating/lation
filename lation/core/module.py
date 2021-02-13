@@ -2,6 +2,8 @@ import importlib
 
 from lation.core.env import get_env
 
+modules_loaded = False
+module = None
 modules = {}
 
 def dynamic_import(module_name, attr_name=None):
@@ -37,9 +39,14 @@ class LationModule():
             dynamic_import(f'{self.module_path}.app')
 
 def load_modules():
+    global modules_loaded
+    global module
+    if modules_loaded:
+        return module
     APP = get_env('APP')
     if APP is None:
         raise Exception('Environment variable `APP` is required')
     module = LationModule(APP)
     module.load()
+    modules_loaded = True
     return module
