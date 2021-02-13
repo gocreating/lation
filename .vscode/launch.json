@@ -41,6 +41,24 @@
             },
         },
         {
+            "name": "[Daemon] Job Scheduler",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "env": {
+                "APP": "stock",
+                "DB_URL": "mysql+pymysql://user:pass@host:port/db",
+                "LINE_CHANNEL_ACCESS_TOKEN": "my_line_message_channel_access_token",
+            },
+            "args": [
+                "job",
+                "scheduler",
+            ],
+        },
+        {
             "name": "[DB Migration] Revision Forcely",
             "type": "python",
             "request": "launch",

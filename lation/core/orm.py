@@ -72,5 +72,9 @@ class BaseClass:
     create_time = Column(DateTime, index=True, server_default=func.now())
     update_time = Column(DateTime, index=True, server_default=func.now(), onupdate=func.now())
 
+    @classmethod
+    def get_lation_data(cls, session, lation_id):
+        return session.query(cls).filter_by(lation_id=lation_id).one()
+
 
 Base = declarative_base(cls=BaseClass, metadata=Database.get_metadata())

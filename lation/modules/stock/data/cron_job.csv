@@ -1,0 +1,2 @@
+lation_id,name,is_active,schedule
+cron_job_send_ptt_wordcloud_notification,send_ptt_wordcloud_notification,true,* 18 * * *
