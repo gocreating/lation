@@ -30,6 +30,12 @@ class HttpClient:
         return HttpClient.request_url(HttpClient.VerbEnum.GET, url, *args, params=params, **kwargs)
 
     @staticmethod
+    def get_url_json(url:str, *args, **kwargs) -> dict:
+        res = HttpClient.get_url(url, *args, **kwargs)
+        data = res.json()
+        return data
+
+    @staticmethod
     def post_url(url:str, *args, data:dict=None, **kwargs) -> Response:
         return HttpClient.request_url(HttpClient.VerbEnum.POST, url, *args, data=data, **kwargs)
 
@@ -55,6 +61,9 @@ class HttpClient:
 
     def post(self, path_or_url:str, *args, **kwargs) -> Response:
         return HttpClient.post_url(self.render_url(path_or_url), *args, **kwargs)
+
+    def get_json(self, path_or_url:str, *args, **kwargs) -> dict:
+        return HttpClient.get_url_json(self.render_url(path_or_url), *args, **kwargs)
 
     def post_json(self, path_or_url:str, *args, **kwargs) -> dict:
         return HttpClient.post_url_json(self.render_url(path_or_url), *args, **kwargs)

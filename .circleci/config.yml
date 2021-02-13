@@ -114,8 +114,8 @@ jobs:
             envsubst < ./deploy/combo/docker-compose.prod.yml > /tmp/docker-compose.prod.yml
             cp /tmp/docker-compose.prod.yml ./deploy/combo/docker-compose.prod.yml
 
-            scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@prod.lation.app:/home/ubuntu/lation-deploy-combo-$IMAGE_TAG
-            ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@prod.lation.app "sudo docker-compose -f lation-deploy-combo-$IMAGE_TAG/combo/docker-compose.prod.yml up -d"
+            scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@instance-2.lation.app:/home/ubuntu/lation-deploy-combo-$IMAGE_TAG
+            ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-2.lation.app "sudo docker-compose -f lation-deploy-combo-$IMAGE_TAG/combo/docker-compose.prod.yml up -d"
       - run:
           name: Cleanup
           command: |
@@ -167,8 +167,8 @@ jobs:
             envsubst < ./deploy/stock/docker-compose.prod.yml > /tmp/docker-compose.prod.yml
             cp /tmp/docker-compose.prod.yml ./deploy/stock/docker-compose.prod.yml
 
-            scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@prod.lation.app:/home/ubuntu/lation-deploy-stock-$IMAGE_TAG
-            ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@prod.lation.app "sudo docker-compose -f lation-deploy-stock-$IMAGE_TAG/stock/docker-compose.prod.yml up -d"
+            scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@instance-2.lation.app:/home/ubuntu/lation-deploy-stock-$IMAGE_TAG
+            ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-2.lation.app "sudo docker-compose -f lation-deploy-stock-$IMAGE_TAG/stock/docker-compose.prod.yml up -d"
       - run:
           name: Cleanup
           command: |
@@ -244,6 +244,7 @@ jobs:
           name: Cleanup
           command: |
             rm -rf /tmp/lation-drive.json
+
 workflows:
   version: 2
   build_image_and_deploy_workflow:

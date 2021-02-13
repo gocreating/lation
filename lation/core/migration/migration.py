@@ -28,6 +28,7 @@ class Migration:
         alembic_cfg = Config()
         alembic_cfg.set_main_option('sqlalchemy.url', str(self.db_url).replace('%', '%%'))
         alembic_cfg.set_main_option('script_location', './lation/core/migration')
+        alembic_cfg.set_main_option('file_template', '%%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d_%%(minute).2d_%%(second).2d_%%(rev)s_%%(slug)s')
         version_location = self.get_version_location()
         if not os.path.exists(version_location):
             os.makedirs(version_location)
@@ -35,7 +36,11 @@ class Migration:
         return alembic_cfg
 
     def revision(self):
-        command.revision(self.alembic_cfg, message='Revision generated from lation command', autogenerate=True)
+        script = command.revision(self.alembic_cfg, message='Revision generated from lation command', autogenerate=True)
+        if isinstance(script, list):
+            script = script[0]
+        print(f'REVISION: {script.revision}')
+        print(f'SCRIPT PATH: {script.path}')
 
     def upgrade(self, revision='head'):
         command.upgrade(self.alembic_cfg, revision)

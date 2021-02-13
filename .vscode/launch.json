@@ -18,7 +18,7 @@
             },
         },
         {
-            "name": "[APP] Run Combo",
+            "name": "[APP] Run Stock",
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/run.py",
@@ -27,8 +27,162 @@
             "gevent": true,
             "justMyCode": false,
             "env": {
-                "APP": "combo",
+                "APP": "stock",
+                // "DEBUG_SQL": "TRUE",
+                "DEV": "TRUE",
+                "DB_URL": "mysql+pymysql://user:pass@host:port/db",
+                "HOST": "http://localhost:8000",
+                "FRONTEND_HOST": "http://localhost:3000",
+                "OAUTH_GOOGLE_CLIENT_ID": "691914720758-vovshlq9pujejchgfbkuiujdbc8f6ail.apps.googleusercontent.com",
+                "OAUTH_GOOGLE_CLIENT_SECRET": "my_google_oauth_client_secret",
+                "OAUTH_LINE_CLIENT_ID": "1655591797",
+                "OAUTH_LINE_CLIENT_SECRET": "my_line_oauth_client_secret",
+                "LINE_CHANNEL_ACCESS_TOKEN": "my_line_message_channel_access_token",
             },
+        },
+        {
+            "name": "[Daemon] Job Scheduler",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "env": {
+                "APP": "stock",
+                "DB_URL": "mysql+pymysql://user:pass@host:port/db",
+                "LINE_CHANNEL_ACCESS_TOKEN": "my_line_message_channel_access_token",
+            },
+            "args": [
+                "job",
+                "scheduler",
+            ],
+        },
+        {
+            "name": "[DB Migration] Revision Forcely",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "env": {
+                "APP": "myapp",
+            },
+            "args": [
+                "migration",
+                "--url",
+                "mysql+pymysql://user:pass@host:port/db",
+                "revision",
+                "--force",
+            ]
+        },
+        {
+            "name": "[DB Migration] Revision",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "env": {
+                "APP": "myapp",
+            },
+            "args": [
+                "migration",
+                "--url",
+                "mysql+pymysql://user:pass@host:port/db",
+                "revision",
+            ]
+        },
+        {
+            "name": "[DB Migration] Upgrade",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "env": {
+                "APP": "myapp",
+            },
+            "args": [
+                "migration",
+                "--url",
+                "mysql+pymysql://user:pass@host:port/db",
+                "upgrade",
+            ]
+        },
+        {
+            "name": "[DB Migration] Downgrade",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "env": {
+                "APP": "myapp",
+            },
+            "args": [
+                "migration",
+                "--url",
+                "mysql+pymysql://user:pass@host:port/db",
+                "downgrade",
+            ]
+        },
+        {
+            "name": "[DB] Install Data",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "env": {
+                "APP": "myapp",
+            },
+            "args": [
+                "db",
+                "--url",
+                "mysql+pymysql://user:pass@host:port/db",
+                "install-data",
+            ]
+        },
+        {
+            "name": "[DB] Reset",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "env": {
+                "APP": "myapp",
+            },
+            "args": [
+                "db",
+                "--url",
+                "mysql+pymysql://user:pass@host:port/db",
+                "reset",
+            ]
+        },
+        {
+            "name": "[DB] Export",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "env": {
+                "APP": "myapp",
+            },
+            "args": [
+                "db",
+                "--url",
+                "mysql+pymysql://user:pass@host:port/db",
+                "export",
+            ]
         },
         {
             "name": "[Vault] Sample Encrypt File",
@@ -37,6 +191,9 @@
             "program": "${workspaceRoot}/lation.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceRoot}",
+            "env": {
+                "APP": "base",
+            },
             "args": [
                 "vault",
                 "--password",
@@ -53,6 +210,9 @@
             "program": "${workspaceRoot}/lation.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceRoot}",
+            "env": {
+                "APP": "base",
+            },
             "args": [
                 "vault",
                 "--password",
@@ -60,41 +220,6 @@
                 "decrypt",
                 "--src",
                 ".gitignore.encrypted",
-            ]
-        },
-        {
-            "name": "[DB] Export",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceRoot}/lation.py",
-            "console": "integratedTerminal",
-            "cwd": "${workspaceRoot}",
-            "env": {
-                "APP": "combo",
-            },
-            "args": [
-                "db",
-                "--url",
-                "mysql+pymysql://user:pass@host:port/db",
-                "export",
-            ]
-        },
-        {
-            "name": "[DB] Reset",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceRoot}/lation.py",
-            "console": "integratedTerminal",
-            "cwd": "${workspaceRoot}",
-            "env": {
-                "APP": "combo",
-            },
-            "args": [
-                "db",
-                "--url",
-                "mysql+pymysql://user:pass@host:port/db",
-                "--model-agnostic",
-                "reset",
             ]
         },
         {
