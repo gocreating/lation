@@ -26,11 +26,11 @@ def oauth_login_flow(success_url:str, fail_url:str):
                 response.lation_set_access_token(end_user_token.value)
                 return response
             except Exception as e:
-                print(e)
                 # TODO: narrow down catch scopes
+                print(e)
                 session.rollback()
-                return RedirectResponse(f'{fail_url}?status={StatusEnum.FAILED}&error={quote_plus(str(e))}')
-                # return RedirectResponse(f'{fail_url}?status={StatusEnum.FAILED}&error={quote_plus("Login failed")}')
+                # return RedirectResponse(f'{fail_url}?status={StatusEnum.FAILED}&error={quote_plus(str(e))}')
+                return RedirectResponse(f'{fail_url}?status={StatusEnum.FAILED}&error={quote_plus("Login failed")}')
 
         return wrap_func
 
