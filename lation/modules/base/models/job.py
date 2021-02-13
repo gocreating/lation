@@ -83,7 +83,8 @@ class Scheduler():
             try:
                 session = database.get_session()
                 cron_jobs = session.query(CronJob).all()
-            except:
+            except Exception as e:
+                print(e)
                 cron_jobs = []
 
             for cron_job in cron_jobs:
