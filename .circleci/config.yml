@@ -31,10 +31,19 @@ jobs:
       SOURCE_PIPELINE_NUMBER: 48
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - pip-packages-cache-{{ checksum "lation/requirements.txt" }}
       - run:
           name: Install Dependencies
           command: |
             pip3 install -r lation/requirements.txt
+      - save_cache:
+          paths:
+            - ~/.cache/pip                                      # from `pip3 cache dir`
+            - ~/.local/lib/python3.8/site-packages              # from `pip3 list -v`
+            - /home/circleci/.local/lib/python3.8/site-packages # from `pip3 list -v`
+          key: pip-packages-cache-{{ checksum "lation/requirements.txt" }}
       - run:
           name: Decrypt Google Drive API Credentials
           command: |
@@ -87,60 +96,105 @@ jobs:
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASS
             docker push gocreating/lation
-  deploy_combo_prod:
+  # deploy_combo_prod:
+  #   docker:
+  #     - image: circleci/python:3.8
+  #   steps:
+  #     - checkout
+  #     - attach_workspace:
+  #         at: ./my-persist-workspace
+  #     - run:
+  #         name: Retrieve Persisted Environment Variable
+  #         command: |
+  #           cat ./my-persist-workspace/persist-env-var.txt >> $BASH_ENV
+  #     - run:
+  #         name: Setup SSH
+  #         command: |
+  #           # prepare envsubst
+  #           sudo apt-get install -y gettext-base
+
+  #           # please transform the private key into base64 format with following command, and save it into ci server's environment variable
+  #           # `cat secrets/instance-keys/oracle-cloud | base64 -w 0`
+  #           echo $DEPLOY_SERVER_PRIVATE_KEY_BASE64 | base64 -d > /tmp/deploy_server_id_rsa
+  #           chmod 400 /tmp/deploy_server_id_rsa
+  #     - run:
+  #         name: Deploy with SSH
+  #         command: |
+  #           envsubst < ./deploy/combo/docker-compose.prod.yml > /tmp/docker-compose.prod.yml
+  #           cp /tmp/docker-compose.prod.yml ./deploy/combo/docker-compose.prod.yml
+
+  #           scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@instance-2.lation.app:/home/ubuntu/lation-deploy-combo-$IMAGE_TAG
+  #           ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-2.lation.app "sudo docker-compose -f lation-deploy-combo-$IMAGE_TAG/combo/docker-compose.prod.yml up -d"
+  #     - run:
+  #         name: Cleanup
+  #         command: |
+  #           rm -rf /tmp/deploy_server_id_rsa
+  stock_prod_migrate:
     docker:
       - image: circleci/python:3.8
+    parameters:
+      generate_revision_script:
+        type: boolean
+        default: false
+      upgrade_database:
+        type: boolean
+        default: false
+      two_phase_revision_upgrade:
+        type: boolean
+        default: false
+      install_data:
+        type: boolean
+        default: false
     steps:
       - checkout
-      - attach_workspace:
-          at: ./my-persist-workspace
-      - run:
-          name: Retrieve Persisted Environment Variable
-          command: |
-            cat ./my-persist-workspace/persist-env-var.txt >> $BASH_ENV
-      - run:
-          name: Setup SSH
-          command: |
-            # prepare envsubst
-            sudo apt-get install -y gettext-base
-
-            # please transform the private key into base64 format with following command, and save it into ci server's environment variable
-            # `cat secrets/instance-keys/oracle-cloud | base64 -w 0`
-            echo $DEPLOY_SERVER_PRIVATE_KEY_BASE64 | base64 -d > /tmp/deploy_server_id_rsa
-            chmod 400 /tmp/deploy_server_id_rsa
-      - run:
-          name: Deploy with SSH
-          command: |
-            envsubst < ./deploy/combo/docker-compose.prod.yml > /tmp/docker-compose.prod.yml
-            cp /tmp/docker-compose.prod.yml ./deploy/combo/docker-compose.prod.yml
-
-            scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@instance-2.lation.app:/home/ubuntu/lation-deploy-combo-$IMAGE_TAG
-            ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-2.lation.app "sudo docker-compose -f lation-deploy-combo-$IMAGE_TAG/combo/docker-compose.prod.yml up -d"
-      - run:
-          name: Cleanup
-          command: |
-            rm -rf /tmp/deploy_server_id_rsa
-  migrate_stock_prod:
-    docker:
-      - image: circleci/python:3.8
-    steps:
-      - checkout
+      - restore_cache:
+          keys:
+            - pip-packages-cache-{{ checksum "lation/requirements.txt" }}
       - run:
           name: Install Dependencies
           command: |
             pip3 install -r lation/requirements.txt
-      - run:
-          name: Generate Revision Script
-          command: |
-            APP=stock python lation.py migration --url $STOCK_DB_URL revision --force
-      - store_artifacts:
-          path: ./lation/core/migration/versions
-          destination: migrate_versions
-      - run:
-          name: Upgrade Database
-          command: |
-            APP=stock python lation.py migration --url $STOCK_DB_URL upgrade
-  deploy_stock_prod:
+      - save_cache:
+          paths:
+            - ~/.cache/pip                                      # from `pip3 cache dir`
+            - ~/.local/lib/python3.8/site-packages              # from `pip3 list -v`
+            - /home/circleci/.local/lib/python3.8/site-packages # from `pip3 list -v`
+          key: pip-packages-cache-{{ checksum "lation/requirements.txt" }}
+      - when:
+          condition: <<parameters.generate_revision_script>>
+          steps:
+            - run:
+                name: Generate Revision Script
+                command: |
+                  APP=stock python lation.py migration --url $STOCK_DB_URL revision --force
+            - store_artifacts:
+                path: ./lation/core/migration/versions
+                destination: migrate_versions
+      - when:
+          condition: <<parameters.upgrade_database>>
+          steps:
+            - run:
+                name: Upgrade Database
+                command: |
+                  APP=stock python lation.py migration --url $STOCK_DB_URL upgrade
+      - when:
+          condition: <<parameters.two_phase_revision_upgrade>>
+          steps:
+            - run:
+                name: Two Phase Revision Upgrade Database
+                command: |
+                  APP=stock python lation.py migration --url $STOCK_DB_URL revision --no-foreign-key --force
+                  APP=stock python lation.py migration --url $STOCK_DB_URL upgrade
+                  APP=stock python lation.py migration --url $STOCK_DB_URL revision
+                  APP=stock python lation.py migration --url $STOCK_DB_URL upgrade
+      - when:
+          condition: <<parameters.install_data>>
+          steps:
+            - run:
+                name: Install Data
+                command: |
+                  APP=stock python lation.py db --url $STOCK_DB_URL install-data
+  stock_prod_deploy:
     docker:
       - image: circleci/python:3.8
     steps:
@@ -220,10 +274,19 @@ jobs:
       - checkout
       - attach_workspace:
           at: ./certbot-workspace
+      - restore_cache:
+          keys:
+            - pip-packages-cache-{{ checksum "lation/requirements.txt" }}
       - run:
           name: Install Dependencies
           command: |
             pip3 install -r lation/requirements.txt
+      - save_cache:
+          paths:
+            - ~/.cache/pip                                      # from `pip3 cache dir`
+            - ~/.local/lib/python3.8/site-packages              # from `pip3 list -v`
+            - /home/circleci/.local/lib/python3.8/site-packages # from `pip3 list -v`
+          key: pip-packages-cache-{{ checksum "lation/requirements.txt" }}
       - run:
           name: Decrypt Google Drive API Credentials
           command: |
@@ -264,35 +327,92 @@ workflows:
           filters:
             branches:
               only: master
-      - request_deploy_combo_prod:
+      # - request_deploy_combo_prod:
+      #     type: approval
+      #     filters:
+      #       branches:
+      #         only: master
+      # - deploy_combo_prod:
+      #     requires:
+      #       - request_deploy_combo_prod
+      #       - setup_environment_variable
+      #       - release_image
+      #     filters:
+      #       branches:
+      #         only: master
+
+      # deploy
+      - stock_prod_request_deploy:
+          requires:
+            - release_image
           type: approval
           filters:
             branches:
               only: master
-      - deploy_combo_prod:
+      - stock_prod_deploy:
           requires:
-            - request_deploy_combo_prod
-            - setup_environment_variable
-            - release_image
+            - stock_prod_request_deploy
           filters:
             branches:
               only: master
-      - request_deploy_stock_prod:
+
+      # migrate revision
+      - stock_prod_request_migrate_revision:
+          requires:
+            - release_image
           type: approval
           filters:
             branches:
               only: master
-      - migrate_stock_prod:
+      - stock_prod_migrate:
+          name: stock_prod_migrate_revision
+          generate_revision_script: true
           requires:
-            - request_deploy_stock_prod
-            - setup_environment_variable
+            - stock_prod_request_migrate_revision
+
+      # migrate revision and upgrade
+      - stock_prod_request_migrate_revision_upgrade:
+          requires:
             - release_image
-      - deploy_stock_prod:
-          requires:
-            - migrate_stock_prod
+          type: approval
           filters:
             branches:
               only: master
+      - stock_prod_migrate:
+          name: stock_prod_migrate_revision_upgrade
+          generate_revision_script: true
+          upgrade_database: true
+          requires:
+            - stock_prod_request_migrate_revision_upgrade
+
+      # migrate two-phase revision and upgrade
+      - stock_prod_request_migrate_two_phase_revision_upgrade:
+          requires:
+            - release_image
+          type: approval
+          filters:
+            branches:
+              only: master
+      - stock_prod_migrate:
+          name: stock_prod_migrate_two_phase_revision_upgrade
+          two_phase_revision_upgrade: true
+          requires:
+            - stock_prod_request_migrate_two_phase_revision_upgrade
+
+      # migrate install data
+      - stock_prod_request_migrate_install_data:
+          requires:
+            - release_image
+          type: approval
+          filters:
+            branches:
+              only: master
+      - stock_prod_migrate:
+          name: stock_prod_migrate_install_data
+          install_data: true
+          requires:
+            - stock_prod_request_migrate_install_data
+
   renew_tls_certificates_workflow:
     jobs:
       # https://circleci.com/docs/2.0/workflows/#holding-a-workflow-for-a-manual-approval
