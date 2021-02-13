@@ -17,11 +17,18 @@ services:
       - LINE_CHANNEL_ACCESS_TOKEN=$STOCK_LINE_CHANNEL_ACCESS_TOKEN
       - SMTP_USER=$SMTP_USER
       - SMTP_PASSWORD=$SMTP_PASSWORD
+    volumes:
+      - static-files:/app/lation/modules/stock/static
   job_scheduler:
     image: gocreating/lation:$IMAGE_TAG
     environment:
       - APP=stock
       - DB_URL=$STOCK_DB_URL
       - LINE_CHANNEL_ACCESS_TOKEN=$STOCK_LINE_CHANNEL_ACCESS_TOKEN
+    volumes:
+      - static-files:/app/lation/modules/stock/static
     entrypoint: python
     command: lation.py job scheduler
+
+volumes:
+  static-files:
