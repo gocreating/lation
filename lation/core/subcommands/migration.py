@@ -33,13 +33,14 @@ Usage:
     APP=combo python lation.py migration --url u revision
 """
 @migration.command('revision')
+@click.option('--no-foreign-key', is_flag=True, help='Set this option to prevent alembic from generating foreign key constraints. Such option is especially for circular dependent tables.')
 @click.option('--force', is_flag=True, help='Set this option to force drop alembic version table and clear version location')
 @click.pass_obj
-def migration_revision(migration, force):
+def migration_revision(migration, no_foreign_key, force):
     if force:
-        migration.force_revision()
+        migration.force_revision(without_foreign_key=no_foreign_key)
     else:
-        migration.revision()
+        migration.revision(without_foreign_key=no_foreign_key)
 
 """
 Usage:

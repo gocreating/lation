@@ -4,6 +4,7 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
+from alembic.script import write_hooks
 
 from lation.core.orm import Base
 from lation.core.env import get_env
@@ -90,6 +91,15 @@ def run_migrations_online():
         with context.begin_transaction():
             context.run_migrations()
 
+@write_hooks.register('ignore_foreign_key_constraint')
+def ignore_foreign_key_constraint(filename, options):
+    lines = []
+    with open(filename) as file_:
+        for line in file_:
+            if 'sa.ForeignKeyConstraint(' not in line:
+                lines.append(line)
+    with open(filename, 'w') as to_write:
+        to_write.write(''.join(lines))
 
 if context.is_offline_mode():
     run_migrations_offline()

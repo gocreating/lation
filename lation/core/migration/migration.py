@@ -35,8 +35,12 @@ class Migration:
         alembic_cfg.set_main_option('version_locations', version_location)
         return alembic_cfg
 
-    def revision(self):
-        script = command.revision(self.alembic_cfg, message='Revision generated from lation command', autogenerate=True)
+    def revision(self, without_foreign_key=False):
+        alembic_cfg = self.create_alembic_config()
+        if without_foreign_key:
+            alembic_cfg.set_section_option('post_write_hooks', 'hooks', 'ignore_foreign_key_constraint')
+            alembic_cfg.set_section_option('post_write_hooks', 'ignore_foreign_key_constraint.type', 'ignore_foreign_key_constraint')
+        script = command.revision(alembic_cfg, message='Revision generated from lation command', autogenerate=True)
         if isinstance(script, list):
             script = script[0]
         print(f'REVISION: {script.revision}')
@@ -48,7 +52,7 @@ class Migration:
     def downgrade(self, revision='-1'):
         command.downgrade(self.alembic_cfg, revision)
 
-    def force_revision(self):
+    def force_revision(self, *args, **kwargs):
         schema_name = APP
         engine = create_engine(self.db_url, pool_size=1)
         metadata = MetaData(schema=schema_name)
@@ -60,4 +64,4 @@ class Migration:
             metadata.drop_all(engine, [alembic_version_table], checkfirst=True)
         version_location = self.get_version_location()
         shutil.rmtree(version_location, ignore_errors=True)
-        self.revision()
+        self.revision(*args, **kwargs)
