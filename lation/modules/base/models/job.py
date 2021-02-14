@@ -105,7 +105,7 @@ class Scheduler():
         # execute scheduled rounds
         while True:
             utc_now = datetime.utcnow()
-            seconds_to_next_minute = 60 - utc_now.second
+            seconds_to_next_minute = 61 - utc_now.second # use 61 to prevent overlapping
             time.sleep(seconds_to_next_minute)
 
             session = database.get_session()
