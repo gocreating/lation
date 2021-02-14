@@ -129,10 +129,13 @@ jobs:
   #         name: Cleanup
   #         command: |
   #           rm -rf /tmp/deploy_server_id_rsa
-  stock_prod_migrate:
+  migrate_lation_db:
     docker:
       - image: circleci/python:3.8
     parameters:
+      lation_app_name:
+        type: string
+        default: ""
       generate_revision_script:
         type: boolean
         default: false
@@ -160,13 +163,25 @@ jobs:
             - /usr/local/lib/python3.8/site-packages            # from `pip3 list -v`
             - /home/circleci/.local/lib/python3.8/site-packages # from `pip3 list -v`
           key: pip-packages-cache-{{ checksum "lation/requirements.txt" }}
+      - run:
+          name: Prepare Environment Variables
+          command: |
+            lation_app_name=<<parameters.lation_app_name>>
+            upper_lation_app_name=$(echo $lation_app_name | tr 'a-z' 'A-Z')
+            lation_db_url_variable="$(echo $upper_lation_app_name)_DB_URL"
+            eval lation_db_url=\$$lation_db_url_variable
+
+            touch ./tmp-env-var.txt
+            echo "export lation_app_name=$lation_app_name" >> ./tmp-env-var.txt
+            echo "export lation_db_url=$lation_db_url" >> ./tmp-env-var.txt
+            cat ./tmp-env-var.txt >> $BASH_ENV
       - when:
           condition: <<parameters.generate_revision_script>>
           steps:
             - run:
                 name: Generate Revision Script
                 command: |
-                  APP=stock python lation.py migration --url $STOCK_DB_URL revision --force
+                  APP=$lation_app_name python lation.py migration --url $lation_db_url revision --force
             - store_artifacts:
                 path: ./lation/core/migration/versions
                 destination: migrate_versions
@@ -176,27 +191,34 @@ jobs:
             - run:
                 name: Upgrade Database
                 command: |
-                  APP=stock python lation.py migration --url $STOCK_DB_URL upgrade
+                  APP=$lation_app_name python lation.py migration --url $lation_db_url upgrade
       - when:
           condition: <<parameters.two_phase_revision_upgrade>>
           steps:
             - run:
                 name: Two Phase Revision Upgrade Database
                 command: |
-                  APP=stock python lation.py migration --url $STOCK_DB_URL revision --no-foreign-key --force
-                  APP=stock python lation.py migration --url $STOCK_DB_URL upgrade
-                  APP=stock python lation.py migration --url $STOCK_DB_URL revision
-                  APP=stock python lation.py migration --url $STOCK_DB_URL upgrade
+                  APP=$lation_app_name python lation.py migration --url $lation_db_url revision --no-foreign-key --force
+                  APP=$lation_app_name python lation.py migration --url $lation_db_url upgrade
+                  APP=$lation_app_name python lation.py migration --url $lation_db_url revision
+                  APP=$lation_app_name python lation.py migration --url $lation_db_url upgrade
       - when:
           condition: <<parameters.install_data>>
           steps:
             - run:
                 name: Install Data
                 command: |
-                  APP=stock python lation.py db --url $STOCK_DB_URL install-data
-  stock_prod_deploy:
+                  APP=$lation_app_name python lation.py db --url $lation_db_url install-data
+  deploy_lation_app:
     docker:
       - image: circleci/python:3.8
+    parameters:
+      lation_app_name:
+        type: string
+        default: ""
+      deploy_host:
+        type: string
+        default: ""
     steps:
       - checkout
       - attach_workspace:
@@ -205,6 +227,16 @@ jobs:
           name: Retrieve Persisted Environment Variable
           command: |
             cat ./my-persist-workspace/persist-env-var.txt >> $BASH_ENV
+      - run:
+          name: Prepare Environment Variables
+          command: |
+            lation_app_name=<<parameters.lation_app_name>>
+            deploy_host=<<parameters.deploy_host>>
+
+            touch ./tmp-env-var.txt
+            echo "export lation_app_name=$lation_app_name" >> ./tmp-env-var.txt
+            echo "export deploy_host=$deploy_host" >> ./tmp-env-var.txt
+            cat ./tmp-env-var.txt >> $BASH_ENV
       - run:
           name: Setup SSH
           command: |
@@ -218,14 +250,15 @@ jobs:
       - run:
           name: Deploy with SSH
           command: |
-            envsubst < ./deploy/stock/docker-compose.prod.yml > /tmp/docker-compose.prod.yml
-            cp /tmp/docker-compose.prod.yml ./deploy/stock/docker-compose.prod.yml
+            envsubst < ./deploy/$lation_app_name/docker-compose.prod.yml > /tmp/docker-compose.prod.yml
+            cp /tmp/docker-compose.prod.yml ./deploy/$lation_app_name/docker-compose.prod.yml
 
-            scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@instance-2.lation.app:/home/ubuntu/lation-deploy-stock-$IMAGE_TAG
-            ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-2.lation.app "sudo docker-compose -f lation-deploy-stock-$IMAGE_TAG/stock/docker-compose.prod.yml up -d"
+            scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@$deploy_host:/home/ubuntu/lation-deploy-$lation_app_name-$IMAGE_TAG
+            ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@$deploy_host "sudo docker-compose -f lation-deploy-$lation_app_name-$IMAGE_TAG/$lation_app_name/docker-compose.prod.yml up -d"
       - run:
           name: Cleanup
           command: |
+            ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@$deploy_host "sudo docker system prune --force"
             rm -rf /tmp/deploy_server_id_rsa
   issue_certificates:
     docker:
@@ -341,15 +374,26 @@ workflows:
       #       branches:
       #         only: master
 
-      # deploy
-      - stock_prod_request_deploy:
+      - stock_prod_request_manage:
           requires:
             - release_image
           type: approval
           filters:
             branches:
               only: master
-      - stock_prod_deploy:
+
+      # deploy
+      - stock_prod_request_deploy:
+          requires:
+            - stock_prod_request_manage
+          type: approval
+          filters:
+            branches:
+              only: master
+      - deploy_lation_app:
+          name: stock_prod_deploy
+          lation_app_name: stock
+          deploy_host: instance-2.lation.app
           requires:
             - stock_prod_request_deploy
           filters:
@@ -359,13 +403,14 @@ workflows:
       # migrate revision
       - stock_prod_request_migrate_revision:
           requires:
-            - release_image
+            - stock_prod_request_manage
           type: approval
           filters:
             branches:
               only: master
-      - stock_prod_migrate:
+      - migrate_lation_db:
           name: stock_prod_migrate_revision
+          lation_app_name: stock
           generate_revision_script: true
           requires:
             - stock_prod_request_migrate_revision
@@ -373,13 +418,14 @@ workflows:
       # migrate revision and upgrade
       - stock_prod_request_migrate_revision_upgrade:
           requires:
-            - release_image
+            - stock_prod_request_manage
           type: approval
           filters:
             branches:
               only: master
-      - stock_prod_migrate:
+      - migrate_lation_db:
           name: stock_prod_migrate_revision_upgrade
+          lation_app_name: stock
           generate_revision_script: true
           upgrade_database: true
           requires:
@@ -388,13 +434,14 @@ workflows:
       # migrate two-phase revision and upgrade
       - stock_prod_request_migrate_two_phase_revision_upgrade:
           requires:
-            - release_image
+            - stock_prod_request_manage
           type: approval
           filters:
             branches:
               only: master
-      - stock_prod_migrate:
+      - migrate_lation_db:
           name: stock_prod_migrate_two_phase_revision_upgrade
+          lation_app_name: stock
           two_phase_revision_upgrade: true
           requires:
             - stock_prod_request_migrate_two_phase_revision_upgrade
@@ -402,13 +449,14 @@ workflows:
       # migrate install data
       - stock_prod_request_migrate_install_data:
           requires:
-            - release_image
+            - stock_prod_request_manage
           type: approval
           filters:
             branches:
               only: master
-      - stock_prod_migrate:
+      - migrate_lation_db:
           name: stock_prod_migrate_install_data
+          lation_app_name: stock
           install_data: true
           requires:
             - stock_prod_request_migrate_install_data
