@@ -9,7 +9,24 @@ from string import Template
 SMTP_USER = os.getenv('SMTP_USER')
 SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
 
-class Notification():
+
+# class NotificationGateway:
+#     # single inheritence
+#     pass
+
+# class GmailGateway(NotificationGateway):
+#     pass
+
+# class LineMessageGateway(NotificationGateway):
+#     pass
+
+# class WebhookGateway(NotificationGateway):
+#     pass
+
+class Notification:
+    # joined inheritence
+    # is_sent = Column(Boolean, comment='A flag to remark whether the notification is sent through worker')
+
     def send_email(self, template_path):
         with smtplib.SMTP(host='smtp.gmail.com', port=587) as smtp:
             smtp.starttls()
@@ -25,3 +42,12 @@ class Notification():
             })
             content.attach(MIMEText(body, 'html'))
             smtp.send_message(content)
+
+# class GmailNotification(Notification):
+#     pass
+
+# class LineMessageNotification(Notification):
+#     pass
+
+# class WebhookNotification(Notification):
+#     pass
