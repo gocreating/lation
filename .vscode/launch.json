@@ -38,6 +38,7 @@
                 "OAUTH_LINE_CLIENT_ID": "1655591797",
                 "OAUTH_LINE_CLIENT_SECRET": "my_line_oauth_client_secret",
                 "LINE_CHANNEL_ACCESS_TOKEN": "my_line_message_channel_access_token",
+                "LINE_BOT_BASIC_ID": "936eumim",
             },
         },
         {
