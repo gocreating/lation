@@ -60,6 +60,24 @@
             ],
         },
         {
+            "name": "[Daemon] Job Worker",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "env": {
+                "APP": "stock",
+                "DB_URL": "mysql+pymysql://user:pass@host:port/db",
+                "MESSAGE_QUEUE_URL": "amqps://user:pass@host/vhost",
+            },
+            "args": [
+                "job",
+                "worker",
+            ],
+        },
+        {
             "name": "[DB Migration] Revision Forcely",
             "type": "python",
             "request": "launch",
