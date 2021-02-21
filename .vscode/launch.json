@@ -52,7 +52,7 @@
             "env": {
                 "APP": "stock",
                 "DB_URL": "mysql+pymysql://user:pass@host:port/db",
-                "LINE_CHANNEL_ACCESS_TOKEN": "my_line_message_channel_access_token",
+                "MESSAGE_QUEUE_URL": "amqps://user:pass@host/vhost",
             },
             "args": [
                 "job",
@@ -71,6 +71,7 @@
                 "APP": "stock",
                 "DB_URL": "mysql+pymysql://user:pass@host:port/db",
                 "MESSAGE_QUEUE_URL": "amqps://user:pass@host/vhost",
+                "LINE_CHANNEL_ACCESS_TOKEN": "my_line_message_channel_access_token",
             },
             "args": [
                 "job",
