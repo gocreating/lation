@@ -16,6 +16,7 @@ services:
       - OAUTH_LINE_CLIENT_ID=1655673740
       - OAUTH_LINE_CLIENT_SECRET=xxx
       - LINE_CHANNEL_ACCESS_TOKEN=xxx
+      - LINE_BOT_BASIC_ID=936eumim
     volumes:
       - static-files:/app/lation/modules/stock/static
   job_scheduler:
@@ -23,11 +24,22 @@ services:
     environment:
       - APP=stock
       - DB_URL=xxx
+      - MESSAGE_QUEUE_URL=xxx
+    volumes:
+      - static-files:/app/lation/modules/stock/static
+    entrypoint: python
+    command: lation.py job scheduler
+  job_worker:
+    build: .
+    environment:
+      - APP=stock
+      - DB_URL=xxx
+      - MESSAGE_QUEUE_URL=xxx
       - LINE_CHANNEL_ACCESS_TOKEN=xxx
     volumes:
       - static-files:/app/lation/modules/stock/static
-    entrypoint: python3
-    command: lation.py job scheduler
+    entrypoint: python
+    command: lation.py job worker
 
 volumes:
   static-files:

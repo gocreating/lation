@@ -255,8 +255,8 @@ jobs:
                 name: Deploy and Cleanup Docker Image
                 command: |
                   scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@instance-2.lation.app:/home/ubuntu/lation-deploy-$lation_app_name-$IMAGE_TAG
-                  ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-2.lation.app "sudo docker-compose -f lation-deploy-$lation_app_name-$IMAGE_TAG/$lation_app_name/docker-compose.prod.yml up -d job_scheduler"
-                  ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-2.lation.app "sudo docker-compose -f lation-deploy-$lation_app_name-$IMAGE_TAG/$lation_app_name/docker-compose.prod.yml up -d web_server job_worker"
+                  ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-2.lation.app "sudo docker-compose -f lation-deploy-$lation_app_name-$IMAGE_TAG/$lation_app_name/docker-compose.prod.yml up -d --remove-orphans job_scheduler"
+                  ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-2.lation.app "sudo docker-compose -f lation-deploy-$lation_app_name-$IMAGE_TAG/$lation_app_name/docker-compose.prod.yml up -d --remove-orphans web_server job_worker"
                   ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-2.lation.app "sudo docker system prune --force"
       - run:
           name: Cleanup
