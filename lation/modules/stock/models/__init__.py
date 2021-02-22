@@ -1,1 +1,1 @@
-from . import job, subscription
+from . import job, oauth_user, subscription
