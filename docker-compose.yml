@@ -13,7 +13,7 @@ services:
       - DB_URL=xxx
       - OAUTH_GOOGLE_CLIENT_ID=691914720758-vovshlq9pujejchgfbkuiujdbc8f6ail.apps.googleusercontent.com
       - OAUTH_GOOGLE_CLIENT_SECRET=xxx
-      - OAUTH_LINE_CLIENT_ID=1655591797
+      - OAUTH_LINE_CLIENT_ID=1655673740
       - OAUTH_LINE_CLIENT_SECRET=xxx
       - LINE_CHANNEL_ACCESS_TOKEN=xxx
     volumes:
