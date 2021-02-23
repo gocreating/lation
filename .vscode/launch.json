@@ -18,6 +18,22 @@
             },
         },
         {
+            "name": "[APP] Run Combo",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/run.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "gevent": true,
+            "justMyCode": false,
+            "env": {
+                "APP": "combo",
+                "DEV": "TRUE",
+                "HOST": "http://localhost:8000",
+                "FRONTEND_HOST": "http://localhost:3000",
+            },
+        },
+        {
             "name": "[APP] Run Stock",
             "type": "python",
             "request": "launch",

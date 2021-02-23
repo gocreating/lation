@@ -1,9 +1,11 @@
 version: "3"
 services:
-  combo:
+  web_server:
     image: gocreating/lation:$IMAGE_TAG
     ports:
       # external port: internal port
-      - "443:8000"
+      - "8765:8000"
     environment:
       - APP=combo
+      - HOST=https://combo-api.lation.app:8765
+      - FRONTEND_HOST=https://combo.lation.app
