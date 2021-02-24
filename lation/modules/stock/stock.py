@@ -2,7 +2,6 @@ from datetime import timedelta
 from pathlib import Path
 
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
 
 from lation.modules.base.cache import CacheRegistry, MemoryCache
 from lation.modules.customer.customer import CustomerApp
