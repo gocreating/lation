@@ -1,6 +1,12 @@
+import csv
+import os
+import random
+from datetime import datetime
+
 import requests
 from bs4 import BeautifulSoup
 from fastapi import APIRouter
+from fastapi.responses import FileResponse
 
 from lation.modules.base.http_client import HttpClient
 
@@ -8,9 +14,9 @@ from lation.modules.base.http_client import HttpClient
 router = APIRouter()
 
 
-class CurrencyClient(HttpClient):
+class SymbolClient(HttpClient):
 
-    def get_top_n_symbols(self, n):
+    def get_top_monthly_volume_symbols(self, n):
         res = self.get('https://coinmarketcap.com/currencies/volume/monthly/')
         soup = BeautifulSoup(res.text, 'html.parser')
         cells = soup.find_all('td', class_='cmc-table__cell--sort-by__symbol')
@@ -37,19 +43,42 @@ class CurrencyClient(HttpClient):
             symbols += [datum['symbol'] for datum in data['data']]
         return symbols
 
-@router.get('/reveal-currency', tags=['experiment'])
-async def reveal_currency(top_n:int=50):
-    client = CurrencyClient()
-    top_n_symbols = client.get_top_n_symbols(top_n)
+    # https://www.okex.com/hk/markets/coin-list
+    def get_okex_symbols(self):
+        data = self.get_json('https://www.okex.com/v2/support/info/announce/listProject')
+        symbols = [datum['project'] for datum in data['data']['list']]
+        return symbols
+
+    # https://ftx.com/markets
+    def get_ftx_symbols(self):
+        data = self.get_json('https://ftx.com/api/coins')
+        symbols = [datum['id'] for datum in data['result']]
+        return symbols
+
+
+@router.get('/symbols/exchange-insight/download', tags=['experiment'])
+async def download_exchange_insight_symbols(top_n:int=50):
+    client = SymbolClient()
+    top_symbols = client.get_top_monthly_volume_symbols(top_n)
     binance_symbols = client.get_binance_symbols()
     huobi_symbols = client.get_huobi_symbols()
     coinbase_symbols = client.get_coinbase_symbols()
-    return {
-        'top_n_symbols': top_n_symbols,
-        'binance_symbols': binance_symbols,
-        'huobi_symbols': huobi_symbols,
-        'coinbase_symbols': coinbase_symbols,
-        'top_symbols_not_in_binance': [top_symbol for top_symbol in top_n_symbols if top_symbol not in binance_symbols],
-        'top_symbols_not_in_huobi': [top_symbol for top_symbol in top_n_symbols if top_symbol not in huobi_symbols],
-        'top_symbols_not_in_coinbase': [top_symbol for top_symbol in top_n_symbols if top_symbol not in coinbase_symbols],
-    }
+    okex_symbols = client.get_okex_symbols()
+    ftx_symbols = client.get_ftx_symbols()
+
+    datetime_str = datetime.utcnow().strftime("%Y_%m_%d_%H_%M_%S")
+    file_path = os.path.join('./', f'exchange_insight_{datetime_str}_random_{random.randint(1, 1000)}.csv')
+    with open(file_path, 'w', newline='') as output_file:
+        writer = csv.DictWriter(output_file, fieldnames=['symbol', 'rank_by_30d_volume', 'binance', 'huobi', 'coinbase', 'okex', 'ftx'])
+        writer.writeheader()
+        for i, symbol in enumerate(top_symbols):
+            writer.writerow({
+                'symbol': symbol,
+                'rank_by_30d_volume': i + 1,
+                'binance': 'yes' if symbol in binance_symbols else '',
+                'huobi': 'yes' if symbol in huobi_symbols else '',
+                'coinbase': 'yes' if symbol in coinbase_symbols else '',
+                'okex': 'yes' if symbol in okex_symbols else '',
+                'ftx': 'yes' if symbol in ftx_symbols else '',
+            })
+    return FileResponse(file_path, filename=f'exchange_insight_{datetime_str}.csv')
