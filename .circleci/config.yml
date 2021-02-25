@@ -216,9 +216,6 @@ jobs:
       lation_app_name:
         type: string
         default: ""
-      deploy_host:
-        type: string
-        default: ""
     steps:
       - checkout
       - attach_workspace:
@@ -231,11 +228,9 @@ jobs:
           name: Prepare Environment Variables
           command: |
             lation_app_name=<<parameters.lation_app_name>>
-            deploy_host=<<parameters.deploy_host>>
 
             touch ./tmp-env-var.txt
             echo "export lation_app_name=$lation_app_name" >> ./tmp-env-var.txt
-            echo "export deploy_host=$deploy_host" >> ./tmp-env-var.txt
             cat ./tmp-env-var.txt >> $BASH_ENV
       - run:
           name: Setup SSH
@@ -248,17 +243,34 @@ jobs:
             echo $DEPLOY_SERVER_PRIVATE_KEY_BASE64 | base64 -d > /tmp/deploy_server_id_rsa
             chmod 400 /tmp/deploy_server_id_rsa
       - run:
-          name: Deploy with SSH
+          name: Setup Docker Compose File
           command: |
             envsubst < ./deploy/$lation_app_name/docker-compose.prod.yml > /tmp/docker-compose.prod.yml
             cp /tmp/docker-compose.prod.yml ./deploy/$lation_app_name/docker-compose.prod.yml
-
-            scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@$deploy_host:/home/ubuntu/lation-deploy-$lation_app_name-$IMAGE_TAG
-            ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@$deploy_host "sudo docker-compose -f lation-deploy-$lation_app_name-$IMAGE_TAG/$lation_app_name/docker-compose.prod.yml up -d"
+      - when:
+          condition:
+            equal: [ <<parameters.lation_app_name>>, stock ]
+          steps:
+            - run:
+                name: Deploy and Cleanup Docker Image
+                command: |
+                  scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@instance-2.lation.app:/home/ubuntu/lation-deploy-$lation_app_name-$IMAGE_TAG
+                  ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-2.lation.app "sudo docker-compose -f lation-deploy-$lation_app_name-$IMAGE_TAG/$lation_app_name/docker-compose.prod.yml up -d --remove-orphans job_scheduler"
+                  ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-2.lation.app "sudo docker-compose -f lation-deploy-$lation_app_name-$IMAGE_TAG/$lation_app_name/docker-compose.prod.yml up -d --remove-orphans web_server job_worker"
+                  ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-2.lation.app "sudo docker system prune --force"
+      - when:
+          condition:
+            equal: [ <<parameters.lation_app_name>>, combo ]
+          steps:
+            - run:
+                name: Deploy and Cleanup Docker Image
+                command: |
+                  scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@instance-1.lation.app:/home/ubuntu/lation-deploy-$lation_app_name-$IMAGE_TAG
+                  ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-1.lation.app "sudo docker-compose -f lation-deploy-$lation_app_name-$IMAGE_TAG/$lation_app_name/docker-compose.prod.yml up -d --remove-orphans web_server"
+                  ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-1.lation.app "sudo docker system prune --force"
       - run:
           name: Cleanup
           command: |
-            ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@$deploy_host "sudo docker system prune --force"
             rm -rf /tmp/deploy_server_id_rsa
   issue_certificates:
     docker:
@@ -360,20 +372,12 @@ workflows:
           filters:
             branches:
               only: master
-      # - request_deploy_combo_prod:
-      #     type: approval
-      #     filters:
-      #       branches:
-      #         only: master
-      # - deploy_combo_prod:
-      #     requires:
-      #       - request_deploy_combo_prod
-      #       - setup_environment_variable
-      #       - release_image
-      #     filters:
-      #       branches:
-      #         only: master
 
+      #############
+      ##         ##
+      ##  Stock  ##
+      ##         ##
+      #############
       - stock_prod_request_manage:
           requires:
             - release_image
@@ -393,7 +397,6 @@ workflows:
       - deploy_lation_app:
           name: stock_prod_deploy
           lation_app_name: stock
-          deploy_host: instance-2.lation.app
           requires:
             - stock_prod_request_deploy
           filters:
@@ -460,6 +463,36 @@ workflows:
           install_data: true
           requires:
             - stock_prod_request_migrate_install_data
+
+      #############
+      ##         ##
+      ##  Combo  ##
+      ##         ##
+      #############
+      - combo_prod_request_manage:
+          requires:
+            - release_image
+          type: approval
+          filters:
+            branches:
+              only: master
+
+      # deploy
+      - combo_prod_request_deploy:
+          requires:
+            - combo_prod_request_manage
+          type: approval
+          filters:
+            branches:
+              only: master
+      - deploy_lation_app:
+          name: combo_prod_deploy
+          lation_app_name: combo
+          requires:
+            - combo_prod_request_deploy
+          filters:
+            branches:
+              only: master
 
   renew_tls_certificates_workflow:
     jobs:

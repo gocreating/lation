@@ -18,6 +18,22 @@
             },
         },
         {
+            "name": "[APP] Run Combo",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/run.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "gevent": true,
+            "justMyCode": false,
+            "env": {
+                "APP": "combo",
+                "DEV": "TRUE",
+                "HOST": "http://localhost:8000",
+                "FRONTEND_HOST": "http://localhost:3000",
+            },
+        },
+        {
             "name": "[APP] Run Stock",
             "type": "python",
             "request": "launch",
@@ -38,6 +54,7 @@
                 "OAUTH_LINE_CLIENT_ID": "1655591797",
                 "OAUTH_LINE_CLIENT_SECRET": "my_line_oauth_client_secret",
                 "LINE_CHANNEL_ACCESS_TOKEN": "my_line_message_channel_access_token",
+                "LINE_BOT_BASIC_ID": "936eumim",
             },
         },
         {
@@ -51,11 +68,30 @@
             "env": {
                 "APP": "stock",
                 "DB_URL": "mysql+pymysql://user:pass@host:port/db",
-                "LINE_CHANNEL_ACCESS_TOKEN": "my_line_message_channel_access_token",
+                "MESSAGE_QUEUE_URL": "amqps://user:pass@host/vhost",
             },
             "args": [
                 "job",
                 "scheduler",
+            ],
+        },
+        {
+            "name": "[Daemon] Job Worker",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/lation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "env": {
+                "APP": "stock",
+                "DB_URL": "mysql+pymysql://user:pass@host:port/db",
+                "MESSAGE_QUEUE_URL": "amqps://user:pass@host/vhost",
+                "LINE_CHANNEL_ACCESS_TOKEN": "my_line_message_channel_access_token",
+            },
+            "args": [
+                "job",
+                "worker",
             ],
         },
         {

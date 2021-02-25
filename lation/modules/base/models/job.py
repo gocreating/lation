@@ -11,6 +11,7 @@ from lation.core.database.types import STRING_L_SIZE, STRING_S_SIZE, STRING_XS_S
 from lation.core.env import get_env
 from lation.core.orm import Base
 from lation.core.utils import call_fn, coro
+from lation.modules.base.models.message_queue import Publisher, Subscriber
 
 
 DB_URL = get_env('DB_URL')
@@ -129,3 +130,56 @@ class Scheduler():
             cron_job_log.finish_time = datetime.utcnow()
             cron_job.latest_cron_job_log_id = cron_job_log.id
             session.commit()
+
+
+class JobProducer(Publisher):
+
+    def __init__(self, instance):
+        self.instance = instance
+
+    def __getattr__(self, name):
+        if not hasattr(self.instance, '__class__'):
+            raise Exception(f'{self.instance} should be an instance of SQLAlchemy model')
+        if not hasattr(self.instance, name):
+            raise Exception(f'{self.instance} does not have any attribute named {name}')
+
+        def replaced_func(*args, **kwargs):
+            self.publish({
+                'tablename': self.instance.__class__.__tablename__,
+                'primary_key_value': self.instance.id,
+                'instance_method_name': name,
+                'args': args,
+                'kwargs': kwargs,
+            })
+
+        return replaced_func
+
+
+class JobWorker(Subscriber):
+
+    @classmethod
+    def run_forever(cls):
+        cls.database = Database(url=DB_URL)
+        super().run_forever()
+
+    def get_callbacks(self):
+        return [self.on_receive_job]
+
+    def on_receive_job(self, body, message):
+        tablename, primary_key_value = body['tablename'], body['primary_key_value']
+        instance_method_name, args, kwargs = body['instance_method_name'], body['args'], body['kwargs']
+        cls = self.__class__
+        model_class = cls.database.find_model_class_by_tablename(tablename)
+        session = cls.database.get_session()
+        instance = session.query(model_class).get(primary_key_value)
+        if not instance:
+            raise Exception(f'{tablename} cannot find instance with id {primary_key_value}')
+
+        func = getattr(instance, instance_method_name)
+        try:
+            func(*args, **kwargs)
+            session.commit()
+        except Exception as e:
+            session.rollback()
+        finally:
+            message.ack()

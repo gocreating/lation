@@ -1,6 +1,6 @@
 version: "3"
 services:
-  stock:
+  web_server:
     image: gocreating/lation:$IMAGE_TAG
     ports:
       # external port: internal port
@@ -15,6 +15,7 @@ services:
       - OAUTH_LINE_CLIENT_ID=1655591797
       - OAUTH_LINE_CLIENT_SECRET=$STOCK_OAUTH_LINE_CLIENT_SECRET
       - LINE_CHANNEL_ACCESS_TOKEN=$STOCK_LINE_CHANNEL_ACCESS_TOKEN
+      - LINE_BOT_BASIC_ID=322mhruw
       - SMTP_USER=$SMTP_USER
       - SMTP_PASSWORD=$SMTP_PASSWORD
     volumes:
@@ -24,11 +25,20 @@ services:
     environment:
       - APP=stock
       - DB_URL=$STOCK_DB_URL
+      - MESSAGE_QUEUE_URL=$MESSAGE_QUEUE_URL
+    entrypoint: python
+    command: lation.py job scheduler
+  job_worker:
+    image: gocreating/lation:$IMAGE_TAG
+    environment:
+      - APP=stock
+      - DB_URL=$STOCK_DB_URL
+      - MESSAGE_QUEUE_URL=$MESSAGE_QUEUE_URL
       - LINE_CHANNEL_ACCESS_TOKEN=$STOCK_LINE_CHANNEL_ACCESS_TOKEN
     volumes:
       - static-files:/app/lation/modules/stock/static
     entrypoint: python
-    command: lation.py job scheduler
+    command: lation.py job worker
 
 volumes:
   static-files:
