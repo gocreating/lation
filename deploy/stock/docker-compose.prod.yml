@@ -26,6 +26,8 @@ services:
       - APP=stock
       - DB_URL=$STOCK_DB_URL
       - MESSAGE_QUEUE_URL=$MESSAGE_QUEUE_URL
+    volumes:
+      - static-files:/app/lation/modules/stock/static
     entrypoint: python
     command: lation.py job scheduler
   job_worker:
