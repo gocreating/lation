@@ -1,3 +1,4 @@
+import asyncio
 import functools
 import time
 from datetime import datetime
@@ -52,7 +53,37 @@ class CronJob(Base):
         await call_fn(func, self)
 
 
-class Scheduler():
+class CoroutineScheduler:
+
+    coroutine_map = {}
+
+    @staticmethod
+    def register_interval_job(seconds:float):
+
+        def decorator(func):
+
+            @functools.wraps(func)
+            async def wrapped_func():
+                while True:
+                    await asyncio.gather(
+                        asyncio.sleep(seconds),
+                        func(),
+                    )
+
+            CoroutineScheduler.coroutine_map[func.__name__] = wrapped_func()
+
+            return wrapped_func
+
+        return decorator
+
+    @staticmethod
+    def start_interval_jobs():
+        for coroutine_name in CoroutineScheduler.coroutine_map:
+            coroutine = CoroutineScheduler.coroutine_map[coroutine_name]
+            asyncio.ensure_future(coroutine)
+
+
+class Scheduler:
 
     fn_map = {}
     config_map = {}
