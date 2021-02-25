@@ -1,0 +1,47 @@
+version: "3"
+services:
+  stock:
+    build: .
+    ports:
+      # external port: internal port
+      - "8000:8000"
+    environment:
+      - APP=stock
+      # should access backend with `https`
+      - HOST=https://localhost:8000
+      - FRONTEND_HOST=http://localhost:3000
+      - DB_URL=xxx
+      - OAUTH_GOOGLE_CLIENT_ID=691914720758-vovshlq9pujejchgfbkuiujdbc8f6ail.apps.googleusercontent.com
+      - OAUTH_GOOGLE_CLIENT_SECRET=xxx
+      - OAUTH_LINE_CLIENT_ID=1655673740
+      - OAUTH_LINE_CLIENT_SECRET=xxx
+      - LINE_CHANNEL_ACCESS_TOKEN=xxx
+      - LINE_BOT_BASIC_ID=936eumim
+      - SMTP_USER=xxx
+      - SMTP_PASSWORD=xxx
+    volumes:
+      - static-files:/app/lation/modules/stock/static
+  job_scheduler:
+    build: .
+    environment:
+      - APP=stock
+      - DB_URL=xxx
+      - MESSAGE_QUEUE_URL=xxx
+    volumes:
+      - static-files:/app/lation/modules/stock/static
+    entrypoint: python
+    command: lation.py job scheduler
+  job_worker:
+    build: .
+    environment:
+      - APP=stock
+      - DB_URL=xxx
+      - MESSAGE_QUEUE_URL=xxx
+      - LINE_CHANNEL_ACCESS_TOKEN=xxx
+    volumes:
+      - static-files:/app/lation/modules/stock/static
+    entrypoint: python
+    command: lation.py job worker
+
+volumes:
+  static-files:
