@@ -1,7 +1,7 @@
 version: "3"
 services:
-  stock:
-    build: .
+  web_server:
+    build: ../../
     ports:
       # external port: internal port
       - "8000:8000"
@@ -22,7 +22,7 @@ services:
     volumes:
       - static-files:/app/lation/modules/stock/static
   job_scheduler:
-    build: .
+    build: ../../
     environment:
       - APP=stock
       - DB_URL=xxx
@@ -32,7 +32,7 @@ services:
     entrypoint: python
     command: lation.py job scheduler
   job_worker:
-    build: .
+    build: ../../
     environment:
       - APP=stock
       - DB_URL=xxx

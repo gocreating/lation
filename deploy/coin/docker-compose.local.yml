@@ -1,0 +1,12 @@
+version: "3"
+services:
+  web_server:
+    build: ../../
+    ports:
+      # external port: internal port
+      - "8000:8000"
+    environment:
+      - APP=coin
+      - DB_URL=xxx
+      - HOST=https://localhost:8000
+      - FRONTEND_HOST=http://localhost:3000

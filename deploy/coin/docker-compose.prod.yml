@@ -1,0 +1,12 @@
+version: "3"
+services:
+  web_server:
+    image: gocreating/lation:$IMAGE_TAG
+    ports:
+      # external port: internal port
+      - "8888:8000"
+    environment:
+      - APP=coin
+      - DB_URL=$COIN_DB_URL
+      - HOST=https://coin-api.lation.app:8888
+      - FRONTEND_HOST=https://coin.lation.app
