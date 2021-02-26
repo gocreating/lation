@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from lation.modules.base.http_client import HttpClient, Response
 
 
-class Wallet(BaseModel):
+class WalletSchema(BaseModel):
     wallet_type: str
     currency: str
     balance: float
@@ -17,6 +17,7 @@ class Wallet(BaseModel):
     last_change: Optional[str]
     trade_details: Optional[dict]
 
+class Wallet(WalletSchema):
     def __init__(self, raw_data: List[Any]):
         wallet_type, currency, balance, unsettled_interest, available_balance, last_change, trade_details = raw_data
         super().__init__(wallet_type=wallet_type, currency=currency, balance=balance, unsettled_interest=unsettled_interest, available_balance=available_balance, last_change=last_change, trade_details=trade_details)
@@ -65,6 +66,6 @@ class BitfinexAPIClient(HttpClient):
         }
         return book
 
-    def get_user_wallet(self):
+    def get_user_wallet(self) -> List[WalletSchema]:
         raw_wallets = self.auth_post_json('/auth/r/wallets')
-        return [Wallet(rw) for rw in raw_wallets]
+        return [Wallet(raw_wallet) for raw_wallet in raw_wallets]
