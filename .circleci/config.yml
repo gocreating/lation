@@ -357,21 +357,21 @@ workflows:
   version: 2
   build_image_and_deploy_workflow:
     jobs:
+      - request_release_image:
+          type: approval
+          filters:
+            branches:
+              only: master
       - setup_environment_variable:
-          filters:
-            branches:
-              only: master
+          requires:
+            - request_release_image
       - prepare_certificates:
-          filters:
-            branches:
-              only: master
+          requires:
+            - request_release_image
       - release_image:
           requires:
             - setup_environment_variable
             - prepare_certificates
-          filters:
-            branches:
-              only: master
 
       #############
       ##         ##
