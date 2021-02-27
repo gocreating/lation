@@ -1,1 +1,1 @@
-from . import job
+from . import config, job
