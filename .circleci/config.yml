@@ -260,14 +260,14 @@ jobs:
                   ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-2.lation.app "sudo docker system prune --force"
       - when:
           condition:
-            equal: [ <<parameters.lation_app_name>>, combo ]
+            equal: [ <<parameters.lation_app_name>>, coin ]
           steps:
             - run:
                 name: Deploy and Cleanup Docker Image
                 command: |
-                  scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@instance-1.lation.app:/home/ubuntu/lation-deploy-$lation_app_name-$IMAGE_TAG
-                  ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-1.lation.app "sudo docker-compose -f lation-deploy-$lation_app_name-$IMAGE_TAG/$lation_app_name/docker-compose.prod.yml up -d --remove-orphans web_server"
-                  ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-1.lation.app "sudo docker system prune --force"
+                  scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@instance-3.lation.app:/home/ubuntu/lation-deploy-$lation_app_name-$IMAGE_TAG
+                  ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-3.lation.app "sudo docker-compose -f lation-deploy-$lation_app_name-$IMAGE_TAG/$lation_app_name/docker-compose.prod.yml up -d --remove-orphans web_server"
+                  ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-3.lation.app "sudo docker system prune --force"
       - run:
           name: Cleanup
           command: |
@@ -464,12 +464,12 @@ workflows:
           requires:
             - stock_prod_request_migrate_install_data
 
-      #############
-      ##         ##
-      ##  Combo  ##
-      ##         ##
-      #############
-      - combo_prod_request_manage:
+      ############
+      ##        ##
+      ##  Coin  ##
+      ##        ##
+      ############
+      - coin_prod_request_manage:
           requires:
             - release_image
           type: approval
@@ -478,21 +478,82 @@ workflows:
               only: master
 
       # deploy
-      - combo_prod_request_deploy:
+      - coin_prod_request_deploy:
           requires:
-            - combo_prod_request_manage
+            - coin_prod_request_manage
           type: approval
           filters:
             branches:
               only: master
       - deploy_lation_app:
-          name: combo_prod_deploy
-          lation_app_name: combo
+          name: coin_prod_deploy
+          lation_app_name: coin
           requires:
-            - combo_prod_request_deploy
+            - coin_prod_request_deploy
           filters:
             branches:
               only: master
+
+      # migrate revision
+      - coin_prod_request_migrate_revision:
+          requires:
+            - coin_prod_request_manage
+          type: approval
+          filters:
+            branches:
+              only: master
+      - migrate_lation_db:
+          name: coin_prod_migrate_revision
+          lation_app_name: coin
+          generate_revision_script: true
+          requires:
+            - coin_prod_request_migrate_revision
+
+      # migrate revision and upgrade
+      - coin_prod_request_migrate_revision_upgrade:
+          requires:
+            - coin_prod_request_manage
+          type: approval
+          filters:
+            branches:
+              only: master
+      - migrate_lation_db:
+          name: coin_prod_migrate_revision_upgrade
+          lation_app_name: coin
+          generate_revision_script: true
+          upgrade_database: true
+          requires:
+            - coin_prod_request_migrate_revision_upgrade
+
+      # migrate two-phase revision and upgrade
+      - coin_prod_request_migrate_two_phase_revision_upgrade:
+          requires:
+            - coin_prod_request_manage
+          type: approval
+          filters:
+            branches:
+              only: master
+      - migrate_lation_db:
+          name: coin_prod_migrate_two_phase_revision_upgrade
+          lation_app_name: coin
+          two_phase_revision_upgrade: true
+          requires:
+            - coin_prod_request_migrate_two_phase_revision_upgrade
+
+      # migrate install data
+      - coin_prod_request_migrate_install_data:
+          requires:
+            - coin_prod_request_manage
+          type: approval
+          filters:
+            branches:
+              only: master
+      - migrate_lation_db:
+          name: coin_prod_migrate_install_data
+          lation_app_name: coin
+          install_data: true
+          requires:
+            - coin_prod_request_migrate_install_data
 
   renew_tls_certificates_workflow:
     jobs:
