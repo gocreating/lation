@@ -10,3 +10,5 @@ services:
       - DB_URL=xxx
       - HOST=https://localhost:8000
       - FRONTEND_HOST=http://localhost:3000
+      - OAUTH_LINE_CLIENT_ID=xxx
+      - OAUTH_LINE_CLIENT_SECRET=xxx

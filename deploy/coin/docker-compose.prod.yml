@@ -10,3 +10,5 @@ services:
       - DB_URL=$COIN_DB_URL
       - HOST=https://coin-api.lation.app:8888
       - FRONTEND_HOST=https://coin.lation.app
+      - OAUTH_LINE_CLIENT_ID=1655706895
+      - OAUTH_LINE_CLIENT_SECRET=$COIN_OAUTH_LINE_CLIENT_SECRET
