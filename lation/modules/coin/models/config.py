@@ -14,4 +14,4 @@ class EndUserBitfinexConfig(Base):
     api_key = Column(String(STRING_M_SIZE))
     api_secret = Column(String(STRING_M_SIZE))
 
-    config = Column(JSON)
+    funding_strategy = Column(JSON)
