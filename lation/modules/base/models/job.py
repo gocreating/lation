@@ -70,7 +70,7 @@ class CoroutineScheduler:
                         func(),
                     )
 
-            CoroutineScheduler.coroutine_map[func.__name__] = wrapped_func()
+            CoroutineScheduler.coroutine_map[func.__name__] = wrapped_func
 
             return wrapped_func
 
@@ -80,7 +80,7 @@ class CoroutineScheduler:
     def start_interval_jobs():
         for coroutine_name in CoroutineScheduler.coroutine_map:
             coroutine = CoroutineScheduler.coroutine_map[coroutine_name]
-            asyncio.ensure_future(coroutine)
+            asyncio.ensure_future(coroutine())
 
 
 class Scheduler:
