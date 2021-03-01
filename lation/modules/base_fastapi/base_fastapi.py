@@ -7,18 +7,17 @@ from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 
 from lation.core.database.database import Database
 from lation.core.env import DEV, get_env
-from lation.modules.base.models.job import CoroutineScheduler
+from lation.modules.base.base import BaseLationApp
 from lation.modules.base_fastapi.routers import system
 
 
 DB_URL = get_env('DB_URL')
 FRONTEND_HOST = get_env('FRONTEND_HOST')
 
-class BaseFastAPI(FastAPI):
+class BaseFastAPI(BaseLationApp, FastAPI):
 
     def __init__(self):
         super().__init__()
-        self.init_interval_jobs()
 
         if not DEV:
             self.add_middleware(HTTPSRedirectMiddleware)
@@ -31,11 +30,6 @@ class BaseFastAPI(FastAPI):
                             allow_methods=['*'],
                             allow_headers=['*'])
         self.include_router(system.router)
-
-    def init_interval_jobs(self):
-        @self.on_event('startup')
-        async def on_startup():
-            CoroutineScheduler.start_interval_jobs()
 
     def init_database(self):
         @self.on_event('startup')
