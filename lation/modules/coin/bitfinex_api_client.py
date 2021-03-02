@@ -1,7 +1,9 @@
+import enum
 import hashlib
 import hmac
 import json as py_json
 import time
+from datetime import datetime
 from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel
@@ -22,9 +24,28 @@ class Wallet(WalletSchema):
         wallet_type, currency, balance, unsettled_interest, available_balance, last_change, trade_details = raw_data
         super().__init__(wallet_type=wallet_type, currency=currency, balance=balance, unsettled_interest=unsettled_interest, available_balance=available_balance, last_change=last_change, trade_details=trade_details)
 
+class LedgerSchema(BaseModel):
+    id: int
+    currency: str
+    mts: datetime
+    amount: float
+    balance: float
+    description: str
+
+class Ledger(LedgerSchema):
+    def __init__(self, raw_data: List[Any]):
+        id, currency, _, mts, _, amount, balance, _, description = raw_data
+        super().__init__(id=id, currency=currency, mts=mts, amount=amount, balance=balance, description=description)
+
 class BitfinexAPIClient(HttpClient):
     DEFAULT_HOST = 'https://api-pub.bitfinex.com/v2'
     AUTH_HOST = 'https://api.bitfinex.com/v2'
+
+    class CurrencyEnum(str, enum.Enum):
+        USD = 'USD'
+
+    class LedgerCategoryEnum(int, enum.Enum):
+        MARGIN_SWAP_INTEREST_PAYMENT = 28
 
     def __init__(self, api_key:str=None, api_secret:str=None):
         super().__init__(host=BitfinexAPIClient.DEFAULT_HOST)
@@ -66,6 +87,20 @@ class BitfinexAPIClient(HttpClient):
         }
         return book
 
-    def get_user_wallet(self) -> List[WalletSchema]:
+    def get_user_wallets(self) -> List[WalletSchema]:
         raw_wallets = self.auth_post_json('/auth/r/wallets')
         return [Wallet(raw_wallet) for raw_wallet in raw_wallets]
+
+    def get_user_ledgers(self, currency:CurrencyEnum, start:int=None, end:int=None, limit:int=None, category:Optional[LedgerCategoryEnum]=None) -> List[LedgerSchema]:
+        params = {}
+        post_data = {}
+        if start != None:
+            params['start'] = start
+        if end != None:
+            params['end'] = end
+        if limit != None:
+            params['limit'] = limit
+        if category != None:
+            post_data['category'] = category
+        raw_ledgers = self.auth_post_json(f'/auth/r/ledgers/{currency}/hist', params=params, json=post_data)
+        return [Ledger(raw_ledger) for raw_ledger in raw_ledgers]
