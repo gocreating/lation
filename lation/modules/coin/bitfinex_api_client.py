@@ -70,6 +70,21 @@ class FundingOffer(FundingOfferSchema):
         id, symbol, mts_created, mts_updated, amount, amount_orig, type, _, _, flags, status, _, _, _, rate, period, notify, hidden, _, renew, _ = raw_data
         super().__init__(id=id,symbol=symbol,mts_created=mts_created,mts_updated=mts_updated,amount=amount,amount_orig=amount_orig,type=type,flags=flags,status=status,rate=rate,period=period,notify=notify,hidden=hidden,renew=renew)
 
+class CancelFundingOfferSchema(BaseModel):
+    mts: datetime
+    type: str
+    message_id: Optional[int]
+    fundingOffer: FundingOfferSchema
+    code: Optional[int]
+    status: str
+    text: Optional[str]
+
+class CancelFundingOffer(CancelFundingOfferSchema):
+    def __init__(self, raw_data: List[Any]):
+        mts, type, message_id, _, raw_funding_offer, code, status, text = raw_data
+        fundingOffer = FundingOffer(raw_funding_offer)
+        super().__init__(mts=mts, type=type, message_id=message_id, fundingOffer=fundingOffer, code=code, status=status, text=text)
+
 class LedgerSchema(BaseModel):
     id: int
     currency: str
@@ -109,6 +124,8 @@ class BitfinexAPIClient(HttpClient):
             'bfx-apikey': self.api_key,
             'bfx-signature': signature,
         }, json=payload, **kwargs)
+        if res.status_code < 200 or res.status_code > 299:
+            raise Exception(f'[Bitfinex API Client] Failed to request path {path}')
         return res.json()
 
     def get_book(self, symbol:str, precision:Literal['P0', 'P1', 'P2', 'P3', 'P4', 'R0'], len_:Literal[1, 25, 100]) -> Response:
@@ -158,3 +175,7 @@ class BitfinexAPIClient(HttpClient):
     def get_user_funding_offers(self, symbol:str) -> List[FundingOfferSchema]:
         raw_funding_offers = self.auth_post(f'/auth/r/funding/offers/{symbol}')
         return [FundingOffer(raw_funding_offer) for raw_funding_offer in raw_funding_offers]
+
+    def cancel_user_funding_offer(self, offer_id:int) -> CancelFundingOfferSchema:
+        raw_cancel_funding_offer = self.auth_post(f'/auth/w/funding/offer/cancel', payload={ 'id': offer_id })
+        return CancelFundingOffer(raw_cancel_funding_offer)
