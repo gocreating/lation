@@ -1,9 +1,9 @@
 import enum
 import hashlib
 import hmac
-import json as py_json
+import json
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel
@@ -53,16 +53,16 @@ class BitfinexAPIClient(HttpClient):
         self.api_secret = api_secret
 
     # https://github.com/bitfinexcom/bitfinex-api-py/blob/master/bfxapi/utils/auth.py
-    def auth_post_json(self, path:str, *args, json:dict={}, **kwargs) -> Response:
+    def auth_post(self, path:str, *args, payload:dict={}, **kwargs) -> Response:
         nonce = str(int(round(time.time() * 1000000)))
-        signature = f'/api/v2{path}{nonce}{py_json.dumps(json)}'
+        signature = f'/api/v2{path}{nonce}{json.dumps(payload)}'
         h = hmac.new(self.api_secret.encode('utf8'), signature.encode('utf8'), hashlib.sha384)
         signature = h.hexdigest()
         res = self.post(f'{BitfinexAPIClient.AUTH_HOST}{path}', *args, headers={
             'bfx-nonce': nonce,
             'bfx-apikey': self.api_key,
             'bfx-signature': signature,
-        }, json=json, **kwargs)
+        }, json=payload, **kwargs)
         return res.json()
 
     def get_book(self, symbol:str, precision:Literal['P0', 'P1', 'P2', 'P3', 'P4', 'R0'], len_:Literal[1, 25, 100]) -> Response:
@@ -91,16 +91,16 @@ class BitfinexAPIClient(HttpClient):
         raw_wallets = self.auth_post_json('/auth/r/wallets')
         return [Wallet(raw_wallet) for raw_wallet in raw_wallets]
 
-    def get_user_ledgers(self, currency:CurrencyEnum, start:int=None, end:int=None, limit:int=None, category:Optional[LedgerCategoryEnum]=None) -> List[LedgerSchema]:
+    def get_user_ledgers(self, currency:CurrencyEnum, start:datetime=None, end:datetime=None, limit:int=None, category:Optional[LedgerCategoryEnum]=None) -> List[LedgerSchema]:
         params = {}
-        post_data = {}
+        payload = {}
         if start != None:
-            params['start'] = start
+            params['start'] = int(start.replace(tzinfo=timezone.utc).timestamp()) * 1000
         if end != None:
-            params['end'] = end
+            params['end'] = int(end.replace(tzinfo=timezone.utc).timestamp()) * 1000
         if limit != None:
             params['limit'] = limit
         if category != None:
-            post_data['category'] = category
-        raw_ledgers = self.auth_post_json(f'/auth/r/ledgers/{currency}/hist', params=params, json=post_data)
+            payload['category'] = category
+        raw_ledgers = self.auth_post(f'/auth/r/ledgers/{currency}/hist', params=params, payload=payload)
         return [Ledger(raw_ledger) for raw_ledger in raw_ledgers]
