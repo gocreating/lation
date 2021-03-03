@@ -24,6 +24,31 @@ class Wallet(WalletSchema):
         wallet_type, currency, balance, unsettled_interest, available_balance, last_change, trade_details = raw_data
         super().__init__(wallet_type=wallet_type, currency=currency, balance=balance, unsettled_interest=unsettled_interest, available_balance=available_balance, last_change=last_change, trade_details=trade_details)
 
+class FundingCreditSchema(BaseModel):
+    id: int
+    symbol: str
+    side: int
+    mts_create: datetime
+    mts_update: datetime
+    amount: float
+    flags: Any
+    status: str
+    rate_type: str
+    rate: float
+    period: int
+    mts_opening: datetime
+    mts_last_payout: datetime
+    notify: Optional[int]
+    hidden: int
+    renew: int
+    no_close: int
+    position_pair: str
+
+class FundingCredit(FundingCreditSchema):
+    def __init__(self, raw_data: List[Any]):
+        id, symbol, side, mts_create, mts_update, amount, flags, status, rate_type, _, _, rate, period, mts_opening, mts_last_payout, notify, hidden, _, renew, _, no_close, position_pair = raw_data
+        super().__init__(id=id, symbol=symbol, side=side, mts_create=mts_create, mts_update=mts_update, amount=amount, flags=flags, status=status, rate_type=rate_type, rate=rate, period=period, mts_opening=mts_opening, mts_last_payout=mts_last_payout, notify=notify, hidden=hidden, renew=renew, no_close=no_close, position_pair=position_pair)
+
 class LedgerSchema(BaseModel):
     id: int
     currency: str
@@ -104,3 +129,7 @@ class BitfinexAPIClient(HttpClient):
             payload['category'] = category
         raw_ledgers = self.auth_post(f'/auth/r/ledgers/{currency}/hist', params=params, payload=payload)
         return [Ledger(raw_ledger) for raw_ledger in raw_ledgers]
+
+    def get_user_funding_credits(self, symbol:str) -> List[FundingCreditSchema]:
+        raw_funding_credits = self.auth_post(f'/auth/r/funding/credits/{symbol}')
+        return [FundingCredit(raw_funding_credit) for raw_funding_credit in raw_funding_credits]
