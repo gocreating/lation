@@ -70,7 +70,7 @@ class FundingOffer(FundingOfferSchema):
         id, symbol, mts_created, mts_updated, amount, amount_orig, type, _, _, flags, status, _, _, _, rate, period, notify, hidden, _, renew, _ = raw_data
         super().__init__(id=id,symbol=symbol,mts_created=mts_created,mts_updated=mts_updated,amount=amount,amount_orig=amount_orig,type=type,flags=flags,status=status,rate=rate,period=period,notify=notify,hidden=hidden,renew=renew)
 
-class CancelFundingOfferSchema(BaseModel):
+class UpdateFundingOfferSchema(BaseModel):
     mts: datetime
     type: str
     message_id: Optional[int]
@@ -79,7 +79,7 @@ class CancelFundingOfferSchema(BaseModel):
     status: str
     text: Optional[str]
 
-class CancelFundingOffer(CancelFundingOfferSchema):
+class UpdateFundingOffer(UpdateFundingOfferSchema):
     def __init__(self, raw_data: List[Any]):
         mts, type, message_id, _, raw_funding_offer, code, status, text = raw_data
         fundingOffer = FundingOffer(raw_funding_offer)
@@ -107,6 +107,11 @@ class BitfinexAPIClient(HttpClient):
 
     class LedgerCategoryEnum(int, enum.Enum):
         MARGIN_SWAP_INTEREST_PAYMENT = 28
+
+    class FundingOfferTypeEnum(str, enum.Enum):
+        LIMIT = 'LIMIT'
+        FRRDELTAVAR = 'FRRDELTAVAR'
+        FRRDELTAFIX = 'FRRDELTAFIX'
 
     def __init__(self, api_key:str=None, api_secret:str=None):
         super().__init__(host=BitfinexAPIClient.DEFAULT_HOST)
@@ -176,6 +181,17 @@ class BitfinexAPIClient(HttpClient):
         raw_funding_offers = self.auth_post(f'/auth/r/funding/offers/{symbol}')
         return [FundingOffer(raw_funding_offer) for raw_funding_offer in raw_funding_offers]
 
-    def cancel_user_funding_offer(self, offer_id:int) -> CancelFundingOfferSchema:
+    def submit_user_funding_offer(self, type_:FundingOfferTypeEnum, symbol:str, amount:str, daily_rate:str, period:int) -> UpdateFundingOfferSchema:
+        raw_submit_funding_offer = self.auth_post(f'/auth/w/funding/offer/submit', payload={
+            'type': type_,
+            'symbol': symbol,
+            'amount': amount,
+            'rate': daily_rate,
+            'period': period,
+            'flags': 0,
+        })
+        return UpdateFundingOffer(raw_submit_funding_offer)
+
+    def cancel_user_funding_offer(self, offer_id:int) -> UpdateFundingOfferSchema:
         raw_cancel_funding_offer = self.auth_post(f'/auth/w/funding/offer/cancel', payload={ 'id': offer_id })
-        return CancelFundingOffer(raw_cancel_funding_offer)
+        return UpdateFundingOffer(raw_cancel_funding_offer)
