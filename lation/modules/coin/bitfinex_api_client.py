@@ -49,6 +49,27 @@ class FundingCredit(FundingCreditSchema):
         id, symbol, side, mts_create, mts_update, amount, flags, status, rate_type, _, _, rate, period, mts_opening, mts_last_payout, notify, hidden, _, renew, _, no_close, position_pair = raw_data
         super().__init__(id=id, symbol=symbol, side=side, mts_create=mts_create, mts_update=mts_update, amount=amount, flags=flags, status=status, rate_type=rate_type, rate=rate, period=period, mts_opening=mts_opening, mts_last_payout=mts_last_payout, notify=notify, hidden=hidden, renew=renew, no_close=no_close, position_pair=position_pair)
 
+class FundingOfferSchema(BaseModel):
+    id: int
+    symbol: str
+    mts_created: datetime
+    mts_updated: datetime
+    amount: float
+    amount_orig: float
+    type: str
+    flags: Any
+    status: str
+    rate: float
+    period: int
+    notify: int
+    hidden: int
+    renew: int
+
+class FundingOffer(FundingOfferSchema):
+    def __init__(self, raw_data: List[Any]):
+        id, symbol, mts_created, mts_updated, amount, amount_orig, type, _, _, flags, status, _, _, _, rate, period, notify, hidden, _, renew, _ = raw_data
+        super().__init__(id=id,symbol=symbol,mts_created=mts_created,mts_updated=mts_updated,amount=amount,amount_orig=amount_orig,type=type,flags=flags,status=status,rate=rate,period=period,notify=notify,hidden=hidden,renew=renew)
+
 class LedgerSchema(BaseModel):
     id: int
     currency: str
@@ -133,3 +154,7 @@ class BitfinexAPIClient(HttpClient):
     def get_user_funding_credits(self, symbol:str) -> List[FundingCreditSchema]:
         raw_funding_credits = self.auth_post(f'/auth/r/funding/credits/{symbol}')
         return [FundingCredit(raw_funding_credit) for raw_funding_credit in raw_funding_credits]
+
+    def get_user_funding_offers(self, symbol:str) -> List[FundingOfferSchema]:
+        raw_funding_offers = self.auth_post(f'/auth/r/funding/offers/{symbol}')
+        return [FundingOffer(raw_funding_offer) for raw_funding_offer in raw_funding_offers]
