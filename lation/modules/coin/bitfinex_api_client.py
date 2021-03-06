@@ -8,6 +8,7 @@ from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel
 from lation.modules.base.http_client import HttpClient, Response
+from lation.modules.coin.routers.schemas import BitfinexFundingStrategy, BitfinexFundingSymbol, BitfinexSymbolFundingAmountStrategy, BitfinexSymbolFundingRateStrategy, BitfinexSymbolFundingRateToPeriodRule, BitfinexSymbolFundingStrategy
 
 
 class WalletSchema(BaseModel):
@@ -97,6 +98,21 @@ class Ledger(LedgerSchema):
     def __init__(self, raw_data: List[Any]):
         id, currency, _, mts, _, amount, balance, _, description = raw_data
         super().__init__(id=id, currency=currency, mts=mts, amount=amount, balance=balance, description=description)
+
+def get_default_bitfinex_funding_strategy() -> BitfinexFundingStrategy:
+    return BitfinexFundingStrategy(
+               symbol_strategy={
+                   BitfinexFundingSymbol.USD: BitfinexSymbolFundingStrategy(
+                       amount_strategy=BitfinexSymbolFundingAmountStrategy(),
+                       rate_strategy=BitfinexSymbolFundingRateStrategy(),
+                       rate_to_period_rules=[
+                           BitfinexSymbolFundingRateToPeriodRule(gte_rate=0, lt_rate=10, period=2),
+                           BitfinexSymbolFundingRateToPeriodRule(gte_rate=10, lt_rate=15, period=14),
+                           BitfinexSymbolFundingRateToPeriodRule(gte_rate=15, lt_rate=20, period=30),
+                           BitfinexSymbolFundingRateToPeriodRule(gte_rate=20, lt_rate=2555, period=120),
+                       ]
+                   )
+               })
 
 class BitfinexAPIClient(HttpClient):
     DEFAULT_HOST = 'https://api-pub.bitfinex.com/v2'
