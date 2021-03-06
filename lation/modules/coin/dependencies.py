@@ -4,7 +4,7 @@ from lation.modules.coin.bitfinex_api_client import BitfinexAPIClient
 from lation.modules.customer.dependencies import login_required, get_current_user
 
 
-def get_bitfinex_api_client(end_user=Depends(get_current_user)) -> BitfinexAPIClient:
+async def get_bitfinex_api_client(end_user=Depends(get_current_user)) -> BitfinexAPIClient:
     end_user_bitfinex_config = end_user.end_user_bitfinex_config
     if not end_user_bitfinex_config:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Bitfinex config not found')
