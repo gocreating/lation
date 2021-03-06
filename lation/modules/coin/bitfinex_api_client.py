@@ -11,6 +11,16 @@ from lation.modules.base.http_client import HttpClient, Response
 from lation.modules.coin.routers.schemas import BitfinexFundingStrategy, BitfinexFundingSymbol, BitfinexSymbolFundingAmountStrategy, BitfinexSymbolFundingRateStrategy, BitfinexSymbolFundingRateToPeriodRule, BitfinexSymbolFundingStrategy
 
 
+class PermissionSchema(BaseModel):
+    scope: str
+    read: int
+    write: int
+
+class Permission(PermissionSchema):
+    def __init__(self, raw_data: List[Any]):
+        scope, read, write = raw_data
+        super().__init__(scope=scope, read=read, write=write)
+
 class WalletSchema(BaseModel):
     wallet_type: str
     currency: str
@@ -170,6 +180,10 @@ class BitfinexAPIClient(HttpClient):
             },
         }
         return book
+
+    def get_user_permissions(self) -> List[PermissionSchema]:
+        raw_permissions = self.auth_post('/auth/r/permissions')
+        return [Permission(raw_permission) for raw_permission in raw_permissions]
 
     def get_user_wallets(self) -> List[WalletSchema]:
         raw_wallets = self.auth_post('/auth/r/wallets')
