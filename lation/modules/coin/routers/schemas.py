@@ -37,3 +37,6 @@ class EndUserBitfinexConfigSchema(BaseModel):
 
     class Config:
         orm_mode = True
+
+class BitfinexMetricsSchema(BaseModel):
+    funding_market_recommended_ask_rate: float
