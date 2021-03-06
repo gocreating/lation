@@ -156,7 +156,7 @@ class BitfinexAPIClient(HttpClient):
         return book
 
     def get_user_wallets(self) -> List[WalletSchema]:
-        raw_wallets = self.auth_post_json('/auth/r/wallets')
+        raw_wallets = self.auth_post('/auth/r/wallets')
         return [Wallet(raw_wallet) for raw_wallet in raw_wallets]
 
     def get_user_ledgers(self, currency:CurrencyEnum, start:datetime=None, end:datetime=None, limit:int=None, category:Optional[LedgerCategoryEnum]=None) -> List[LedgerSchema]:
