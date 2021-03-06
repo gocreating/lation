@@ -56,6 +56,7 @@ class CronJob(Base):
 class CoroutineScheduler:
 
     coroutine_map = {}
+    database = None
 
     @staticmethod
     def register_interval_job(seconds:float):
@@ -63,11 +64,11 @@ class CoroutineScheduler:
         def decorator(func):
 
             @functools.wraps(func)
-            async def wrapped_func():
+            async def wrapped_func(*args, **kwargs):
                 while True:
                     await asyncio.gather(
                         asyncio.sleep(seconds),
-                        func(),
+                        func(*args, **kwargs),
                     )
 
             CoroutineScheduler.coroutine_map[func.__name__] = wrapped_func
@@ -76,11 +77,17 @@ class CoroutineScheduler:
 
         return decorator
 
-    @staticmethod
-    def start_interval_jobs():
+    @classmethod
+    def start_interval_jobs(cls):
+        def get_session():
+            if not cls.database:
+                cls.database = Database(url=DB_URL)
+            session = cls.database.get_session()
+            return session
+
         for coroutine_name in CoroutineScheduler.coroutine_map:
             coroutine = CoroutineScheduler.coroutine_map[coroutine_name]
-            asyncio.ensure_future(coroutine())
+            asyncio.ensure_future(coroutine(get_session=get_session))
 
 
 class Scheduler:
