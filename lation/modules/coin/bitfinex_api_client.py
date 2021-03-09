@@ -48,7 +48,7 @@ class FundingCreditSchema(BaseModel):
     rate: float
     period: int
     mts_opening: datetime
-    mts_last_payout: datetime
+    mts_last_payout: Optional[datetime]
     notify: Optional[int]
     hidden: int
     renew: int
