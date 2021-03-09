@@ -32,7 +32,7 @@ def apply_bitfinex_funding_strategy(self, ask_rate:float):
         for offer in funding_offers:
             cancel_funding_offer = api_client.cancel_user_funding_offer(offer.id)
             time.sleep(0.2)
-        time.sleep(1)
+        time.sleep(5)
 
         # submit offers
         amount_strategy = symbol_strategy.amount_strategy
