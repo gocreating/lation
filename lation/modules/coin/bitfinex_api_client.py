@@ -163,22 +163,38 @@ class BitfinexAPIClient(HttpClient):
         data = self.get_json(f'/book/{symbol}/{precision}', params={ 'len': len_ })
         if not symbol.startswith('f'):
             raise NotImplementedError
-        sell_data = data[:len_]
-        buy_data = data[len_:]
-        book = {
-            'sell': {
-                'rate': [d[0] for d in sell_data],
-                'period': [d[1] for d in sell_data],
-                'count': [d[2] for d in sell_data],
-                'amount': [d[3] for d in sell_data],
-            },
-            'buy': {
-                'rate': [d[0] for d in buy_data],
-                'period': [d[1] for d in buy_data],
-                'count': [d[2] for d in buy_data],
-                'amount': [d[3] for d in buy_data],
-            },
-        }
+        ask_data = data[:len_]
+        bid_data = data[len_:]
+        if precision == 'R0':
+            book = {
+                'ask': {
+                    'order_id': [d[0] for d in ask_data],
+                    'period': [d[1] for d in ask_data],
+                    'rate': [d[2] for d in ask_data],
+                    'amount': [-d[3] for d in ask_data],
+                },
+                'bid': {
+                    'order_id': [d[0] for d in bid_data],
+                    'period': [d[1] for d in bid_data],
+                    'rate': [d[2] for d in bid_data],
+                    'amount': [d[3] for d in bid_data],
+                },
+            }
+        else:
+            book = {
+                'ask': {
+                    'rate': [d[0] for d in ask_data],
+                    'period': [d[1] for d in ask_data],
+                    'count': [d[2] for d in ask_data],
+                    'amount': [-d[3] for d in ask_data],
+                },
+                'bid': {
+                    'rate': [d[0] for d in bid_data],
+                    'period': [d[1] for d in bid_data],
+                    'count': [d[2] for d in bid_data],
+                    'amount': [d[3] for d in bid_data],
+                },
+            }
         return book
 
     def get_user_permissions(self) -> List[PermissionSchema]:
