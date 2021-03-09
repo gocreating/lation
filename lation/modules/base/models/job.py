@@ -27,6 +27,7 @@ class CronJobLog(Base):
     execute_time = Column(DateTime)
     finish_time = Column(DateTime)
     exception = Column(String(STRING_L_SIZE))
+    return_value = Column(String(STRING_L_SIZE))
 
 
 class CronJob(Base):
@@ -50,7 +51,7 @@ class CronJob(Base):
         func = Scheduler.get_cron_job_func(self.name)
         if not func:
             raise Exception(f'Cron job `{self.name}` is not registered')
-        await call_fn(func, self)
+        return await call_fn(func, self)
 
 
 class CoroutineScheduler:
@@ -160,7 +161,7 @@ class Scheduler:
         session.flush()
         try:
             execute_time = datetime.utcnow()
-            cron_job.execute()
+            cron_job_log.return_value = cron_job.execute()
         except Exception as e:
             cron_job_log.exception = repr(e)
         finally:
