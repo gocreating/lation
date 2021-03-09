@@ -33,7 +33,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - pip-packages-cache-{{ checksum "lation/requirements.txt" }}
+            - pip-packages-cache-{{ .Environment.CIRCLE_WORKFLOW_ID }}-{{ checksum "lation/requirements.txt" }}
       - run:
           name: Install Dependencies
           command: |
@@ -43,7 +43,7 @@ jobs:
             - ~/.cache/pip                                      # from `pip3 cache dir`
             - /usr/local/lib/python3.8/site-packages            # from `pip3 list -v`
             - /home/circleci/.local/lib/python3.8/site-packages # from `pip3 list -v`
-          key: pip-packages-cache-{{ checksum "lation/requirements.txt" }}
+          key: pip-packages-cache-{{ .Environment.CIRCLE_WORKFLOW_ID }}-{{ checksum "lation/requirements.txt" }}
       - run:
           name: Decrypt Google Drive API Credentials
           command: |
@@ -152,7 +152,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - pip-packages-cache-{{ checksum "lation/requirements.txt" }}
+            - pip-packages-cache-{{ .Environment.CIRCLE_WORKFLOW_ID }}-{{ checksum "lation/requirements.txt" }}
       - run:
           name: Install Dependencies
           command: |
@@ -162,7 +162,7 @@ jobs:
             - ~/.cache/pip                                      # from `pip3 cache dir`
             - /usr/local/lib/python3.8/site-packages            # from `pip3 list -v`
             - /home/circleci/.local/lib/python3.8/site-packages # from `pip3 list -v`
-          key: pip-packages-cache-{{ checksum "lation/requirements.txt" }}
+          key: pip-packages-cache-{{ .Environment.CIRCLE_WORKFLOW_ID }}-{{ checksum "lation/requirements.txt" }}
       - run:
           name: Prepare Environment Variables
           command: |
@@ -324,7 +324,7 @@ jobs:
           at: ./certbot-workspace
       - restore_cache:
           keys:
-            - pip-packages-cache-{{ checksum "lation/requirements.txt" }}
+            - pip-packages-cache-{{ .Environment.CIRCLE_WORKFLOW_ID }}-{{ checksum "lation/requirements.txt" }}
       - run:
           name: Install Dependencies
           command: |
@@ -334,7 +334,7 @@ jobs:
             - ~/.cache/pip                                      # from `pip3 cache dir`
             - /usr/local/lib/python3.8/site-packages            # from `pip3 list -v`
             - /home/circleci/.local/lib/python3.8/site-packages # from `pip3 list -v`
-          key: pip-packages-cache-{{ checksum "lation/requirements.txt" }}
+          key: pip-packages-cache-{{ .Environment.CIRCLE_WORKFLOW_ID }}-{{ checksum "lation/requirements.txt" }}
       - run:
           name: Decrypt Google Drive API Credentials
           command: |
