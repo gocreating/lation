@@ -12,3 +12,19 @@ services:
       - FRONTEND_HOST=https://coin.lation.app
       - OAUTH_LINE_CLIENT_ID=1655706895
       - OAUTH_LINE_CLIENT_SECRET=$COIN_OAUTH_LINE_CLIENT_SECRET
+  job_scheduler:
+    image: gocreating/lation:$IMAGE_TAG
+    environment:
+      - APP=coin
+      - DB_URL=$COIN_DB_URL
+      - MESSAGE_QUEUE_URL=$MESSAGE_QUEUE_URL
+    entrypoint: python
+    command: lation.py job scheduler
+  job_worker:
+    image: gocreating/lation:$IMAGE_TAG
+    environment:
+      - APP=coin
+      - DB_URL=$COIN_DB_URL
+      - MESSAGE_QUEUE_URL=$MESSAGE_QUEUE_URL
+    entrypoint: python
+    command: lation.py job worker
