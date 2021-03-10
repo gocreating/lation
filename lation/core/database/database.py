@@ -122,6 +122,8 @@ class Database():
         self.engine.dispose()
 
     def install_data(self, module_name):
+        from lation.core.orm import SingleTableInheritanceMixin
+
         for parent_module in modules[module_name].parent_modules:
             self.install_data(parent_module.name)
         start_time = time.time()
@@ -141,6 +143,7 @@ class Database():
             model_class = self.find_model_class_by_tablename(tablename)
             if not model_class:
                 raise Exception(f'Table `{tablename}` does not exist')
+            is_single_table_inherited = SingleTableInheritanceMixin in model_class.mro()
             inspector = inspect(model_class)
             json_type_attribute_names = [attr.key for attr in inspector.mapper.column_attrs if self.is_json_attribute(attr)]
             boolean_type_attribute_names = [attr.key for attr in inspector.mapper.column_attrs if self.is_boolean_attribute(attr)]
@@ -193,6 +196,11 @@ class Database():
 
                         else:
                             raise NotImplementedError
+
+                    # correct model_class for single table inheritence
+                    if is_single_table_inherited:
+                        polymorphic_identity = attribute_data.get(inspector.polymorphic_on.key)
+                        model_class = inspector.polymorphic_map.get(polymorphic_identity).class_manager.class_
 
                     # upsert instance
                     instance = session.query(model_class).filter(model_class.lation_id == lation_id).one_or_none()
