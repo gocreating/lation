@@ -19,7 +19,7 @@ class MessageClient:
 
 class MessageBroker:
     exchange = Exchange('default_exchange', 'topic', durable=True)
-    queue = Queue('default_queue', exchange=exchange, routing_key=f'app.{APP}')
+    queue = Queue(f'default_queue_{APP}', exchange=exchange, routing_key=f'app.{APP}')
 
 
 class Publisher:
