@@ -163,21 +163,21 @@ class BitfinexAPIClient(HttpClient):
         data = self.get_json(f'/book/{symbol}/{precision}', params={ 'len': len_ })
         if not symbol.startswith('f'):
             raise NotImplementedError
-        ask_data = data[:len_]
-        bid_data = data[len_:]
+        ask_data = data[len_:]
+        bid_data = data[:len_]
         if precision == 'R0':
             book = {
                 'ask': {
                     'order_id': [d[0] for d in ask_data],
                     'period': [d[1] for d in ask_data],
                     'rate': [d[2] for d in ask_data],
-                    'amount': [-d[3] for d in ask_data],
+                    'amount': [d[3] for d in ask_data],
                 },
                 'bid': {
                     'order_id': [d[0] for d in bid_data],
                     'period': [d[1] for d in bid_data],
                     'rate': [d[2] for d in bid_data],
-                    'amount': [d[3] for d in bid_data],
+                    'amount': [-d[3] for d in bid_data],
                 },
             }
         else:
@@ -186,13 +186,13 @@ class BitfinexAPIClient(HttpClient):
                     'rate': [d[0] for d in ask_data],
                     'period': [d[1] for d in ask_data],
                     'count': [d[2] for d in ask_data],
-                    'amount': [-d[3] for d in ask_data],
+                    'amount': [d[3] for d in ask_data],
                 },
                 'bid': {
                     'rate': [d[0] for d in bid_data],
                     'period': [d[1] for d in bid_data],
                     'count': [d[2] for d in bid_data],
-                    'amount': [d[3] for d in bid_data],
+                    'amount': [-d[3] for d in bid_data],
                 },
             }
         return book
