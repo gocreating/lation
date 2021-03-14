@@ -1,2 +1,4 @@
 parent_modules = []
-data = []
+data = [
+    'data/currency.csv',
+]

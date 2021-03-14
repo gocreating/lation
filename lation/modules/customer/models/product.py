@@ -11,6 +11,9 @@ class Product(Base):
     code = Column(String(STRING_XS_SIZE), nullable=False, comment='Product code')
     name = Column(String(STRING_S_SIZE), nullable=False, comment='Product name')
 
+    currency_id = Column(Integer, ForeignKey('currency.id'), index=True)
+    currency = relationship('Currency', foreign_keys=[currency_id])
+
 
 class Plan(Base):
     __tablename__ = 'plan'
