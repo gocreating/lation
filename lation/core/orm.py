@@ -63,10 +63,10 @@ class Machine:
             current_machine_state = MachineState(current_state_name)
             current_state_transition_map = self.states.get(current_machine_state, {}).get('on')
             if not current_state_transition_map:
-                raise Exception('Invalid transition')
+                raise Exception(f'Invalid state transition. Trasition definition for state `{current_state_name}` is not found.')
             next_machine_state = current_state_transition_map.get(action_name)
             if not next_machine_state:
-                raise Exception('Invalid transition')
+                raise Exception(f'Invalid state transition. Cannot apply action `{action_name}` to state `{current_state_name}`')
             args[0].state = next_machine_state.name
             return result
         return wrapped_func
