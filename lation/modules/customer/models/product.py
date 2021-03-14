@@ -33,13 +33,13 @@ class Order(Base, MachineMixin):
         states=lambda s: {
             s.draft: {
                 'on': {
-                    'charge': s.pending_payment,
+                    'initiate_charge': s.pending_payment,
                 },
             },
             s.pending_payment: {
                 'on': {
-                    'pay_success': s.effective,
-                    'pay_fail': s.payment_failed,
+                    'charge_success': s.effective,
+                    'charge_fail': s.payment_failed,
                 },
             },
             s.effective: {
@@ -57,8 +57,8 @@ class Order(Base, MachineMixin):
 
     purchase_time = Column(DateTime)
 
-    @machine.on_action
-    def charge(self):
+    @machine.bind_action
+    def initiate_charge(self):
         pass
 
 

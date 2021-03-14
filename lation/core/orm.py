@@ -21,7 +21,7 @@ class MachineStateFactory:
         self.__machine_states__ = set()
 
     def __getattr__(self, name):
-        if name.startswith('__'):
+        if name.startswith('_'):
             return self.__getattribute__(name)
         machine_state = MachineState(name)
         self.__machine_states__.add(machine_state)
@@ -53,7 +53,7 @@ class Machine:
         self.states = states(machine_state_factory)
         self.state_names = [machine_state.name for machine_state in machine_state_factory.__machine_states__]
 
-    def on_action(self, func):
+    def bind_action(self, func):
         action_name = func.__name__
         def wrapped_func(*args, **kwargs):
             result = func(*args, **kwargs)
