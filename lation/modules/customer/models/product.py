@@ -1,7 +1,7 @@
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy.orm import backref, relationship
 
-from lation.core.database.types import STRING_S_SIZE, STRING_XS_SIZE, DateTime, Integer, String
+from lation.core.database.types import STRING_S_SIZE, STRING_XS_SIZE, DateTime, Float, Integer, String
 from lation.core.orm import Base, Machine, MachineMixin
 
 
@@ -23,6 +23,8 @@ class Plan(Base):
 
     product_id = Column(Integer, ForeignKey('product.id'), index=True)
     product = relationship('Product', foreign_keys=[product_id], backref=backref('plans', cascade='all, delete-orphan'))
+
+    standard_price_amount = Column(Float)
 
 
 class Order(Base, MachineMixin):
