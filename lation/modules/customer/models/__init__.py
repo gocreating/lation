@@ -1,1 +1,1 @@
-from . import oauth_user, product, subscription
+from . import oauth_user, platform, product, subscription
