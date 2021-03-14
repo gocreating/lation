@@ -3,6 +3,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
+from lation.modules.customer.models.product import Order
+
 
 class EndUserSchema(BaseModel):
     id: int
@@ -43,6 +45,7 @@ class OrderPlanSchema(BaseModel):
 class OrderSchema(BaseModel):
     id: int
     order_plans: List[OrderPlanSchema]
+    state: Order.StateEnum
 
     class Config:
         orm_mode = True
