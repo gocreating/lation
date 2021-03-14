@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from lation.modules.base.models.end_user import EndUser, EndUserToken
 from lation.modules.base_fastapi.dependencies import get_session
 from lation.modules.customer.customer import CustomerApp
+from lation.modules.customer.models.platform import Platform
 
 
 # https://medium.com/data-rebels/fastapi-authentication-revisited-enabling-api-key-authentication-122dc5975680
@@ -36,3 +37,6 @@ async def login_required(request:Request, access_token:str=Depends(get_access_to
 async def get_current_user(request:Request) -> EndUser:
     end_user_token = request.state.end_user_token
     return end_user_token.end_user
+
+async def get_current_platform(session:Session=Depends(get_session)) -> Platform:
+    return session.query(Platform).one()
