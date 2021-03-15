@@ -6,6 +6,12 @@ from pydantic import BaseModel
 from lation.modules.customer.models.product import Order
 
 
+class CurrencySchema(BaseModel):
+    code: str
+
+    class Config:
+        orm_mode = True
+
 class EndUserSchema(BaseModel):
     id: int
 
@@ -19,6 +25,7 @@ class PlanSchema(BaseModel):
     id: int
     code: str
     name: str
+    standard_price_amount: float
 
     class Config:
         orm_mode = True
@@ -28,6 +35,7 @@ class ProductSchema(BaseModel):
     code: str
     name: str
     plans: List[PlanSchema]
+    currency: CurrencySchema
 
     class Config:
         orm_mode = True
