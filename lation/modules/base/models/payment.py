@@ -63,16 +63,16 @@ class ECPayPaymentGateway(PaymentGateway):
         'polymorphic_identity': 'ecpay_payment_gateway'
     }
 
-    merchant_id = Column(String(STRING_XS_SIZE), default=PAYMENT_GATEWAY_ECPAY_MERCHANT_ID)
-    hash_key = Column(String(STRING_XS_SIZE), default=PAYMENT_GATEWAY_ECPAY_HASH_KEY)
-    hash_iv = Column(String(STRING_XS_SIZE), default=PAYMENT_GATEWAY_ECPAY_HASH_IV)
+    merchant_id = Column(String(STRING_XS_SIZE))
+    hash_key = Column(String(STRING_XS_SIZE))
+    hash_iv = Column(String(STRING_XS_SIZE))
     action_url = Column(String(STRING_M_SIZE))
 
     def get_sdk(self):
         if not getattr(self, '_sdk', None):
-            self._sdk = ECPayPaymentSdk(MerchantID=self.merchant_id,
-                                        HashKey=self.hash_key,
-                                        HashIV=self.hash_iv)
+            self._sdk = ECPayPaymentSdk(MerchantID=self.merchant_id if self.merchant_id else PAYMENT_GATEWAY_ECPAY_MERCHANT_ID,
+                                        HashKey=self.hash_key if self.hash_key else PAYMENT_GATEWAY_ECPAY_HASH_KEY,
+                                        HashIV=self.hash_iv if self.hash_iv else PAYMENT_GATEWAY_ECPAY_HASH_IV)
         return self._sdk
 
     def create_order(self, *args, amount:int=None, state:dict=None, **kwargs):
