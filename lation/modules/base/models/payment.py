@@ -22,6 +22,9 @@ PAYMENT_REDIRECT_URL=f'{FRONTEND_HOST}/payment/result'
 class Payment(Base):
     __tablename__ = 'payment'
 
+    payment_gateway_id = Column(Integer, ForeignKey('payment_gateway.id'), index=True)
+    payment_gateway = relationship('PaymentGateway', foreign_keys=[payment_gateway_id])
+
     @hybrid_property
     def total_billed_amount(self) -> float:
         return sum([payment_item.billed_amount for payment_item in self.payment_items])
