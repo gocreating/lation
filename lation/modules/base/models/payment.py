@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -43,6 +44,12 @@ class PaymentGateway(Base, SingleTableInheritanceMixin):
         raise NotImplementedError
 
     def get_payment_page_content(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def get_success_redirect_url(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def get_failure_redirect_url(self, *args, error:Optional[str]=None, **kwargs):
         raise NotImplementedError
 
 
