@@ -61,11 +61,40 @@ class Order(Base, MachineMixin):
     end_user_id = Column(Integer, ForeignKey('end_user.id'), index=True)
     end_user = relationship('EndUser', foreign_keys=[end_user_id], backref=backref('orders'))
 
-    purchase_time = Column(DateTime)
+    initiate_charge_time = Column(DateTime)
+    charge_success_time = Column(DateTime)
+    charge_fail_time = Column(DateTime)
+
+    payment_id = Column(Integer, ForeignKey('payment.id'), index=True)
+    payment = relationship('Payment', foreign_keys=[payment_id], backref=backref('order', uselist=False))
+
+    plans = association_proxy('order_plans', 'plan')
+
+    @hybrid_property
+    def total_price_amount(self) -> float:
+        return sum([order_plan.plan.standard_price_amount for order_plan in self.order_plans])
 
     @machine.bind_action
     def initiate_charge(self):
+        self.initiate_charge_time = datetime.utcnow()
+
+    def charge(self, payment_gateway: PaymentGateway) -> Optional[str]:
+        self.initiate_charge()
+
+    @machine.bind_action
+    def charge_success(self, payment_gateway: Optional[PaymentGateway] = None):
+        self.charge_success_time = datetime.utcnow()
+        self.payment = Payment(payment_gateway=payment_gateway,
+                               payment_items=[PaymentItem(item_name=plan.code, billed_amount=plan.standard_price_amount)
+                                              for plan in self.plans])
+        self.after_order_charge_sucess()
+
+    def after_order_charge_sucess(self):
         pass
+
+    @machine.bind_action
+    def charge_fail(self):
+        self.charge_fail_time = datetime.utcnow()
 
 
 class OrderPlan(Base):
