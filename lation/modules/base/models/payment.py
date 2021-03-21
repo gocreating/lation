@@ -1,4 +1,5 @@
 from datetime import datetime
+from urllib.parse import quote_plus
 from typing import Optional
 
 from sqlalchemy import Column, ForeignKey
@@ -9,6 +10,7 @@ from lation.core.database.types import STRING_M_SIZE, STRING_S_SIZE, STRING_XS_S
 from lation.core.env import get_env
 from lation.core.orm import Base, SingleTableInheritanceMixin
 from lation.modules.base.vendors.ecpay_payment_sdk import ECPayPaymentSdk
+from lation.modules.base_fastapi.routers.schemas import StatusEnum
 
 
 HOST = get_env('HOST')
@@ -72,3 +74,61 @@ class ECPayPaymentGateway(PaymentGateway):
                                         HashKey=self.hash_key,
                                         HashIV=self.hash_iv)
         return self._sdk
+
+    def create_order(self, *args, amount:int=None, state:dict=None, **kwargs):
+        sdk = self.get_sdk()
+        order_params = {
+            'MerchantTradeNo': datetime.utcnow().strftime("NO%Y%m%d%H%M%S"),
+            # 'StoreID': '',
+            'MerchantTradeDate': datetime.utcnow().strftime("%Y/%m/%d %H:%M:%S"),
+            # 'PaymentType': 'aio',
+            'TotalAmount': int(amount),
+            'TradeDesc': '訂單測試',
+            'ItemName': '商品1#商品2',
+            'ReturnURL': f'{HOST}/payment/ecpay/callback',
+            'ChoosePayment': 'Credit',
+            # 'ClientBackURL': PAYMENT_REDIRECT_URL,
+            # 'ItemURL': 'https://www.ecpay.com.tw/item_url.php',
+            # 'Remark': '交易備註',
+            # 'ChooseSubPayment': '',
+            # 'OrderResultURL': PAYMENT_REDIRECT_URL,
+            'OrderResultURL': f'{HOST}/payment/ecpay/order-result/callback',
+            'NeedExtraPaidInfo': 'Y',
+            # 'DeviceSource': '',
+            # 'IgnorePayment': '',
+            # 'PlatformID': '',
+            # 'InvoiceMark': 'N',
+            # 'EncryptType': 1,
+        }
+        if state:
+            if len(state) == 1:
+                key = state.keys()[0]
+                order_params.update({
+                    'CustomField1': key,
+                    'CustomField2': str(state[key]),
+                })
+            elif len(state) == 2:
+                key1, key2 = state.keys()
+                order_params.update({
+                    'CustomField1': key1,
+                    'CustomField2': str(state[key1]),
+                    'CustomField3': key2,
+                    'CustomField4': str(state[key2]),
+                })
+            else:
+                raise NotImplementedError
+        order = sdk.create_order(order_params)
+        return order
+
+    def get_payment_page_content(self, payment_gateway_order, *args, **kwargs):
+        sdk = self.get_sdk()
+        html = sdk.gen_html_post_form(self.action_url, payment_gateway_order)
+        return html
+
+    def get_success_redirect_url(self, *args, **kwargs):
+        return f'{PAYMENT_REDIRECT_URL}?status={StatusEnum.SUCCESS}'
+
+    def get_failure_redirect_url(self, *args, error:Optional[str]=None, **kwargs):
+        if not error:
+            error = 'ecpay payment failed'
+        return f'{PAYMENT_REDIRECT_URL}?status={StatusEnum.FAILED}&error={quote_plus(error)}'

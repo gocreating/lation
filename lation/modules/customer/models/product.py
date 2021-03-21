@@ -1,9 +1,18 @@
+from datetime import datetime
+from typing import Optional
+
 from sqlalchemy import Column, ForeignKey
+from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref, relationship
 
 from lation.core.database.types import STRING_S_SIZE, STRING_XS_SIZE, DateTime, Float, Integer, String
+from lation.core.env import get_env
 from lation.core.orm import Base, Machine, MachineMixin
+from lation.modules.base.models.payment import Payment, PaymentGateway, PaymentItem
 
+
+APP = get_env('APP')
 
 class Product(Base):
     __tablename__ = 'product'
@@ -80,6 +89,16 @@ class Order(Base, MachineMixin):
 
     def charge(self, payment_gateway: PaymentGateway) -> Optional[str]:
         self.initiate_charge()
+        total_price_amount = self.total_price_amount
+        if total_price_amount > 0:
+            payment_gateway_order = payment_gateway.create_order(amount=total_price_amount, state={
+                'lation_app': APP,
+                'order_id': self.id,
+            })
+            content = payment_gateway.get_payment_page_content(payment_gateway_order)
+            return content
+        else:
+            self.charge_success()
 
     @machine.bind_action
     def charge_success(self, payment_gateway: Optional[PaymentGateway] = None):
