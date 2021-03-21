@@ -2,13 +2,13 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, contains_eager
 
 from lation.modules.base_fastapi.decorators import managed_transaction
 from lation.modules.base_fastapi.dependencies import get_session
 from lation.modules.base_fastapi.routers.schemas import ResponseSchema as Response, StatusEnum
 from lation.modules.customer.dependencies import login_required, get_current_user
-from lation.modules.customer.models.product import Order, OrderPlan
+from lation.modules.customer.models.product import Order, OrderPlan, Plan, Product
 from lation.modules.customer.models.subscription import Subscription
 from lation.modules.customer.routers.schemas import CreateSubscriptionSchema, SubscriptionSchema
 
@@ -19,14 +19,25 @@ router = APIRouter()
             tags=['subscription'],
             dependencies=[Depends(login_required)],
             response_model=Response[List[SubscriptionSchema]])
-@managed_transaction
 def list_subscriptionss(is_active:Optional[bool]=None,
                         end_user=Depends(get_current_user),
                         session:Session=Depends(get_session)):
     query = session.query(Subscription)\
         .join(Subscription.order_plan)\
         .join(OrderPlan.order)\
-        .filter(Order.end_user_id == end_user.id)
+        .join(OrderPlan.plan)\
+        .join(Order.payment)\
+        .join(Plan.product)\
+        .filter(Order.end_user_id == end_user.id)\
+        .options(
+            contains_eager(Subscription.order_plan)
+                .contains_eager(OrderPlan.order)
+                .noload(Order.order_plans))\
+        .options(
+            contains_eager(Subscription.order_plan)
+                .contains_eager(OrderPlan.plan)
+                .contains_eager(Plan.product)
+                .noload(Product.plans))
     if is_active == True:
         query = query.filter(Subscription.unsubscribe_time == None)
     elif is_active == False:

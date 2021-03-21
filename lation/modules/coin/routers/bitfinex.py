@@ -8,7 +8,7 @@ from lation.modules.coin.bitfinex_api_client import BitfinexAPIClient, FundingCr
 from lation.modules.coin.dependencies import get_bitfinex_api_client
 from lation.modules.coin.models.job import get_bitfinex_funding_market_recommended_ask_rate
 from lation.modules.coin.routers.schemas import BitfinexMetricsSchema
-from lation.modules.customer.dependencies import login_required
+from lation.modules.customer.dependencies import login_required, subscription_required
 
 
 router = APIRouter()
@@ -21,7 +21,7 @@ async def get_bitfinex_metrics():
 
 @router.get('/wallets',
             tags=['bitfinex'],
-            dependencies=[Depends(login_required)],
+            dependencies=[Depends(login_required), Depends(subscription_required(['CFB']))],
             response_model=Response[List[WalletSchema]])
 async def list_wallets(bitfinex_api_client=Depends(get_bitfinex_api_client)):
     wallets = bitfinex_api_client.get_user_wallets()
@@ -29,7 +29,7 @@ async def list_wallets(bitfinex_api_client=Depends(get_bitfinex_api_client)):
 
 @router.get('/ledgers/{currency}/30-day-interest-payments',
             tags=['bitfinex'],
-            dependencies=[Depends(login_required)],
+            dependencies=[Depends(login_required), Depends(subscription_required(['CFB']))],
             response_model=Response[List[LedgerSchema]])
 async def list_30_day_interest_ledgers(currency:BitfinexAPIClient.CurrencyEnum,
                                        bitfinex_api_client=Depends(get_bitfinex_api_client)):
@@ -40,7 +40,7 @@ async def list_30_day_interest_ledgers(currency:BitfinexAPIClient.CurrencyEnum,
 
 @router.get('/funding/credits/{symbol}',
             tags=['bitfinex'],
-            dependencies=[Depends(login_required)],
+            dependencies=[Depends(login_required), Depends(subscription_required(['CFB']))],
             response_model=Response[List[FundingCreditSchema]])
 async def list_funding_credits(symbol:str, bitfinex_api_client=Depends(get_bitfinex_api_client)):
     funding_credits = bitfinex_api_client.get_user_funding_credits(symbol)
@@ -48,7 +48,7 @@ async def list_funding_credits(symbol:str, bitfinex_api_client=Depends(get_bitfi
 
 @router.get('/funding/offers/{symbol}',
             tags=['bitfinex'],
-            dependencies=[Depends(login_required)],
+            dependencies=[Depends(login_required), Depends(subscription_required(['CFB']))],
             response_model=Response[List[FundingOfferSchema]])
 async def list_funding_credits(symbol:str, bitfinex_api_client=Depends(get_bitfinex_api_client)):
     funding_offers = bitfinex_api_client.get_user_funding_offers(symbol)
@@ -56,7 +56,7 @@ async def list_funding_credits(symbol:str, bitfinex_api_client=Depends(get_bitfi
 
 @router.post('/funding/offers/{offer_id}/cancel',
              tags=['bitfinex'],
-             dependencies=[Depends(login_required)],
+             dependencies=[Depends(login_required), Depends(subscription_required(['CFB']))],
              response_model=Response[UpdateFundingOfferSchema])
 async def cancel_funding_offer(offer_id:int, bitfinex_api_client=Depends(get_bitfinex_api_client)):
     cancel_funding_offer = bitfinex_api_client.cancel_user_funding_offer(offer_id)

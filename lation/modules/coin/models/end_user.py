@@ -48,6 +48,7 @@ def apply_bitfinex_funding_strategy(self, ask_rate:float):
             offer_amount = min(available_balance, amount_strategy.max_per_offer_amount)
             available_balance -= offer_amount
             offer_rate = max(ask_rate, rate_strategy.min_per_offer_rate / 36500)
+            offer_rate = min(offer_rate, rate_strategy.max_per_offer_rate / 36500)
             offer_period = 2
             for rule in rate_to_period_rules:
                 if rule.gte_rate / 36500 <= offer_rate <= rule.lt_rate / 36500:

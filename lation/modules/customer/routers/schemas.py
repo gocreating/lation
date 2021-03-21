@@ -1,8 +1,17 @@
+from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
 
 from pydantic import BaseModel
 
+from lation.modules.customer.models.product import Order
+
+
+class CurrencySchema(BaseModel):
+    code: str
+
+    class Config:
+        orm_mode = True
 
 class EndUserSchema(BaseModel):
     id: int
@@ -17,6 +26,8 @@ class PlanSchema(BaseModel):
     id: int
     code: str
     name: str
+    standard_price_amount: float
+    product: Optional[ProductSchema]
 
     class Config:
         orm_mode = True
@@ -26,6 +37,15 @@ class ProductSchema(BaseModel):
     code: str
     name: str
     plans: List[PlanSchema]
+    currency: CurrencySchema
+
+    class Config:
+        orm_mode = True
+
+class PaymentSchema(BaseModel):
+    id: int
+    total_billed_amount: float
+    create_time: datetime
 
     class Config:
         orm_mode = True
@@ -33,16 +53,21 @@ class ProductSchema(BaseModel):
 class CreateOrderSchema(BaseModel):
     plan_id: int
 
-class OrderPlanSchema(BaseModel):
+class PrimitiveOrderSchema(BaseModel):
     id: int
-    plan_id: int
+    state: Order.StateEnum
 
     class Config:
         orm_mode = True
 
-class OrderSchema(BaseModel):
-    id: int
+class OrderSchema(PrimitiveOrderSchema):
     order_plans: List[OrderPlanSchema]
+    payment: Optional[PaymentSchema]
+
+class OrderPlanSchema(BaseModel):
+    id: int
+    plan: PlanSchema
+    order: OrderSchema
 
     class Config:
         orm_mode = True
@@ -55,7 +80,12 @@ class SubscriptionSchema(BaseModel):
     order_plan: OrderPlanSchema
 
     subscribe_time: datetime
+    due_time: Optional[datetime] = None
     unsubscribe_time: Optional[datetime] = None
 
     class Config:
         orm_mode = True
+
+# for circular schema reference
+OrderSchema.update_forward_refs()
+PlanSchema.update_forward_refs()

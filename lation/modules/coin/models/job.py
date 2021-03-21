@@ -45,7 +45,8 @@ def apply_bitfinex_funding_strategy(cron_job) -> str:
         .all()
     ask_rate = get_bitfinex_funding_market_recommended_ask_rate()
     for end_user in end_users:
-        JobProducer(end_user).apply_bitfinex_funding_strategy(ask_rate)
+        if end_user.is_subscribed_to_any_products(['CFB']):
+            JobProducer(end_user).apply_bitfinex_funding_strategy(ask_rate)
 
     end_user_ids = [end_user.id for end_user in end_users]
     return f'ask_rate={ask_rate}, end_user_ids={end_user_ids}'

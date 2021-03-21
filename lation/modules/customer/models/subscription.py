@@ -14,6 +14,7 @@ class Subscription(Base):
     order_plan = relationship('OrderPlan', foreign_keys=[order_plan_id], backref=backref('subscription', uselist=False))
 
     subscribe_time = Column(DateTime)
+    due_time = Column(DateTime)
     unsubscribe_time = Column(DateTime)
 
     def unsubscribe(self):

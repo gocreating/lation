@@ -1,4 +1,6 @@
+from typing import Any, Callable, Dict, Literal
 import datetime
+import enum
 
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base, declared_attr, has_inherited_table
@@ -6,11 +8,80 @@ from sqlalchemy.schema import MetaData
 from sqlalchemy.sql import func
 
 from lation.core.database.database import Database
-from lation.core.database.types import STRING_M_SIZE, STRING_S_SIZE, DateTime, Integer, String
+from lation.core.database.types import STRING_M_SIZE, STRING_S_SIZE, STRING_XS_SIZE, DateTime, Integer, String
 from lation.core.env import get_env
 
 
 APP = get_env('APP')
+
+
+class MachineStateFactory:
+
+    def __init__(self):
+        self.__machine_states__ = set()
+
+    def __getattr__(self, name):
+        if name.startswith('_'):
+            return self.__getattribute__(name)
+        machine_state = MachineState(name)
+        self.__machine_states__.add(machine_state)
+        return machine_state
+
+
+class MachineState:
+
+    def __init__(self, name):
+        self.name = name.upper()
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
+
+
+class Machine:
+
+    def __init__(self,
+                 initial:Callable[[MachineStateFactory],MachineState],
+                 states:Callable[
+                     [MachineStateFactory],
+                     Dict[MachineState, Dict[Literal['on'], Dict[str, MachineState]]]
+                 ]):
+        machine_state_factory = MachineStateFactory()
+        self.initial_machine_state = initial(machine_state_factory)
+        self.states = states(machine_state_factory)
+        self.state_names = [machine_state.name for machine_state in machine_state_factory.__machine_states__]
+
+    def bind_action(self, func):
+        action_name = func.__name__
+        def wrapped_func(*args, **kwargs):
+            result = func(*args, **kwargs)
+            current_state_name = args[0].state
+            if not current_state_name:
+                raise Exception('Current state cannot be None')
+            current_machine_state = MachineState(current_state_name)
+            current_state_transition_map = self.states.get(current_machine_state, {}).get('on')
+            if not current_state_transition_map:
+                raise Exception(f'Invalid state transition. Trasition definition for state `{current_state_name}` is not found.')
+            next_machine_state = current_state_transition_map.get(action_name)
+            if not next_machine_state:
+                raise Exception(f'Invalid state transition. Cannot apply action `{action_name}` to state `{current_state_name}`')
+            args[0].state = next_machine_state.name
+            return result
+        return wrapped_func
+
+
+class MachineMixin:
+
+    @declared_attr
+    def StateEnum(cls):
+        return enum.Enum('StateEnum', { state_name: state_name for state_name in cls.machine.state_names })
+
+    @declared_attr
+    def state(cls):
+        return Column(String(STRING_XS_SIZE), default=cls.machine.initial_machine_state.name)
+
 
 class JoinedTableInheritanceMixin:
 
