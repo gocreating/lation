@@ -1,3 +1,4 @@
+from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
 
@@ -26,6 +27,7 @@ class PlanSchema(BaseModel):
     code: str
     name: str
     standard_price_amount: float
+    product: Optional[ProductSchema]
 
     class Config:
         orm_mode = True
@@ -40,20 +42,32 @@ class ProductSchema(BaseModel):
     class Config:
         orm_mode = True
 
-class CreateOrderSchema(BaseModel):
-    plan_id: int
-
-class OrderPlanSchema(BaseModel):
+class PaymentSchema(BaseModel):
     id: int
-    plan_id: int
+    total_billed_amount: float
+    create_time: datetime
 
     class Config:
         orm_mode = True
 
-class OrderSchema(BaseModel):
+class CreateOrderSchema(BaseModel):
+    plan_id: int
+
+class PrimitiveOrderSchema(BaseModel):
     id: int
-    order_plans: List[OrderPlanSchema]
     state: Order.StateEnum
+
+    class Config:
+        orm_mode = True
+
+class OrderSchema(PrimitiveOrderSchema):
+    order_plans: List[OrderPlanSchema]
+    payment: Optional[PaymentSchema]
+
+class OrderPlanSchema(BaseModel):
+    id: int
+    plan: PlanSchema
+    order: OrderSchema
 
     class Config:
         orm_mode = True
@@ -66,7 +80,12 @@ class SubscriptionSchema(BaseModel):
     order_plan: OrderPlanSchema
 
     subscribe_time: datetime
+    due_time: Optional[datetime] = None
     unsubscribe_time: Optional[datetime] = None
 
     class Config:
         orm_mode = True
+
+# for circular schema reference
+OrderSchema.update_forward_refs()
+PlanSchema.update_forward_refs()
