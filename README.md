@@ -66,6 +66,8 @@ docker-compose -f ./deploy/coin/docker-compose.local.yml up
 chmod 400 ./secrets/instance-keys/oracle-cloud
 ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubuntu@instance-1.lation.app
 ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubuntu@instance-2.lation.app
+ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubuntu@instance-3.lation.app
+ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubuntu@instance-4.lation.app
 ```
 
 ## Postgres Sequence Issue when id exists
