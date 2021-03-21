@@ -14,6 +14,8 @@ class Product(Base):
     currency_id = Column(Integer, ForeignKey('currency.id'), index=True)
     currency = relationship('Currency', foreign_keys=[currency_id])
 
+    max_end_user_effective_order_count = Column(Integer)
+
 
 class Plan(Base):
     __tablename__ = 'plan'
@@ -25,6 +27,8 @@ class Plan(Base):
     product = relationship('Product', foreign_keys=[product_id], backref=backref('plans', cascade='all, delete-orphan'))
 
     standard_price_amount = Column(Float)
+
+    max_end_user_effective_order_count = Column(Integer)
 
 
 class Order(Base, MachineMixin):

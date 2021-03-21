@@ -1,2 +1,2 @@
-lation_id,product_id/fk,code,name
-word_cloud_plan_basic,product_word_cloud,BASIC,Basic
+lation_id,product_id/fk,code,name,standard_price_amount,max_end_user_effective_order_count
+word_cloud_plan_basic,product_word_cloud,BASIC,Basic,0,1
