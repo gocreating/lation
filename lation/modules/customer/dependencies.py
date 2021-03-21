@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import Depends, HTTPException, Request, Response, Security, status
 from fastapi.security.api_key import APIKeyCookie, APIKeyHeader
@@ -50,3 +50,11 @@ async def get_payment_gateway(platform=Depends(get_current_platform)) -> Payment
     if not payment_gateway:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     return payment_gateway
+
+def subscription_required(product_codes: List[str]):
+
+    async def product_inforce_required(end_user=Depends(get_current_user)):
+        if not end_user.is_subscribed_to_any_products(product_codes):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Invalid subscription')
+
+    return product_inforce_required
