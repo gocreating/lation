@@ -14,6 +14,7 @@ class BitfinexSymbolFundingAmountStrategy(BaseModel):
 
 class BitfinexSymbolFundingRateStrategy(BaseModel):
     min_per_offer_rate: float = 0
+    max_per_offer_rate: float = 2555
 
 class BitfinexSymbolFundingRateToPeriodRule(BaseModel):
     gte_rate: float
