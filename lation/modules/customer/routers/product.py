@@ -42,7 +42,7 @@ def list_product(session:Session=Depends(get_session)):
             response_model=Response[List[OrderSchema]])
 @managed_transaction
 def list_orders(end_user=Depends(get_current_user),
-                 session:Session=Depends(get_session)):
+                session:Session=Depends(get_session)):
     orders = session.query(Order)\
         .filter(Order.end_user_id == end_user.id, Order.state.in_([Order.StateEnum.EFFECTIVE.value]))\
         .all()
