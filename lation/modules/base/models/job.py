@@ -67,10 +67,18 @@ class CoroutineScheduler:
             @functools.wraps(func)
             async def wrapped_func(*args, **kwargs):
                 while True:
-                    await asyncio.gather(
+                    _, job_result = await asyncio.gather(
                         asyncio.sleep(seconds),
                         func(*args, **kwargs),
+                        return_exceptions=True,
                     )
+                    if job_result:
+                        if isinstance(job_result, Exception):
+                            print(f'Interval job `{func.__name__}` failed with following exception:')
+                            print(job_result)
+                        else:
+                            print(f'Interval job `{func.__name__}` executed successfully with result:')
+                            print(job_result)
 
             CoroutineScheduler.coroutine_map[func.__name__] = wrapped_func
 
