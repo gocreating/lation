@@ -213,29 +213,23 @@ class JobWorker(Subscriber):
         return [self.on_receive_job]
 
     def on_receive_job(self, body, message):
+        tablename, primary_key_value = body['tablename'], body['primary_key_value']
+        instance_method_name, args, kwargs = body['instance_method_name'], body['args'], body['kwargs']
+        cls = self.__class__
+
+        model_class = cls.database.find_model_class_by_tablename(tablename)
+        session = cls.database.get_session()
+        instance = session.query(model_class).get(primary_key_value)
+
+        if not instance:
+            print(f'{tablename} cannot find instance with id {primary_key_value}')
+            return
+
         try:
-            tablename, primary_key_value = body['tablename'], body['primary_key_value']
-            instance_method_name, args, kwargs = body['instance_method_name'], body['args'], body['kwargs']
-            cls = self.__class__
-
-            model_class = cls.database.find_model_class_by_tablename(tablename)
-            session = cls.database.get_session()
-            instance = session.query(model_class).get(primary_key_value)
-
-            if not instance:
-                print(f'{tablename} cannot find instance with id {primary_key_value}')
-                return
-
-            try:
-                func = getattr(instance, instance_method_name)
-                func(*args, **kwargs)
-                session.commit()
-            except Exception as e:
-                session.rollback()
-            finally:
-                message.ack()
+            func = getattr(instance, instance_method_name)
+            func(*args, **kwargs)
+            session.commit()
         except Exception as e:
-            print('Job worker failed when processing following message:')
-            print(message.body)
-            print('Raw exception:')
-            print(e)
+            session.rollback()
+        finally:
+            message.ack()

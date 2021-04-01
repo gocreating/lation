@@ -1,3 +1,4 @@
+import time
 from typing import List, Callable
 
 from kombu import Connection, Exchange, Producer, Queue
@@ -14,7 +15,10 @@ class MessageClient:
     @staticmethod
     def establish_connection():
         assert MESSAGE_QUEUE_URL != None, 'MESSAGE_QUEUE_URL is required'
-        return Connection(MESSAGE_QUEUE_URL)
+        # https://github.com/celery/kombu/issues/596#issuecomment-225751069
+        conn = Connection(MESSAGE_QUEUE_URL)
+        revived_conn = conn.ensure_connection(max_retries=3)
+        return revived_conn
 
 
 class MessageBroker:
@@ -49,7 +53,14 @@ class Subscriber(ConsumerMixin):
 
     @classmethod
     def run_forever(cls):
-        cls().run()
+        while True:
+            try:
+                cls().run()
+            except Exception as e:
+                print('[Subscriber] run() exited with exception:')
+                print(e)
+                print('[Subscriber] will retry run() after 5 seconds')
+                time.sleep(5)
 
     def __init__(self):
         self.connection = MessageClient.establish_connection()
