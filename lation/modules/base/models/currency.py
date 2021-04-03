@@ -7,4 +7,4 @@ from lation.core.orm import Base
 class Currency(Base):
     __tablename__ = 'currency'
 
-    code = Column(String(STRING_XS_SIZE), nullable=False)
+    code = Column(String(STRING_XS_SIZE))
