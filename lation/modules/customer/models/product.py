@@ -86,9 +86,16 @@ class Order(Base, MachineMixin):
 
     plans = association_proxy('order_plans', 'plan')
 
-    @hybrid_property
-    def total_price_amount(self) -> float:
-        return sum([order_plan.plan.standard_price_amount for order_plan in self.order_plans])
+    def get_total_price_amount(self, currency: Currency) -> float:
+        acc_price_amount = 0
+        for plan in self.plans:
+            for plan_price in plan.plan_prices:
+                if not plan_price.currency.code or plan_price.currency == currency:
+                    acc_price_amount += plan_price.standard_price_amount
+                    break
+            else:
+                raise Exception(f'Plan `{plan.code}` does not have pricing in currency `{currency.code}`')
+        return acc_price_amount
 
     @machine.bind_action
     def initiate_charge(self):
@@ -96,23 +103,49 @@ class Order(Base, MachineMixin):
 
     def charge(self, payment_gateway: PaymentGateway) -> Optional[str]:
         self.initiate_charge()
-        total_price_amount = self.total_price_amount
+        primary_currency = payment_gateway.prioritized_currencies[0]
+        total_price_amount = self.get_total_price_amount(primary_currency)
         if total_price_amount > 0:
-            payment_gateway_order = payment_gateway.create_order(amount=total_price_amount, state={
-                'lation_app': APP,
-                'order_id': self.id,
-            })
+            payment_gateway_trade = payment_gateway.create_trade(primary_currency)
+            self.payment_gateway_trades.append(payment_gateway_trade)
+            payment_gateway_order = payment_gateway.create_order(
+                payment_gateway_trade,
+                description='Here is your order from lation.app',
+                item_name=','.join([f'{plan.product.name}: {plan.name}' for plan in self.plans]),
+                amount=total_price_amount,
+                state={
+                    'lation_app': APP,
+                    'order_id': self.id,
+                }
+            )
             content = payment_gateway.get_payment_page_content(payment_gateway_order)
             return content
         else:
             self.charge_success()
 
     @machine.bind_action
-    def charge_success(self, payment_gateway: Optional[PaymentGateway] = None):
+    def charge_success(self, payment_gateway_trade: Optional[PaymentGatewayTrade] = None):
         self.charge_success_time = datetime.utcnow()
-        self.payment = Payment(payment_gateway=payment_gateway,
-                               payment_items=[PaymentItem(item_name=plan.code, billed_amount=plan.standard_price_amount)
-                                              for plan in self.plans])
+
+        if payment_gateway_trade:
+            billed_amount = payment_gateway_trade.trade_amt
+            billed_currency = payment_gateway_trade.currency
+        else:
+            session = object_session(self)
+            billed_amount = 0
+            billed_currency = Currency.get_lation_data(session, 'base.currency_none')
+
+        payment_items = []
+        for plan in self.plans:
+            plan_price = next((plan_price for plan_price in plan.plan_prices if plan_price.currency == billed_currency), None)
+            payment_item = PaymentItem(item_name=plan.code,
+                                       billed_amount=plan_price.standard_price_amount,
+                                       billed_currency=plan_price.currency)
+            payment_items.append(payment_item)
+        self.payment = Payment(payment_gateway_trade=payment_gateway_trade,
+                               billed_amount=billed_amount,
+                               billed_currency=billed_currency,
+                               payment_items=payment_items)
         self.after_order_charge_sucess()
 
     def after_order_charge_sucess(self):

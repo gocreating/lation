@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session, contains_eager
 
+from lation.modules.base.models.payment import ECPayPaymentGatewayTrade, PaymentGateway
 from lation.modules.base_fastapi.decorators import managed_transaction
 from lation.modules.base_fastapi.dependencies import get_session
 from lation.modules.base_fastapi.routers.schemas import ResponseSchema as Response, StatusEnum
@@ -84,10 +85,13 @@ async def create_order(order_data:CreateOrderSchema,
             tags=['product'],
             dependencies=[Depends(login_required)])
 @managed_transaction
-async def charge_order(order_id:int, payment_gateway=Depends(get_payment_gateway), session:Session=Depends(get_session)):
+async def charge_order(order_id:int, payment_gateway_id:int, session:Session=Depends(get_session)):
     order = session.query(Order).get(order_id)
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Order not found')
+    payment_gateway = session.query(PaymentGateway).get(payment_gateway_id)
+    if not payment_gateway:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Invalid payment gateway')
     payment_page_content = order.charge(payment_gateway)
     if order.state == Order.StateEnum.PENDING_PAYMENT.value:
         return HTMLResponse(content=payment_page_content)
@@ -121,10 +125,19 @@ async def payment_ecpay_callback(MerchantID:str=Form(None),
                                  payment_gateway=Depends(get_payment_gateway),
                                  session:Session=Depends(get_session)):
     is_verified, order = verify_ecpay_request(session, CustomField3, CustomField4)
+
+    ecpay_payment_gateway_trade = session.query(ECPayPaymentGatewayTrade).filter(ECPayPaymentGatewayTrade.number == MerchantTradeNo).one()
+    ecpay_payment_gateway_trade.reference = TradeNo
+    ecpay_payment_gateway_trade.trade_amt = TradeAmt
+    # https://github.com/tiangolo/fastapi/issues/309
+    # https://github.com/tiangolo/fastapi/issues/2433
+    ecpay_payment_gateway_trade.rtn_msg = RtnMsg.encode('Latin-1').decode('utf-8')
+    ecpay_payment_gateway_trade.rtn_code = RtnCode
+
     if not is_verified or RtnCode != 1:
         order.charge_fail()
         return '0|err'
-    order.charge_success(payment_gateway)
+    order.charge_success(ecpay_payment_gateway_trade)
     return '1|OK'
 
 @router.post('/payment/ecpay/order-result/callback',
