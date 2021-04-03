@@ -1,4 +1,5 @@
-from sqlalchemy import JSON, Boolean, DateTime, Float, Integer, String
+from sqlalchemy import JSON, Boolean, DateTime, Float, Integer, Numeric, String
+
 
 STRING_XS_SIZE = 25
 STRING_S_SIZE = 100
@@ -10,4 +11,5 @@ Boolean = Boolean
 DateTime = DateTime
 Float = Float
 Integer = Integer
+Numeric = Numeric
 String = String

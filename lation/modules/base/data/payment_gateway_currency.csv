@@ -1,0 +1,3 @@
+lation_id,payment_gateway_id/fk,currency_id/fk,sequence
+ecpay_staging_payment_gateway_twd,ecpay_staging_payment_gateway,base.currency_twd,1
+ecpay_payment_gateway_twd,ecpay_payment_gateway,base.currency_twd,1

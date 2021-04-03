@@ -3,13 +3,13 @@ from typing import Optional
 
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm import backref, object_session, relationship
 
-from lation.core.database.types import STRING_S_SIZE, STRING_XS_SIZE, DateTime, Float, Integer, String
+from lation.core.database.types import STRING_S_SIZE, STRING_XS_SIZE, DateTime, Integer, Numeric, String
 from lation.core.env import get_env
 from lation.core.orm import Base, Machine, MachineMixin
-from lation.modules.base.models.payment import Payment, PaymentGateway, PaymentItem
+from lation.modules.base.models.currency import Currency
+from lation.modules.base.models.payment import Payment, PaymentGateway, PaymentGatewayTrade, PaymentItem
 
 
 APP = get_env('APP')
@@ -19,9 +19,6 @@ class Product(Base):
 
     code = Column(String(STRING_XS_SIZE), nullable=False, comment='Product code')
     name = Column(String(STRING_S_SIZE), nullable=False, comment='Product name')
-
-    currency_id = Column(Integer, ForeignKey('currency.id'), index=True)
-    currency = relationship('Currency', foreign_keys=[currency_id])
 
     max_end_user_effective_order_count = Column(Integer)
 
@@ -35,9 +32,19 @@ class Plan(Base):
     product_id = Column(Integer, ForeignKey('product.id'), index=True)
     product = relationship('Product', foreign_keys=[product_id], backref=backref('plans', cascade='all, delete-orphan'))
 
-    standard_price_amount = Column(Float)
-
     max_end_user_effective_order_count = Column(Integer)
+
+
+class PlanPrice(Base):
+    __tablename__ = 'plan_price'
+
+    plan_id = Column(Integer, ForeignKey('plan.id'), index=True)
+    plan = relationship('Plan', foreign_keys=[plan_id], backref=backref('plan_prices'))
+
+    standard_price_amount = Column(Numeric)
+
+    currency_id = Column(Integer, ForeignKey('currency.id'), index=True)
+    currency = relationship('Currency', foreign_keys=[currency_id])
 
 
 class Order(Base, MachineMixin):

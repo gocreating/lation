@@ -8,7 +8,13 @@ from lation.modules.customer.models.product import Order
 
 
 class CurrencySchema(BaseModel):
-    code: str
+    code: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+class PaymentGatewaySchema(BaseModel):
+    id: int
 
     class Config:
         orm_mode = True
@@ -26,8 +32,15 @@ class PlanSchema(BaseModel):
     id: int
     code: str
     name: str
-    standard_price_amount: float
+    plan_prices: List[PlanPriceSchema]
     product: Optional[ProductSchema]
+
+    class Config:
+        orm_mode = True
+
+class PlanPriceSchema(BaseModel):
+    standard_price_amount: float
+    currency: CurrencySchema
 
     class Config:
         orm_mode = True
@@ -37,14 +50,14 @@ class ProductSchema(BaseModel):
     code: str
     name: str
     plans: List[PlanSchema]
-    currency: CurrencySchema
 
     class Config:
         orm_mode = True
 
 class PaymentSchema(BaseModel):
     id: int
-    total_billed_amount: float
+    billed_amount: float
+    billed_currency: CurrencySchema
     create_time: datetime
 
     class Config:

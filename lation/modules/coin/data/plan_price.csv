@@ -1,0 +1,4 @@
+lation_id,plan_id/fk,standard_price_amount,currency_id/fk
+pricing_coin_funding_bot_plan_7_day_free_trial,coin_funding_bot_plan_7_day_free_trial,0,base.currency_none
+pricing_coin_funding_bot_plan_1_month,coin_funding_bot_plan_1_month,199,base.currency_twd
+pricing_coin_funding_bot_plan_3_month,coin_funding_bot_plan_3_month,549,base.currency_twd

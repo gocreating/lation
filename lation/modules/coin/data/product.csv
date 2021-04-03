@@ -1,2 +1,2 @@
-lation_id,code,name,currency_id/fk
-product_coin_funding_bot,CFB,Coin Funding Bot,base.currency_twd
+lation_id,code,name
+product_coin_funding_bot,CFB,Coin Funding Bot
