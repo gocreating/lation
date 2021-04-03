@@ -26,7 +26,7 @@ def verify_ecpay_request(session:Session, CustomField3:str, CustomField4:str):
 @router.get('/products',
             tags=['product'],
             response_model=Response[List[ProductSchema]])
-def list_product(session:Session=Depends(get_session)):
+async def list_products(session:Session=Depends(get_session)):
     products = session.query(Product)\
         .outerjoin(Product.plans)\
         .options(
@@ -41,7 +41,7 @@ def list_product(session:Session=Depends(get_session)):
             dependencies=[Depends(login_required)],
             response_model=Response[List[OrderSchema]])
 @managed_transaction
-def list_orders(end_user=Depends(get_current_user),
+async def list_orders(end_user=Depends(get_current_user),
                 session:Session=Depends(get_session)):
     orders = session.query(Order)\
         .filter(Order.end_user_id == end_user.id, Order.state.in_([Order.StateEnum.EFFECTIVE.value]))\
@@ -54,7 +54,7 @@ def list_orders(end_user=Depends(get_current_user),
             dependencies=[Depends(login_required)],
             response_model=Response[PrimitiveOrderSchema])
 @managed_transaction
-def create_order(order_data:CreateOrderSchema,
+async def create_order(order_data:CreateOrderSchema,
                  end_user=Depends(get_current_user),
                  session:Session=Depends(get_session)):
     plan = session.query(Plan).get(order_data.plan_id)
