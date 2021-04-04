@@ -3,5 +3,7 @@ workers = 1
 # worker_class = "gevent"
 worker_class = "uvicorn.workers.UvicornWorker"
 loglevel = "warning"
+accesslog = "./deploy/logs/access.log"
+errorlog = "./deploy/logs/error.log"
 keyfile = "./deploy/certificates/privkey1.pem"
 certfile = "./deploy/certificates/fullchain1.pem"
