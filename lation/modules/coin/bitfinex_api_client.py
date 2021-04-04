@@ -116,10 +116,13 @@ def get_default_bitfinex_funding_strategy() -> BitfinexFundingStrategy:
                        amount_strategy=BitfinexSymbolFundingAmountStrategy(),
                        rate_strategy=BitfinexSymbolFundingRateStrategy(),
                        rate_to_period_rules=[
-                           BitfinexSymbolFundingRateToPeriodRule(gte_rate=0, lt_rate=10, period=2),
-                           BitfinexSymbolFundingRateToPeriodRule(gte_rate=10, lt_rate=15, period=14),
-                           BitfinexSymbolFundingRateToPeriodRule(gte_rate=15, lt_rate=20, period=30),
-                           BitfinexSymbolFundingRateToPeriodRule(gte_rate=20, lt_rate=2555, period=120),
+                           BitfinexSymbolFundingRateToPeriodRule(gte_rate=0, lt_rate=9, period=2),
+                           BitfinexSymbolFundingRateToPeriodRule(gte_rate=9, lt_rate=12, period=7),
+                           BitfinexSymbolFundingRateToPeriodRule(gte_rate=12, lt_rate=20, period=14),
+                           BitfinexSymbolFundingRateToPeriodRule(gte_rate=20, lt_rate=30, period=30),
+                           BitfinexSymbolFundingRateToPeriodRule(gte_rate=30, lt_rate=50, period=60),
+                           BitfinexSymbolFundingRateToPeriodRule(gte_rate=50, lt_rate=100, period=90),
+                           BitfinexSymbolFundingRateToPeriodRule(gte_rate=100, lt_rate=2555, period=120),
                        ]
                    )
                })
