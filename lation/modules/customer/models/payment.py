@@ -43,9 +43,10 @@ def handle_payment_result(cls, session: Session, payment_result: dict, *args, **
     trade.rtn_msg = payment_result['RtnMsg'].encode('Latin-1').decode('utf-8')
     trade.rtn_code = payment_result['RtnCode']
     session.flush()
-    if payment_result['RtnCode'] != 1:
+    if f'{payment_result["RtnCode"]}' != '1':
         trade.order.charge_fail()
-    trade.order.charge_success(trade)
+    else:
+        trade.order.charge_success(trade)
 
 
 ECPayPaymentGateway.verify_payment_result = verify_payment_result
