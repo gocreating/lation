@@ -37,8 +37,8 @@ class CronJob(Base):
     is_active = Column(Boolean, default=True)
     schedule = Column(String(STRING_XS_SIZE), nullable=False, comment='Cron expression. e.g. `0 */5 * * *`')
 
-    latest_cron_job_log_id = Column(Integer, ForeignKey('cron_job_log.id'), index=True)
-    latest_cron_job_log = relationship('CronJobLog', foreign_keys=[latest_cron_job_log_id])
+    # latest_cron_job_log_id = Column(Integer, ForeignKey('cron_job_log.id'), index=True)
+    # latest_cron_job_log = relationship('CronJobLog', foreign_keys=[latest_cron_job_log_id])
 
     @property
     def should_execute(self):
@@ -175,7 +175,7 @@ class Scheduler:
         finally:
             cron_job_log.execute_time = execute_time
             cron_job_log.finish_time = datetime.utcnow()
-            cron_job.latest_cron_job_log_id = cron_job_log.id
+            # cron_job.latest_cron_job_log_id = cron_job_log.id
             session.commit()
 
 
