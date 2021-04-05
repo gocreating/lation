@@ -81,6 +81,17 @@ class PaymentGateway(Base, SingleTableInheritanceMixin):
     def get_failure_redirect_url(self, *args, error:Optional[str]=None, **kwargs):
         raise NotImplementedError
 
+    def sync_payment(self, *args, **kwargs):
+        raise NotImplementedError
+
+    @classmethod
+    def verify_payment_result(cls, session: Session, payment_result: Any, *args, **kwargs) -> Tuple(bool, PaymentGatewayTrade):
+        raise NotImplementedError
+
+    @classmethod
+    def handle_payment_result(cls, session: Session, payment_result: Any, *args, **kwargs):
+        raise NotImplementedError
+
 
 class PaymentGatewayCurrency(Base):
     __tablename__ = 'payment_gateway_currency'
@@ -102,7 +113,8 @@ class ECPayPaymentGateway(PaymentGateway):
     merchant_id = Column(String(STRING_XS_SIZE))
     hash_key = Column(String(STRING_XS_SIZE))
     hash_iv = Column(String(STRING_XS_SIZE))
-    action_url = Column(String(STRING_M_SIZE))
+    checkout_action_url = Column(String(STRING_M_SIZE))
+    query_action_url = Column(String(STRING_M_SIZE))
 
     def get_sdk(self):
         if not getattr(self, '_sdk', None):
@@ -115,10 +127,10 @@ class ECPayPaymentGateway(PaymentGateway):
         trade_number = shortuuid.ShortUUID().random(length=20)
         return trade_number
 
-    def create_trade(self, currency: Currency, *args, **kwargs) -> PaymentGatewayTrade:
+    def create_trade(self, currency: Currency, *args, **kwargs) -> ECPayPaymentGatewayTrade:
         return ECPayPaymentGatewayTrade(payment_gateway=self, currency=currency, number=self.generate_trade_number())
 
-    def create_order(self, trade: PaymentGatewayTrade, *args, amount:int=None, state:dict=None, description:str=None, item_name:str=None, **kwargs):
+    def create_order(self, trade: ECPayPaymentGatewayTrade, *args, amount:int=None, state:dict=None, description:str=None, item_name:str=None, **kwargs):
         sdk = self.get_sdk()
         assert description
         assert item_name
@@ -130,14 +142,14 @@ class ECPayPaymentGateway(PaymentGateway):
             'TotalAmount': int(amount),
             'TradeDesc': description,
             'ItemName': item_name,
-            'ReturnURL': f'{HOST}/payment/ecpay/callback',
+            'ReturnURL': f'{HOST}/payment-gateways/ecpay/callbacks/payment',
             'ChoosePayment': 'Credit',
             # 'ClientBackURL': PAYMENT_REDIRECT_URL,
             # 'ItemURL': 'https://www.ecpay.com.tw/item_url.php',
             # 'Remark': '交易備註',
             # 'ChooseSubPayment': '',
             # 'OrderResultURL': PAYMENT_REDIRECT_URL,
-            'OrderResultURL': f'{HOST}/payment/ecpay/order-result/callback',
+            'OrderResultURL': f'{HOST}/payment-gateways/ecpay/callbacks/order-result',
             'NeedExtraPaidInfo': 'Y',
             # 'DeviceSource': '',
             # 'IgnorePayment': '',
@@ -167,7 +179,7 @@ class ECPayPaymentGateway(PaymentGateway):
 
     def get_payment_page_content(self, payment_gateway_order, *args, **kwargs):
         sdk = self.get_sdk()
-        html = sdk.gen_html_post_form(self.action_url, payment_gateway_order)
+        html = sdk.gen_html_post_form(self.checkout_action_url, payment_gateway_order)
         return html
 
     def get_success_redirect_url(self, *args, **kwargs):
