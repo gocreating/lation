@@ -10,20 +10,23 @@ def override_after_order_charge_sucess(self):
     session = object_session(self)
 
     # calculate subscribe_time
+    # here we lock selected subscriptions to prevent race condition
     utc_now = datetime.utcnow()
-    inforce_subscriptions = session.query(Subscription)\
+    inforce_and_future_subscriptions = session\
+        .query(Subscription)\
+        .with_for_update(nowait=False)\
         .join(Subscription.order_plan)\
         .join(OrderPlan.order)\
         .join(OrderPlan.plan)\
         .join(Plan.product)\
-        .filter(Subscription.subscribe_time <= utc_now, utc_now < Subscription.due_time)\
+        .filter(utc_now < Subscription.due_time)\
         .filter(Order.end_user == self.end_user)\
         .filter(Order.state == Order.StateEnum.EFFECTIVE.value)\
         .order_by(Subscription.due_time.desc())\
         .limit(1)\
         .all()
-    if len(inforce_subscriptions) > 0:
-        subscribe_time = inforce_subscriptions[0].due_time
+    if len(inforce_and_future_subscriptions) > 0:
+        subscribe_time = inforce_and_future_subscriptions[0].due_time
     else:
         subscribe_time = datetime.utcnow()
 
@@ -41,7 +44,5 @@ def override_after_order_charge_sucess(self):
     # instantiate subscription
     subscription = Subscription(order_plan=self.order_plans[0], subscribe_time=subscribe_time, due_time=due_time)
     session.add(subscription)
-
-    # FIXME: concurrently creating multiple subscriptions will have the same subscribe time
 
 Order.after_order_charge_sucess = override_after_order_charge_sucess
