@@ -64,10 +64,18 @@ docker-compose -f ./deploy/coin/docker-compose.local.yml up
 
 ``` bash
 chmod 400 ./secrets/instance-keys/oracle-cloud
-ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubuntu@instance-1.lation.app
-ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubuntu@instance-2.lation.app
-ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubuntu@instance-3.lation.app
-ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubuntu@instance-4.lation.app
+sudo ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubuntu@instance-1.lation.app
+sudo ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubuntu@instance-2.lation.app
+sudo ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubuntu@instance-3.lation.app
+sudo ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubuntu@instance-4.lation.app
+```
+
+## Debug Container
+
+``` bash
+$ winpty docker exec -it <container_id> bash # for windows
+root@<container_id>:/app# cat deploy/logs/access.log
+root@<container_id>:/app# cat deploy/logs/error.log
 ```
 
 ## Postgres Sequence Issue when id exists
