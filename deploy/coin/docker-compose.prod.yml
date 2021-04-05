@@ -4,11 +4,11 @@ services:
     image: gocreating/lation:$IMAGE_TAG
     ports:
       # external port: internal port
-      - "8888:8000"
+      - "443:8000" # Must use port 443 as required by ecpay
     environment:
       - APP=coin
       - DB_URL=$COIN_DB_URL
-      - HOST=https://coin-api.lation.app:8888
+      - HOST=https://coin-api.lation.app
       - FRONTEND_HOST=https://coin.lation.app
       - OAUTH_LINE_CLIENT_ID=1655706895
       - OAUTH_LINE_CLIENT_SECRET=$COIN_OAUTH_LINE_CLIENT_SECRET
