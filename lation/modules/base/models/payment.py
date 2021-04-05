@@ -1,19 +1,20 @@
 from __future__ import annotations
 from datetime import datetime
 from urllib.parse import quote_plus
-from typing import List, Optional
+from typing import Any, List, Optional, Tuple
 
 import shortuuid
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm import Session, backref, object_session, relationship
 
 from lation.core.database.types import STRING_M_SIZE, STRING_S_SIZE, STRING_XS_SIZE, Integer, Numeric, String
 from lation.core.env import get_env
 from lation.core.orm import Base, JoinedTableInheritanceMixin, SingleTableInheritanceMixin
-from lation.modules.base_fastapi.routers.schemas import StatusEnum
 from lation.modules.base.models.currency import Currency
+from lation.modules.base.models.job import JobProducer
+from lation.modules.base_fastapi.routers.schemas import StatusEnum
 from lation.modules.base.vendors.ecpay_payment_sdk import ECPayPaymentSdk
 
 
@@ -190,6 +191,18 @@ class ECPayPaymentGateway(PaymentGateway):
             error = 'ecpay payment failed'
         return f'{PAYMENT_REDIRECT_URL}?status={StatusEnum.FAILED}&error={quote_plus(error)}'
 
+    def sync_payment(self, *args, **kwargs):
+        session = object_session(self)
+        pending_trades = session.query(ECPayPaymentGatewayTrade)\
+            .filter(ECPayPaymentGatewayTrade.payment_gateway == self,
+                    ECPayPaymentGatewayTrade.reference == None)\
+            .order_by(ECPayPaymentGatewayTrade.create_time.asc())\
+            .all()
+        if len(pending_trades) == 0:
+            return
+        for pending_trade in pending_trades:
+            JobProducer(pending_trade).sync()
+
 
 class PaymentGatewayTrade(Base, JoinedTableInheritanceMixin):
     __tablename__ = 'payment_gateway_trade'
@@ -216,3 +229,28 @@ class ECPayPaymentGatewayTrade(PaymentGatewayTrade):
     trade_amt = Column(Integer)
     rtn_msg = Column(String(STRING_M_SIZE))
     rtn_code = Column(Integer)
+
+    def sync(self):
+        session = object_session(self)
+        ecpay_payment_gateway = self.payment_gateway
+        sdk = ecpay_payment_gateway.get_sdk()
+        client_parameters = {
+            'MerchantTradeNo': self.number,
+            'TimeStamp': int(datetime.now().timestamp()),
+        }
+        query_result = sdk.order_search(action_url=ecpay_payment_gateway.query_action_url, client_parameters=client_parameters)
+        try:
+            ecpay_payment_gateway.handle_payment_result(session, {
+                'TradeNo': query_result['TradeNo'],
+                'MerchantTradeNo': query_result['MerchantTradeNo'],
+                'TradeAmt': query_result['TradeAmt'],
+                'RtnMsg': 'Synced by lation background job',
+                'RtnCode': query_result['TradeStatus'],
+                'CustomField1': query_result['CustomField1'],
+                'CustomField2': query_result['CustomField2'],
+                'CustomField3': query_result['CustomField3'],
+                'CustomField4': query_result['CustomField4'],
+            })
+            print(f'ECPayPaymentGatewayTrade id=`{self.id}`, number=`{self.number}` is successfully synced')
+        except Exception as e:
+            print(f'ECPayPaymentGatewayTrade id=`{self.id}`, number=`{self.number}` is failed to sync')

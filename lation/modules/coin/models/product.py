@@ -42,4 +42,6 @@ def override_after_order_charge_sucess(self):
     subscription = Subscription(order_plan=self.order_plans[0], subscribe_time=subscribe_time, due_time=due_time)
     session.add(subscription)
 
+    # FIXME: concurrently creating multiple subscriptions will have the same subscribe time
+
 Order.after_order_charge_sucess = override_after_order_charge_sucess

@@ -1,0 +1,2 @@
+lation_id,name,is_active,schedule
+cron_job_sync_payment,sync_payment,false,*/15 * * * *

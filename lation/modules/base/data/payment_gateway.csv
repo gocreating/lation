@@ -1,3 +1,3 @@
-lation_id,discriminator,merchant_id,hash_key,hash_iv,action_url
-ecpay_staging_payment_gateway,ecpay_payment_gateway,2000132,5294y06JbISpM5x9,v77hoKGq4kWxNNIS,https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5
-ecpay_payment_gateway,ecpay_payment_gateway,,,,https://payment.ecpay.com.tw/Cashier/AioCheckOut/V5
+lation_id,discriminator,merchant_id,hash_key,hash_iv,checkout_action_url,query_action_url
+ecpay_staging_payment_gateway,ecpay_payment_gateway,2000132,5294y06JbISpM5x9,v77hoKGq4kWxNNIS,https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5,https://payment-stage.ecpay.com.tw/Cashier/QueryTradeInfo/V5
+ecpay_payment_gateway,ecpay_payment_gateway,,,,https://payment.ecpay.com.tw/Cashier/AioCheckOut/V5,https://payment.ecpay.com.tw/Cashier/QueryTradeInfo/V5
