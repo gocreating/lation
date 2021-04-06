@@ -1,10 +1,14 @@
+from datetime import datetime
 from pathlib import Path
 
 import jieba
 from bs4 import BeautifulSoup
+from sqlalchemy.orm import object_session
 from wordcloud import WordCloud
 
-from lation.modules.base.models.job import Scheduler
+from lation.modules.base.models.end_user import EndUser
+from lation.modules.base.models.job import Scheduler, JobProducer
+from lation.modules.customer.models.product import Order, OrderPlan, Plan
 from lation.modules.stock.ptt_web_client import PttWebClient
 from lation.modules.stock.routers.ptt import PTT_PUSH_CONTENT_CACHE_KEY
 
@@ -53,3 +57,30 @@ def generate_ptt_wordcloud(cron_job):
                    font_path=str((Path(__file__).parent / '../data/TaipeiSansTCBeta-Regular.ttf').resolve()))\
         .generate(' '.join(ptt_push_content_cut_words))
     wc.to_file((Path(__file__).parent / '../static/latest-push-content-cut-words.png').resolve())
+
+@Scheduler.register_cron_job()
+def send_ptt_wordcloud_notification(cron_job):
+    session = object_session(cron_job)
+    plan = Plan.get_lation_data(session, 'stock.word_cloud_plan_basic')
+    line_users = session.query(LineUser)\
+        .join(LineUser.end_user)\
+        .join(EndUser.orders)\
+        .join(Order.order_plans)\
+        .join(OrderPlan.subscriptions)\
+        .filter(OrderPlan.plan_id == plan.id)\
+        .filter(Subscription.unsubscribe_time == None)\
+        .all()
+    utc_now = datetime.utcnow()
+    today_date_str = utc_now.strftime('%Y-%m-%d')
+    for line_user in line_users:
+        JobProducer(line_user).push_message([
+            {
+                'type': 'text',
+                'text': f'{today_date_str} 股市風向雲如附圖，股票精靈感謝您的訂閱！',
+            },
+            {
+                'type': 'image',
+                'originalContentUrl': 'https://stock-api.lation.app:5555/static/latest-push-content-cut-words.png',
+                'previewImageUrl': 'https://stock.lation.app/logo.png',
+            },
+        ])
