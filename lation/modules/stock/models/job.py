@@ -8,7 +8,9 @@ from wordcloud import WordCloud
 
 from lation.modules.base.models.end_user import EndUser
 from lation.modules.base.models.job import Scheduler, JobProducer
+from lation.modules.customer.models.oauth_user import LineUser
 from lation.modules.customer.models.product import Order, OrderPlan, Plan
+from lation.modules.customer.models.subscription import Subscription
 from lation.modules.stock.ptt_web_client import PttWebClient
 from lation.modules.stock.routers.ptt import PTT_PUSH_CONTENT_CACHE_KEY
 
