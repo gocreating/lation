@@ -11,7 +11,7 @@ class Subscription(Base):
     __tablename__ = 'subscription'
 
     order_plan_id = Column(Integer, ForeignKey('order_plan.id'), index=True)
-    order_plan = relationship('OrderPlan', foreign_keys=[order_plan_id], backref=backref('subscription', uselist=False))
+    order_plan = relationship('OrderPlan', foreign_keys=[order_plan_id], backref=backref('subscriptions'))
 
     subscribe_time = Column(DateTime)
     due_time = Column(DateTime)

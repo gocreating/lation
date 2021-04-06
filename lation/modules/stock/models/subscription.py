@@ -19,7 +19,7 @@ def send_ptt_wordcloud_notification(cron_job):
         .join(LineUser.end_user)\
         .join(EndUser.orders)\
         .join(Order.order_plans)\
-        .join(OrderPlan.subscription)\
+        .join(OrderPlan.subscriptions)\
         .filter(OrderPlan.plan_id == plan.id)\
         .filter(Subscription.unsubscribe_time == None)\
         .all()
