@@ -34,6 +34,7 @@ class PlanSchema(BaseModel):
     name: str
     plan_prices: List[PlanPriceSchema]
     product: Optional[ProductSchema]
+    sequence: Optional[int]
 
     class Config:
         orm_mode = True
@@ -50,6 +51,7 @@ class ProductSchema(BaseModel):
     code: str
     name: str
     plans: List[PlanSchema]
+    sequence: Optional[int]
 
     class Config:
         orm_mode = True

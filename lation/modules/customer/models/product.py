@@ -22,6 +22,8 @@ class Product(Base):
 
     max_end_user_effective_order_count = Column(Integer)
 
+    sequence = Column(Integer)
+
 
 class Plan(Base):
     __tablename__ = 'plan'
@@ -33,6 +35,8 @@ class Plan(Base):
     product = relationship('Product', foreign_keys=[product_id], backref=backref('plans', cascade='all, delete-orphan'))
 
     max_end_user_effective_order_count = Column(Integer)
+
+    sequence = Column(Integer)
 
 
 class PlanPrice(Base):

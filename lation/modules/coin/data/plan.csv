@@ -1,4 +1,4 @@
-lation_id,product_id/fk,code,name,max_end_user_effective_order_count
-coin_funding_bot_plan_7_day_free_trial,product_coin_funding_bot,7_DAY_FREE_TRIAL,7 Days Free Trial,1
-coin_funding_bot_plan_1_month,product_coin_funding_bot,1_MONTH,One Month,
-coin_funding_bot_plan_3_month,product_coin_funding_bot,3_MONTH,Three Months,
+lation_id,product_id/fk,code,name,max_end_user_effective_order_count,sequence
+coin_funding_bot_plan_7_day_free_trial,product_coin_funding_bot,7_DAY_FREE_TRIAL,7 Days Free Trial,1,1
+coin_funding_bot_plan_1_month,product_coin_funding_bot,1_MONTH,One Month,,2
+coin_funding_bot_plan_3_month,product_coin_funding_bot,3_MONTH,Three Months,,3
