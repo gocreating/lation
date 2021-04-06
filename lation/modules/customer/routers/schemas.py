@@ -82,7 +82,7 @@ class OrderSchema(PrimitiveOrderSchema):
 class OrderPlanSchema(BaseModel):
     id: int
     plan: PlanSchema
-    order: OrderSchema
+    order: Optional[OrderSchema] = None
 
     class Config:
         orm_mode = True
@@ -90,16 +90,18 @@ class OrderPlanSchema(BaseModel):
 class CreateSubscriptionSchema(BaseModel):
     order_plan_id: int
 
-class SubscriptionSchema(BaseModel):
+class PrimitiveSubscriptionSchema(BaseModel):
     id: int
-    order_plan: OrderPlanSchema
-
+    order_plan_id: int
     subscribe_time: datetime
     due_time: Optional[datetime] = None
     unsubscribe_time: Optional[datetime] = None
 
     class Config:
         orm_mode = True
+
+class SubscriptionSchema(PrimitiveSubscriptionSchema):
+    order_plan: OrderPlanSchema
 
 # for circular schema reference
 OrderSchema.update_forward_refs()

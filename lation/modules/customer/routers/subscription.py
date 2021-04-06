@@ -10,7 +10,7 @@ from lation.modules.base_fastapi.routers.schemas import ResponseSchema as Respon
 from lation.modules.customer.dependencies import login_required, get_current_user
 from lation.modules.customer.models.product import Order, OrderPlan, Plan, Product
 from lation.modules.customer.models.subscription import Subscription
-from lation.modules.customer.routers.schemas import CreateSubscriptionSchema, SubscriptionSchema
+from lation.modules.customer.routers.schemas import CreateSubscriptionSchema, PrimitiveSubscriptionSchema, SubscriptionSchema
 
 
 router = APIRouter()
@@ -49,7 +49,7 @@ def list_subscriptionss(is_active:Optional[bool]=None,
 @router.post('/subscriptions',
              tags=['subscription'],
              dependencies=[Depends(login_required)],
-             response_model=Response[SubscriptionSchema])
+             response_model=Response[PrimitiveSubscriptionSchema])
 @managed_transaction
 def create_subscription(subscription_data:CreateSubscriptionSchema,
                         end_user=Depends(get_current_user),
@@ -68,7 +68,7 @@ def create_subscription(subscription_data:CreateSubscriptionSchema,
     subscription = Subscription(order_plan=order_plan, subscribe_time=datetime.utcnow())
     session.add(subscription)
     session.flush()
-    return Response[SubscriptionSchema](status=StatusEnum.SUCCESS, data=subscription)
+    return Response[PrimitiveSubscriptionSchema](status=StatusEnum.SUCCESS, data=subscription)
 
 
 @router.post('/subscriptions/{subscription_id}/unsubscribe',

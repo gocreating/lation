@@ -37,6 +37,14 @@ async def list_orders(end_user=Depends(get_current_user),
                 session:Session=Depends(get_session)):
     orders = session.query(Order)\
         .filter(Order.end_user_id == end_user.id, Order.state.in_([Order.StateEnum.EFFECTIVE.value]))\
+        .options(
+            contains_eager(Order.order_plans)
+                .noload(OrderPlan.order))\
+        .options(
+            contains_eager(Order.order_plans)
+                .contains_eager(OrderPlan.plan)
+                .contains_eager(Plan.product)
+                .noload(Product.plans))\
         .all()
     return Response[List[OrderSchema]](status=StatusEnum.SUCCESS, data=orders)
 
