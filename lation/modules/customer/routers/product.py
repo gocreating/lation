@@ -36,6 +36,9 @@ async def list_products(session:Session=Depends(get_session)):
 async def list_orders(end_user=Depends(get_current_user),
                 session:Session=Depends(get_session)):
     orders = session.query(Order)\
+        .join(Order.order_plans)\
+        .join(OrderPlan.plan)\
+        .join(Plan.product)\
         .filter(Order.end_user_id == end_user.id, Order.state.in_([Order.StateEnum.EFFECTIVE.value]))\
         .options(
             contains_eager(Order.order_plans)
