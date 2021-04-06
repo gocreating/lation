@@ -1,0 +1,3 @@
+lation_id,platform_id/fk,payment_gateway_id/fk
+platform_stock_ecpay_staging_payment_gateway,platform_stock,base.ecpay_staging_payment_gateway
+platform_stock_ecpay_payment_gateway,platform_stock,base.ecpay_payment_gateway

@@ -1,0 +1,2 @@
+lation_id,plan_id/fk,standard_price_amount,currency_id/fk
+pricing_word_cloud_plan_basic,word_cloud_plan_basic,0,base.currency_none
