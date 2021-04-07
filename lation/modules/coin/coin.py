@@ -1,6 +1,5 @@
 from lation.modules.customer.customer import CustomerApp
-from lation.modules.coin.routers import bitfinex
-from lation.modules.coin.routers import experiment, user
+from lation.modules.coin.routers import bitfinex, experiment, ftx, user
 
 
 class CoinFastApp(CustomerApp):
@@ -8,5 +7,6 @@ class CoinFastApp(CustomerApp):
     def __init__(self):
         super().__init__()
         self.include_router(user.router)
+        self.include_router(ftx.router)
         self.include_router(bitfinex.router)
         self.include_router(experiment.router)
