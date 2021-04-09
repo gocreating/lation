@@ -1,6 +1,7 @@
 from fastapi import Depends, HTTPException, status
 
 from lation.modules.coin.bitfinex_api_client import BitfinexAPIClient
+from lation.modules.coin.ftx_api_client import FTXRestAPIClient
 from lation.modules.customer.dependencies import login_required, get_current_user
 
 
@@ -13,3 +14,8 @@ async def get_bitfinex_api_client(end_user=Depends(get_current_user)) -> Bitfine
     bitfinex_api_client = BitfinexAPIClient(api_key=end_user_bitfinex_config.api_key,
                                             api_secret=end_user_bitfinex_config.api_secret)
     return bitfinex_api_client
+
+async def get_ftx_rest_api_client() -> FTXRestAPIClient:
+    ftx_rest_api_client = FTXRestAPIClient(api_key='xxx',
+                                           api_secret='yyy')
+    return ftx_rest_api_client

@@ -44,11 +44,19 @@ class FTXRestAPIClient(HttpClient):
                 raise Exception(data['error'])
             return data['result']
 
+    def request(self, method: str, path: str, **kwargs) -> Any:
+        request = Request(method, FTXRestAPIClient.HOST + path, **kwargs)
+        response = self._session.send(request.prepare())
+        return self._process_response(response)
+
     def auth_request(self, method: str, path: str, **kwargs) -> Any:
         request = Request(method, FTXRestAPIClient.HOST + path, **kwargs)
         self._sign_request(request)
         response = self._session.send(request.prepare())
         return self._process_response(response)
+
+    def get(self, path: str, params: Optional[Dict[str, Any]] = None) -> Any:
+        return self.request('GET', path, params=params)
 
     def auth_get(self, path: str, params: Optional[Dict[str, Any]] = None) -> Any:
         return self.auth_request('GET', path, params=params)
@@ -56,5 +64,18 @@ class FTXRestAPIClient(HttpClient):
     def auth_post(self, path: str, params: Optional[Dict[str, Any]] = None) -> Any:
         return self.auth_request('POST', path, json=params)
 
-    def get_balances(self) -> List[dict]:
-        return self.auth_get('/wallet/balances')
+    # Public Requests
+
+    def list_markets(self) -> List[dict]:
+        return self.get('/markets')
+
+    def list_futures(self) -> List[dict]:
+        return self.get('/futures')
+
+    def list_funding_rates(self) -> List[dict]:
+        return self.get('/funding_rates')
+
+    # Auth Requests
+
+    def get_account_info(self) -> dict:
+        return self.auth_get('/account')
