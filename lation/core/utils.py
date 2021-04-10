@@ -3,6 +3,21 @@ import inspect
 from functools import wraps
 
 
+# https://mark1002.github.io/2018/07/31/python-%E5%AF%A6%E7%8F%BE-singleton-%E6%A8%A1%E5%BC%8F/
+class SingletonMetaclass(type):
+
+    def __init__(self, *args, **kwargs):
+        self.__instance = None
+        super().__init__(*args, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        if self.__instance is None:
+            self.__instance = super().__call__(*args, **kwargs)
+            return self.__instance
+        else:
+            return self.__instance
+
+
 async def call_fn(func, *args, **kwargs):
     if inspect.iscoroutinefunction(func):
         result = await func(*args, **kwargs)
