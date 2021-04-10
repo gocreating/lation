@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import List
 
 from fastapi import APIRouter, Depends
-from lation.modules.coin.dependencies import get_ftx_rest_api_client
+from lation.modules.coin.dependencies import get_current_ftx_rest_api_client
 
 
 router = APIRouter()
@@ -12,7 +12,7 @@ def min_price_increment(a: float, b: float):
     return max(a, b)
 
 @router.get('/ftx/spot-perp-pairs', tags=['ftx'])
-async def list_pairs(client=Depends(get_ftx_rest_api_client)):
+async def list_pairs(api_client=Depends(get_current_ftx_rest_api_client)):
     markets = client.list_markets()
     futures = client.list_futures()
     funding_rates = client.list_funding_rates()
@@ -64,8 +64,8 @@ async def list_pairs(client=Depends(get_ftx_rest_api_client)):
     pairs = sorted(pairs, key=lambda p: p['spot_volume_usd_24h_rank'] + p['funding_rate_1h_rank'])
     return pairs
 
-@router.post('/ftx/orders/{base_currency}', tags=['ftx'])
-async def create_order(base_currency:str, client=Depends(get_ftx_rest_api_client)):
+@router.post('/ftx/orders/spot-perp/{base_currency}', tags=['ftx'])
+async def create_order(base_currency:str, api_client=Depends(get_current_ftx_rest_api_client)):
     # check balance
     # place spot order and perp order parallelly (asyncio.gather), should add short timeout when rate limit throttled
     pass
