@@ -5,16 +5,13 @@ from typing import Any, Dict, List, Optional
 
 from requests import Request, Session, Response
 
-from lation.modules.base.http_client import HttpClient, Response
-
 
 # https://github.com/ftexchange/ftx/blob/master/rest/client.py
-class FTXRestAPIClient(HttpClient):
+class FTXRestAPIClient:
 
     HOST = 'https://ftx.com/api'
 
     def __init__(self, api_key: str = None, api_secret: str = None, subaccount_name: str = None):
-        super().__init__(host=FTXRestAPIClient.HOST)
         self._session = Session()
         self.api_key = api_key
         self.api_secret = api_secret
@@ -79,3 +76,17 @@ class FTXRestAPIClient(HttpClient):
 
     def get_account_info(self) -> dict:
         return self.auth_get('/account')
+
+    def place_order(self, market: str, side: str, price: float, size: float,
+                    type_: str = 'limit', reduce_only: bool = False, ioc: bool = False, post_only: bool = False, client_id: str = None) -> dict:
+        return self.auth_post('/orders', {
+            'market': market,
+            'side': side,
+            'price': price,
+            'size': size,
+            'type': type_,
+            'reduceOnly': reduce_only,
+            'ioc': ioc,
+            'postOnly': post_only,
+            'clientId': client_id,
+        })

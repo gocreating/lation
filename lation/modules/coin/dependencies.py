@@ -1,7 +1,7 @@
 from fastapi import Depends, HTTPException, status
 
 from lation.modules.coin.bitfinex_api_client import BitfinexAPIClient
-from lation.modules.coin.ftx_api_client import FTXRestAPIClient
+from lation.modules.coin.ftx import FTXRestAPIClient
 from lation.modules.customer.dependencies import login_required, get_current_user
 
 
