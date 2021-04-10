@@ -31,3 +31,14 @@ def coro(func):
     def wrapper(*args, **kwargs):
         return asyncio.run(func(*args, **kwargs))
     return wrapper
+
+def fallback_empty_kwarg_to_member(name: str):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            if not kwargs.get(name, None):
+                instance = args[0]
+                kwargs[name] = getattr(instance, name)
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
