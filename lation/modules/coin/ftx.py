@@ -5,6 +5,42 @@ from typing import Any, Dict, List, Optional
 
 from requests import Request, Session, Response
 
+from lation.core.utils import SingletonMetaclass
+
+
+class FTXManager(metaclass=SingletonMetaclass):
+
+    @staticmethod
+    def lowest_common_price_increment(a: float, b: float):
+        # FIXME: actually this should be float-version lcm(a, b)
+        return max(a, b)
+
+    def __init__(self):
+        self.rest_api_client = FTXRestAPIClient()
+        self.market_name_map = {}
+        self.spot_base_currency_map = {}
+        self.perp_underlying_map = {}
+        self.funding_rate_name_map = {}
+
+    def update_market_state(self, quoteCurrency: str = 'USD'):
+        markets = self.rest_api_client.list_markets()
+        futures = self.rest_api_client.list_futures()
+
+        # TODO: filter markets which has initialized at least 100 days
+        self.market_name_map = {market['name']: market
+                                for market in markets
+                                if market['enabled']}
+        self.spot_base_currency_map = {market['baseCurrency']: market
+                                       for market in self.market_name_map.values()
+                                       if market['type'] == 'spot' and market['quoteCurrency'] == quoteCurrency}
+        self.perp_underlying_map = {future['underlying']: future
+                                    for future in futures
+                                    if future['enabled'] and future['perpetual']}
+
+    def update_funding_rate_state(self):
+        funding_rates = self.rest_api_client.list_funding_rates()
+        self.funding_rate_name_map = {funding_rate['future']: funding_rate for funding_rate in funding_rates}
+
 
 # https://github.com/ftexchange/ftx/blob/master/rest/client.py
 class FTXRestAPIClient:
@@ -90,3 +126,5 @@ class FTXRestAPIClient:
             'postOnly': post_only,
             'clientId': client_id,
         })
+
+ftx_manager = FTXManager()
