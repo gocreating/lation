@@ -16,7 +16,7 @@ async def get_bitfinex_api_client(end_user=Depends(get_current_user)) -> Bitfine
     return bitfinex_api_client
 
 async def get_current_ftx_rest_api_client() -> FTXRestAPIClient:
-    # TODO: read api_key and api_secret from current_user's config
+    # TODO: read api_key, api_secret, and subaccount_name from current_user's config
     ftx_rest_api_client = FTXRestAPIClient(api_key='xxx',
                                            api_secret='yyy')
     return ftx_rest_api_client
