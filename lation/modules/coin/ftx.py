@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 
 from requests import Request, Session, Response
 
-from lation.core.utils import SingletonMetaclass
+from lation.core.utils import RateLimiter, SingletonMetaclass
 
 
 class FTXManager(metaclass=SingletonMetaclass):
@@ -47,6 +47,8 @@ class FTXRestAPIClient:
 
     HOST = 'https://ftx.com/api'
 
+    request_rate_limiter = RateLimiter(30, 1)
+
     def __init__(self, api_key: str = None, api_secret: str = None, subaccount_name: str = None):
         self._session = Session()
         self.api_key = api_key
@@ -77,11 +79,13 @@ class FTXRestAPIClient:
                 raise Exception(data['error'])
             return data['result']
 
+    @request_rate_limiter.wait_strategy
     def request(self, method: str, path: str, **kwargs) -> Any:
         request = Request(method, FTXRestAPIClient.HOST + path, **kwargs)
         response = self._session.send(request.prepare())
         return self._process_response(response)
 
+    @request_rate_limiter.wait_strategy
     def auth_request(self, method: str, path: str, **kwargs) -> Any:
         request = Request(method, FTXRestAPIClient.HOST + path, **kwargs)
         self._sign_request(request)

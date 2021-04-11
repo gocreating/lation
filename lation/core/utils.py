@@ -1,5 +1,7 @@
 import asyncio
 import inspect
+import time
+from datetime import datetime, timedelta
 from functools import wraps
 
 
@@ -42,3 +44,44 @@ def fallback_empty_kwarg_to_member(name: str):
             return func(*args, **kwargs)
         return wrapper
     return decorator
+
+class RateLimiter:
+
+    def __init__(self, max_calls: int, period_in_seconds: int):
+        self.max_calls = max_calls
+        self.period_in_seconds = period_in_seconds
+        self.called_datetimes = []
+        self.queued_datetimes = []
+
+    def min_waiting_seconds(self) -> int:
+        utcnow = datetime.utcnow()
+        expiry = utcnow - timedelta(seconds=self.period_in_seconds)
+        self.called_datetimes = [called_datetime for called_datetime in self.called_datetimes if called_datetime >= expiry]
+        self.queued_datetimes = [queued_datetime for queued_datetime in self.queued_datetimes if queued_datetime >= utcnow]
+
+        if len(self.called_datetimes) + len(self.queued_datetimes) < self.max_calls:
+            return 0
+
+        if len(self.called_datetimes) > 0:
+            oldest_called_datetime = self.called_datetimes[0]
+        elif len(self.queued_datetimes) > 0:
+            oldest_called_datetime = self.queued_datetimes[0]
+        elapsed_seconds = (utcnow - oldest_called_datetime).total_seconds()
+        return self.period_in_seconds - elapsed_seconds
+
+    def wait_strategy(self, func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            waiting_seconds = self.min_waiting_seconds()
+            if waiting_seconds > 0:
+                self.queued_datetimes.append(datetime.utcnow() + timedelta(seconds=waiting_seconds))
+                time.sleep(waiting_seconds)
+            self.called_datetimes.append(datetime.utcnow())
+            return func(*args, **kwargs)
+        return wrapper
+
+    def drop_strategy(self, func):
+        raise NotImplementedError
+
+    def raise_strategy(self, func):
+        raise NotImplementedError
