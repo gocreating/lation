@@ -101,6 +101,9 @@ class FTXRestAPIClient:
     def auth_post(self, path: str, params: Optional[Dict[str, Any]] = None) -> Any:
         return self.auth_request('POST', path, json=params)
 
+    def auth_delete(self, path: str, params: Optional[Dict[str, Any]] = None) -> Any:
+        return self.auth_request('DELETE', path, json=params)
+
     # Public Requests
 
     def list_markets(self) -> List[dict]:
@@ -130,5 +133,8 @@ class FTXRestAPIClient:
             'postOnly': post_only,
             'clientId': client_id,
         })
+
+    def delete_order(self, client_order_id: str) -> dict:
+        return self.auth_delete(f'/orders/by_client_id/{client_order_id}')
 
 ftx_manager = FTXManager()
