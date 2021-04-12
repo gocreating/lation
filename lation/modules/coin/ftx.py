@@ -15,6 +15,11 @@ class FTXManager(metaclass=SingletonMetaclass):
         # FIXME: actually this should be float-version lcm(a, b)
         return max(a, b)
 
+    @staticmethod
+    def lowest_common_size_increment(a: float, b: float):
+        # FIXME: actually this should be float-version lcm(a, b)
+        return max(a, b)
+
     def __init__(self):
         self.rest_api_client = FTXRestAPIClient()
         self.market_name_map = {}

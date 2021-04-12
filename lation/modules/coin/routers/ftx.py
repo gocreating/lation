@@ -28,17 +28,19 @@ async def list_pairs(api_client=Depends(get_current_ftx_rest_api_client)):
     } for currency in pair_currencies]
     pairs = [{
         **pair,
-        'funding_rate_1h': Decimal(funding_rate_name_map[pair['perp_name']]['rate']),
-        'spot_size_increment': market_name_map[pair['spot_name']]['sizeIncrement'],
-        'perp_size_increment': market_name_map[pair['perp_name']]['sizeIncrement'],
         'min_provide_size': max(
             market_name_map[pair['spot_name']]['minProvideSize'],
             market_name_map[pair['perp_name']]['minProvideSize']
+        ),
+        'size_increment': FTXManager.lowest_common_size_increment(
+            market_name_map[pair['spot_name']]['sizeIncrement'],
+            market_name_map[pair['perp_name']]['sizeIncrement']
         ),
         'price_increment': FTXManager.lowest_common_price_increment(
             market_name_map[pair['spot_name']]['priceIncrement'],
             market_name_map[pair['perp_name']]['priceIncrement']
         ),
+        'funding_rate_1h': Decimal(funding_rate_name_map[pair['perp_name']]['rate']),
     } for pair in pairs]
 
     pairs = [{
