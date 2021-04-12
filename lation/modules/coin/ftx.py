@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 
 from requests import Request, Session, Response
 
-from lation.core.utils import RateLimiter, SingletonMetaclass
+from lation.core.utils import RateLimiter, SingletonMetaclass, fallback_empty_kwarg_to_member
 
 
 class FTXManager(metaclass=SingletonMetaclass):
@@ -40,6 +40,16 @@ class FTXManager(metaclass=SingletonMetaclass):
     def update_funding_rate_state(self):
         funding_rates = self.rest_api_client.list_funding_rates()
         self.funding_rate_name_map = {funding_rate['future']: funding_rate for funding_rate in funding_rates}
+
+    @fallback_empty_kwarg_to_member('rest_api_client')
+    def get_leverage(self, rest_api_client: Optional[FTXRestAPIClient] = None):
+        account_info = rest_api_client.get_account_info()
+        current_leverage = account_info['totalPositionSize'] / account_info['collateral']
+        max_leverage = account_info['leverage']
+        return {
+            'current': current_leverage,
+            'max': max_leverage,
+        }
 
 
 # https://github.com/ftexchange/ftx/blob/master/rest/client.py

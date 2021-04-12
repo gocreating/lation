@@ -1,3 +1,5 @@
+import statistics
+
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import List
@@ -59,6 +61,37 @@ async def list_pairs(api_client=Depends(get_current_ftx_rest_api_client)):
 
     pairs = sorted(pairs, key=lambda p: p['spot_volume_usd_24h_rank'] + p['funding_rate_1h_rank'])
     return pairs
+
+@router.get('/ftx/account/leverage', tags=['ftx'])
+async def get_account_leverage(api_client=Depends(get_current_ftx_rest_api_client)):
+    leverage = ftx_manager.get_leverage(rest_api_client=api_client)
+    return leverage
+
+@router.get('/ftx/funding-payments/30d', tags=['ftx'])
+async def list_funding_payments(api_client=Depends(get_current_ftx_rest_api_client)):
+    funding_payments_30d = api_client.list_funding_payments(start_time=datetime.now() - timedelta(days=30),
+                                                            end_time=datetime.now())
+    return funding_payments_30d
+
+@router.get('/ftx/summary', tags=['ftx'])
+async def get_summary(api_client=Depends(get_current_ftx_rest_api_client)):
+    leverage = ftx_manager.get_leverage(rest_api_client=api_client)
+    funding_payments_30d = api_client.list_funding_payments(start_time=datetime.now() - timedelta(days=30),
+                                                            end_time=datetime.now())
+    future_names = set([p['future'] for p in funding_payments_30d])
+    future_funding_payment_map = {
+        future_name: {
+            'total_usd': -sum([p['payment'] for p in funding_payments_30d if p['future'] == future_name]),
+            'mean_rate_1h': statistics.mean([p['rate'] for p in funding_payments_30d if p['future'] == future_name]),
+            'mean_rate_1y': statistics.mean([p['rate'] for p in funding_payments_30d if p['future'] == future_name]) * 24 * 365,
+        }
+        for future_name in future_names
+    }
+    return {
+        'leverage': leverage,
+        'funding_payment_count': len(funding_payments_30d),
+        'funding_payment': future_funding_payment_map
+    }
 
 @router.post('/ftx/orders/spot-perp/{base_currency}', tags=['ftx'])
 async def create_order(base_currency:str, api_client=Depends(get_current_ftx_rest_api_client)):
