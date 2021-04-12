@@ -109,6 +109,9 @@ class FTXRestAPIClient:
     def list_markets(self) -> List[dict]:
         return self.get('/markets')
 
+    def get_market(self, market_name: str) -> dict:
+        return self.get('/markets/{market_name}')
+
     def list_futures(self) -> List[dict]:
         return self.get('/futures')
 
@@ -136,5 +139,17 @@ class FTXRestAPIClient:
 
     def delete_order(self, client_order_id: str) -> dict:
         return self.auth_delete(f'/orders/by_client_id/{client_order_id}')
+
+    def list_funding_payments(self, start_time: Optional[datetime] = None, end_time: Optional[datetime] = None) -> List[dict]:
+        start_time_ts = None
+        if start_time:
+            start_time_ts = start_time.timestamp()
+        end_time_ts = None
+        if end_time:
+            end_time_ts = end_time.timestamp()
+        return self.auth_get('/funding_payments', {
+            'start_time': start_time_ts,
+            'end_time': end_time_ts,
+        })
 
 ftx_manager = FTXManager()
