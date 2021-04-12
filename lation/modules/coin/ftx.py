@@ -120,7 +120,7 @@ class FTXRestAPIClient:
         return self.get('/markets')
 
     def get_market(self, market_name: str) -> dict:
-        return self.get('/markets/{market_name}')
+        return self.get(f'/markets/{market_name}')
 
     def list_futures(self) -> List[dict]:
         return self.get('/futures')
