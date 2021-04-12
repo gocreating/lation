@@ -49,6 +49,15 @@ class FTXManager(metaclass=SingletonMetaclass):
         funding_rates = self.rest_api_client.list_funding_rates()
         self.funding_rate_name_map = {funding_rate['future']: funding_rate for funding_rate in funding_rates}
 
+    def get_spot_perp_market(self, base_currency: str, quote_currency: str) -> Tuple[dict, dict]:
+        spot_market_name = f'{base_currency}/{quote_currency}'
+        perp_market_name = f'{base_currency}-PERP'
+        spot_market = self.market_name_map.get(spot_market_name, None)
+        perp_market = self.market_name_map.get(perp_market_name, None)
+        if not spot_market or not perp_market:
+            raise Exception('Market not found')
+        return spot_market, perp_market
+
     @fallback_empty_kwarg_to_member('rest_api_client')
     def get_leverage(self, rest_api_client: Optional[FTXRestAPIClient] = None):
         account_info = rest_api_client.get_account_info()
@@ -104,6 +113,36 @@ class FTXManager(metaclass=SingletonMetaclass):
         elif isinstance(spot_order, Exception) and isinstance(perp_order, Exception):
             raise Exception('Failed to create both spot and perp orders')
         return spot_order, perp_order
+
+    @fallback_empty_kwarg_to_member('rest_api_client')
+    def place_spot_perp_balancing_order(self, base_currency: str,
+                                        quote_currency: str = 'USD',
+                                        rest_api_client: Optional[FTXRestAPIClient] = None) -> dict:
+        spot_market, perp_market = self.get_spot_perp_market(base_currency, quote_currency)
+        spot_market_name = spot_market['name']
+        perp_market_name = perp_market['name']
+
+        balances = rest_api_client.list_wallet_balances()
+        positions = rest_api_client.list_positions()
+        spot_balance = next((balance for balance in balances if balance['coin'] == base_currency), None)
+        perp_position = next((position for position in positions if position['future'] == perp_market_name), None)
+        if not spot_balance or not perp_position:
+            raise Exception('Either spot balance or perp position does not exist')
+
+        total_spot_balance = spot_balance['total']
+        perp_position_size = perp_position['size']
+        perp_size_increment = Decimal(str(perp_market['sizeIncrement']))
+        if total_spot_balance < perp_position_size:
+            base_amount = Decimal(str(perp_position_size - total_spot_balance))
+            order_type = 'buy'
+        elif total_spot_balance > perp_position_size:
+            base_amount = Decimal(str(total_spot_balance - perp_position_size))
+            order_type = 'sell'
+        order_size = float(base_amount.quantize(perp_size_increment.normalize(), rounding=ROUND_FLOOR))
+        if order_size < perp_market['minProvideSize']:
+            raise Exception('Difference between balance amount and position size is too small')
+        perp_order = rest_api_client.place_order(perp_market_name, order_type, None, order_size, type_='market')
+        return perp_order
 
 
 # https://github.com/ftexchange/ftx/blob/master/rest/client.py
@@ -186,6 +225,12 @@ class FTXRestAPIClient:
 
     def get_account_info(self) -> dict:
         return self.auth_get('/account')
+
+    def list_wallet_balances(self) -> List[dict]:
+        return self.auth_get('/wallet/balances')
+
+    def list_positions(self) -> List[dict]:
+        return self.auth_get('/positions')
 
     def place_order(self, market: str, side: str, price: float, size: float,
                     type_: str = 'limit', reduce_only: bool = False, ioc: bool = False, post_only: bool = False, client_id: str = None) -> dict:

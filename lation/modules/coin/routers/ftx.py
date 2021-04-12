@@ -96,23 +96,35 @@ async def get_summary(api_client=Depends(get_current_ftx_rest_api_client)):
     }
 
 @router.post('/ftx/orders/spot-perp/{base_currency}', tags=['ftx'])
-async def create_order(base_currency:str,
-                       base_amount:Optional[str]=None,
-                       quote_currency:Optional[Literal['USD', 'USDT']]='USD', quote_amount:Optional[str]=None,
-                       api_client=Depends(get_current_ftx_rest_api_client)):
+async def create_spot_perp_order(base_currency:str,
+                                 base_amount:Optional[str]=None,
+                                 quote_currency:Optional[Literal['USD', 'USDT']]='USD', quote_amount:Optional[str]=None,
+                                 api_client=Depends(get_current_ftx_rest_api_client)):
     if base_amount:
         base_amount = Decimal(base_amount)
     if quote_amount:
         quote_amount = Decimal(quote_amount)
     try:
         spot_order, perp_order = await ftx_manager.place_spot_perp_order(base_currency,
-                                                                        base_amount=base_amount,
-                                                                        quote_currency=quote_currency,
-                                                                        quote_amount=quote_amount,
-                                                                        rest_api_client=api_client)
+                                                                         base_amount=base_amount,
+                                                                         quote_currency=quote_currency,
+                                                                         quote_amount=quote_amount,
+                                                                         rest_api_client=api_client)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     return {
         'spot_order': spot_order,
         'perp_order': perp_order,
     }
+
+@router.post('/ftx/orders/spot-perp/{base_currency}/balance', tags=['ftx'])
+async def create_spot_perp_balancing_order(base_currency:str,
+                                           quote_currency:Optional[Literal['USD', 'USDT']]='USD',
+                                           api_client=Depends(get_current_ftx_rest_api_client)):
+    try:
+        perp_order = ftx_manager.place_spot_perp_balancing_order(base_currency,
+                                                                 quote_currency=quote_currency,
+                                                                 rest_api_client=api_client)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    return perp_order
