@@ -72,7 +72,8 @@ class FTXManager(metaclass=SingletonMetaclass):
     async def place_spot_perp_order(self, base_currency: str,
                                     base_amount: Optional[Decimal] = None,
                                     quote_amount: Optional[Decimal] = None, quote_currency: str = 'USD',
-                                    rest_api_client: Optional[FTXRestAPIClient] = None) -> Tuple[dict, dict]:
+                                    rest_api_client: Optional[FTXRestAPIClient] = None,
+                                    reverse_side: Optional[bool] = False) -> Tuple[dict, dict]:
         if (base_amount and quote_amount) or (not base_amount and not quote_amount):
             raise Exception('Either `base_amount` or `quote_amount` is requried')
         spot_market, perp_market = self.get_spot_perp_market(base_currency, quote_currency)
@@ -97,13 +98,23 @@ class FTXManager(metaclass=SingletonMetaclass):
 
         # TODO: should allocate at least 2 requests capacity
         loop = asyncio.get_running_loop()
-        spot_order, perp_order = await asyncio.gather(
-            loop.run_in_executor(None, lambda: rest_api_client.place_order(spot_market_name, 'buy', order_price, order_size,
-                                                                           type_=order_type, client_id=client_id_spot)),
-            loop.run_in_executor(None, lambda: rest_api_client.place_order(perp_market_name, 'sell', order_price, order_size,
-                                                                           type_=order_type, client_id=client_id_perp)),
-            return_exceptions=True
-        )
+        if not reverse_side:
+            spot_order, perp_order = await asyncio.gather(
+                loop.run_in_executor(None, lambda: rest_api_client.place_order(spot_market_name, 'buy', order_price, order_size,
+                                                                            type_=order_type, client_id=client_id_spot)),
+                loop.run_in_executor(None, lambda: rest_api_client.place_order(perp_market_name, 'sell', order_price, order_size,
+                                                                            type_=order_type, client_id=client_id_perp)),
+                return_exceptions=True
+            )
+        else:
+            spot_order, perp_order = await asyncio.gather(
+                loop.run_in_executor(None, lambda: rest_api_client.place_order(spot_market_name, 'sell', order_price, order_size,
+                                                                            type_=order_type, client_id=client_id_spot)),
+                loop.run_in_executor(None, lambda: rest_api_client.place_order(perp_market_name, 'buy', order_price, order_size,
+                                                                            type_=order_type, client_id=client_id_perp)),
+                return_exceptions=True
+            )
+
         if isinstance(spot_order, Exception) ^ isinstance(perp_order, Exception):
             # TODO: place another market order to compensate the balance
             raise Exception('Failed to create either spot or perp order')
