@@ -5,8 +5,13 @@ from sqlalchemy.orm import object_session
 from lation.modules.base.models.end_user import EndUser
 from lation.modules.base.models.job import CoroutineScheduler, JobProducer, Scheduler
 from lation.modules.coin.bitfinex_api_client import BitfinexAPIClient
+from lation.modules.coin.ftx import ftx_manager
 from lation.modules.coin.models.config import EndUserBitfinexConfig
 
+
+##############
+## Bitfinex ##
+##############
 
 bitfinex_funding_market_recommended_ask_rates = [25.55 for _ in range(12)]
 bitfinex_api_client = BitfinexAPIClient()
@@ -50,3 +55,16 @@ def apply_bitfinex_funding_strategy(cron_job) -> str:
 
     end_user_ids = [end_user.id for end_user in end_users]
     return f'ask_rate={ask_rate}, end_user_ids={end_user_ids}'
+
+
+#########
+## FTX ##
+#########
+
+@CoroutineScheduler.register_interval_job(600)
+async def fetch_ftx_market(get_session):
+    ftx_manager.update_market_state()
+
+@CoroutineScheduler.register_interval_job(30)
+async def fetch_ftx_funding_rate(get_session):
+    ftx_manager.update_funding_rate_state()
