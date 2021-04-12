@@ -75,12 +75,9 @@ class FTXManager(metaclass=SingletonMetaclass):
                                     rest_api_client: Optional[FTXRestAPIClient] = None) -> Tuple[dict, dict]:
         if (base_amount and quote_amount) or (not base_amount and not quote_amount):
             raise Exception('Either `base_amount` or `quote_amount` is requried')
-        spot_market_name = f'{base_currency}/{quote_currency}'
-        perp_market_name = f'{base_currency}-PERP'
-        spot_market = self.market_name_map.get(spot_market_name, None)
-        perp_market = self.market_name_map.get(perp_market_name, None)
-        if not spot_market or not perp_market:
-            raise Exception('Market not found')
+        spot_market, perp_market = self.get_spot_perp_market(base_currency, quote_currency)
+        spot_market_name = spot_market['name']
+        perp_market_name = perp_market['name']
 
         min_order_size = max(spot_market['minProvideSize'], perp_market['minProvideSize'])
         size_increment = Decimal(str(FTXManager.lowest_common_size_increment(
