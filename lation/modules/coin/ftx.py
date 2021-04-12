@@ -1,7 +1,10 @@
+from __future__ import annotations
+import asyncio
 import hmac
 import time
 import urllib.parse
-from typing import Any, Dict, List, Optional
+from decimal import ROUND_FLOOR, Decimal
+from typing import Any, Dict, List, Optional, Tuple
 
 from requests import Request, Session, Response
 
@@ -55,6 +58,52 @@ class FTXManager(metaclass=SingletonMetaclass):
             'current': current_leverage,
             'max': max_leverage,
         }
+
+    @fallback_empty_kwarg_to_member('rest_api_client')
+    async def place_spot_perp_order(self, base_currency: str,
+                                    base_amount: Optional[Decimal] = None,
+                                    quote_amount: Optional[Decimal] = None, quote_currency: str = 'USD',
+                                    rest_api_client: Optional[FTXRestAPIClient] = None) -> Tuple[dict, dict]:
+        if (base_amount and quote_amount) or (not base_amount and not quote_amount):
+            raise Exception('Either `base_amount` or `quote_amount` is requried')
+        spot_market_name = f'{base_currency}/{quote_currency}'
+        perp_market_name = f'{base_currency}-PERP'
+        spot_market = self.market_name_map.get(spot_market_name, None)
+        perp_market = self.market_name_map.get(perp_market_name, None)
+        if not spot_market or not perp_market:
+            raise Exception('Market not found')
+
+        min_order_size = max(spot_market['minProvideSize'], perp_market['minProvideSize'])
+        size_increment = Decimal(str(FTXManager.lowest_common_size_increment(
+            spot_market['sizeIncrement'], perp_market['sizeIncrement'])))
+        if not base_amount:
+            recent_spot_market = rest_api_client.get_market(spot_market_name)
+            spot_ask = Decimal(str(recent_spot_market['ask']))
+            base_amount = quote_amount / spot_ask
+        order_size = float(base_amount.quantize(size_increment.normalize(), rounding=ROUND_FLOOR))
+        if order_size < min_order_size:
+            raise Exception(f'`quote_amount` is too small. Please provide at least `{quote_currency} {min_order_size * float(spot_ask)}`')
+        order_price = None # Send null for market orders
+        order_type = 'market' # "limit" or "market"
+        ts = int(time.time() * 1000)
+        client_id_spot = f'lation_order_{ts}_spot'
+        client_id_perp = f'lation_order_{ts}_perp'
+
+        # TODO: should allocate at least 2 requests capacity
+        loop = asyncio.get_running_loop()
+        spot_order, perp_order = await asyncio.gather(
+            loop.run_in_executor(None, lambda: rest_api_client.place_order(spot_market_name, 'buy', order_price, order_size,
+                                                                           type_=order_type, client_id=client_id_spot)),
+            loop.run_in_executor(None, lambda: rest_api_client.place_order(perp_market_name, 'sell', order_price, order_size,
+                                                                           type_=order_type, client_id=client_id_perp)),
+            return_exceptions=True
+        )
+        if isinstance(spot_order, Exception) ^ isinstance(perp_order, Exception):
+            # TODO: place another market order to compensate the balance
+            raise Exception('Failed to create either spot or perp order')
+        elif isinstance(spot_order, Exception) and isinstance(perp_order, Exception):
+            raise Exception('Failed to create both spot and perp orders')
+        return spot_order, perp_order
 
 
 # https://github.com/ftexchange/ftx/blob/master/rest/client.py
