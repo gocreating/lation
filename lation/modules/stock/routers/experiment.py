@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi import APIRouter
 
 from lation.modules.base.models.notification import Notification
-from lation.modules.stock.line_api_client import LineAPIClient
+from lation.modules.customer.line_api_client import LineAPIClient
 
 
 router = APIRouter()

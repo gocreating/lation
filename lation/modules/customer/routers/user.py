@@ -7,9 +7,9 @@ from lation.core.env import get_env
 from lation.modules.base_fastapi.dependencies import get_session
 from lation.modules.base_fastapi.routers.schemas import ResponseSchema as Response, StatusEnum
 from lation.modules.customer.dependencies import login_required, get_current_user
+from lation.modules.customer.line_api_client import LineAPIClient
 from lation.modules.customer.models.oauth_user import LineUserToken, OAuthUser
 from lation.modules.customer.routers.schemas import EndUserSchema, LineFriendshipSchema
-from lation.modules.stock.line_api_client import LineAPIClient
 
 
 LINE_BOT_BASIC_ID = get_env('LINE_BOT_BASIC_ID')

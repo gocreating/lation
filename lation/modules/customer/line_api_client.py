@@ -17,7 +17,6 @@ class LineAPIClient(HttpClient):
         return self.get_json('/friendship/v1/status',
                               headers={'Authorization': f'Bearer {self.access_token}'})
 
-
     def push_message(self, to:str, messages) -> dict:
         return self.post_json('/v2/bot/message/push',
                               headers={'Authorization': f'Bearer {self.access_token}'},

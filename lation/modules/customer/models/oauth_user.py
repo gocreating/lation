@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import List
 
 from pydantic import BaseModel
 from sqlalchemy import Column, ForeignKey
@@ -7,6 +8,7 @@ from sqlalchemy.orm import Session, backref, relationship
 from lation.core.database.types import JSON, STRING_L_SIZE, STRING_M_SIZE, STRING_S_SIZE, STRING_XS_SIZE, Integer, String
 from lation.core.orm import Base, JoinedTableInheritanceMixin
 from lation.modules.base.models.end_user import EndUser, EndUserEmail
+from lation.modules.customer.line_api_client import LineAPIClient
 from lation.modules.customer.schemas.oauth import BaseAuthorizationSchema, GoogleAuthorizationSchema, LineAuthorizationSchema
 
 
@@ -136,6 +138,10 @@ class LineUser(OAuthUser):
                                         id_token=token.id_token)
         session.add(line_user_token)
         return line_user_token
+
+    def push_message(self, messages:List[dict]):
+        line_api_client = LineAPIClient()
+        line_api_client.push_message(self.account_identifier, messages)
 
 
 class LineUserToken(OAuthUserToken, OIDCMixin):
