@@ -84,7 +84,7 @@ async def get_summary(api_client=Depends(get_current_ftx_rest_api_client)):
     future_funding_payment_map = {
         future_name: {
             'funding_payment_count': len([p for p in funding_payments_30d if p['future'] == future_name]),
-            'last_paid_time': max([p['time'] for p in funding_payments_30d]),
+            'last_paid_time': max([p['time'] for p in funding_payments_30d if p['future'] == future_name]),
             'mean_rate_1h': statistics.mean([p['rate'] for p in funding_payments_30d if p['future'] == future_name]),
             'mean_rate_30d': statistics.mean([p['rate'] for p in funding_payments_30d if p['future'] == future_name]) * 24 * 30,
             'mean_rate_1y': statistics.mean([p['rate'] for p in funding_payments_30d if p['future'] == future_name]) * 24 * 365,
