@@ -1,12 +1,15 @@
 import statistics
+from decimal import Decimal
 
 from sqlalchemy.orm import object_session
 
 from lation.modules.base.models.end_user import EndUser
 from lation.modules.base.models.job import CoroutineScheduler, JobProducer, Scheduler
 from lation.modules.coin.bitfinex_api_client import BitfinexAPIClient
+from lation.modules.coin.dependencies import get_current_ftx_rest_api_client
 from lation.modules.coin.ftx import ftx_manager
 from lation.modules.coin.models.config import EndUserBitfinexConfig
+from lation.modules.customer.models.oauth_user import LineUser
 
 
 ##############
@@ -68,3 +71,31 @@ async def fetch_ftx_market(get_session):
 @CoroutineScheduler.register_interval_job(30)
 async def fetch_ftx_funding_rate(get_session):
     ftx_manager.update_funding_rate_state()
+
+@CoroutineScheduler.register_interval_job(120)
+async def experiment_check_my_ftx_leverage(get_session):
+    messages = []
+    for subaccount_name in [None, '期现套利子帳戶']:
+        api_client = await get_current_ftx_rest_api_client(subaccount_name=subaccount_name)
+        leverage = ftx_manager.get_leverage(rest_api_client=api_client)
+        current_leverage = leverage['current']
+        if current_leverage > 14:
+            account_name = subaccount_name
+            if not account_name:
+                account_name = '主帳戶'
+            quantized_current_leverage = Decimal(current_leverage).quantize(Decimal('.00'))
+            messages.append({
+                'type': 'text',
+                'text': f'您的 FTX「{account_name}」目前槓桿 {quantized_current_leverage} 倍',
+            })
+    if not messages:
+        return
+
+    session = get_session()
+    my_line_user = session.query(LineUser)\
+        .filter(LineUser.account_identifier == 'U5abfe9090acd8357516e26604a3606b6')\
+        .one_or_none()
+    if not my_line_user:
+        return
+
+    my_line_user.push_message(messages)
