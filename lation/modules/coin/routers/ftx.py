@@ -83,16 +83,19 @@ async def get_summary(api_client=Depends(get_current_ftx_rest_api_client)):
     future_names = set([p['future'] for p in funding_payments_30d])
     future_funding_payment_map = {
         future_name: {
-            'total_usd': -sum([p['payment'] for p in funding_payments_30d if p['future'] == future_name]),
+            'funding_payment_count': len([p for p in funding_payments_30d if p['future'] == future_name]),
+            'last_paid_time': max([p['time'] for p in funding_payments_30d]),
             'mean_rate_1h': statistics.mean([p['rate'] for p in funding_payments_30d if p['future'] == future_name]),
+            'mean_rate_30d': statistics.mean([p['rate'] for p in funding_payments_30d if p['future'] == future_name]) * 24 * 30,
             'mean_rate_1y': statistics.mean([p['rate'] for p in funding_payments_30d if p['future'] == future_name]) * 24 * 365,
+            'total_usd_amount': -sum([p['payment'] for p in funding_payments_30d if p['future'] == future_name]),
         }
         for future_name in future_names
     }
     return {
         'leverage': leverage,
-        'funding_payment_count': len(funding_payments_30d),
-        'funding_payment': future_funding_payment_map
+        'funding_payment': future_funding_payment_map,
+        'total_funding_payment_usd_amount': sum([p['total_usd_amount'] for p in future_funding_payment_map.values()]),
     }
 
 @router.post('/ftx/orders/spot-perp/{base_currency}', tags=['ftx'])
