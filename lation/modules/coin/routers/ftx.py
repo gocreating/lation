@@ -13,7 +13,7 @@ router = APIRouter()
 
 
 @router.get('/ftx/spot-perp-pairs', tags=['ftx'])
-async def list_pairs(api_client=Depends(get_current_ftx_rest_api_client)):
+async def list_pairs():
     market_name_map = ftx_manager.market_name_map
     spot_base_currency_map = ftx_manager.spot_base_currency_map
     perp_underlying_map = ftx_manager.perp_underlying_map
