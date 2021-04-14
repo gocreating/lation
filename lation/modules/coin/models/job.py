@@ -83,9 +83,9 @@ async def experiment_my_ftx_leverage_alarm(get_session):
     messages = []
     for subaccount_name in [None, '期现套利子帳戶']:
         api_client = await get_current_ftx_rest_api_client(subaccount_name=subaccount_name)
-        leverage = ftx_manager.get_leverage(rest_api_client=api_client)
-        current_leverage = leverage['current']
-        if current_leverage > 14:
+        risk_index = ftx_manager.get_risk_index(rest_api_client=api_client)
+        current_leverage = risk_index['leverage']['current']
+        if current_leverage > 12:
             account_name = subaccount_name
             if not account_name:
                 account_name = '主帳戶'
