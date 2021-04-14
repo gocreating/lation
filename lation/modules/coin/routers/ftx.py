@@ -12,8 +12,8 @@ from lation.modules.coin.ftx import FTXManager, ftx_manager
 router = APIRouter()
 
 
-@router.get('/ftx/spot-perp-pairs', tags=['ftx'])
-async def list_pairs():
+@router.get('/ftx/spot-perp-pairs/ranked', tags=['ftx'])
+async def list_ranked_spot_perp_pairs(funding_rate_1y_lower_bound: Optional[float] = 0):
     market_name_map = ftx_manager.market_name_map
     spot_base_currency_map = ftx_manager.spot_base_currency_map
     perp_underlying_map = ftx_manager.perp_underlying_map
@@ -48,7 +48,7 @@ async def list_pairs():
         'funding_rate_30d': pair['funding_rate_1h'] * 24 * 30,
         'funding_rate_1y': pair['funding_rate_1h'] * 24 * 365,
     } for pair in pairs]
-
+    pairs = [pair for pair in pairs if pair['funding_rate_1y'] > funding_rate_1y_lower_bound]
     pairs = sorted(pairs, key=lambda p: p['spot_volume_usd_24h'], reverse=True)
     pairs = [{
         **pair,
