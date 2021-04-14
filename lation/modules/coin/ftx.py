@@ -185,6 +185,11 @@ class FTXManager(metaclass=SingletonMetaclass):
         perp_order = rest_api_client.place_order(perp_market_name, order_type, None, order_size, type_='market')
         return perp_order
 
+    @fallback_empty_kwarg_to_member('rest_api_client')
+    def apply_spot_futures_arbitrage_strategy(self, rest_api_client: Optional[FTXRestAPIClient] = None):
+        risk_index = self.get_risk_index(rest_api_client=rest_api_client)
+        can_buy = (risk_index['margin_fraction']['current'] > risk_index['margin_fraction']['initial_requirement'])
+
 
 # https://github.com/ftexchange/ftx/blob/master/rest/client.py
 class FTXRestAPIClient:

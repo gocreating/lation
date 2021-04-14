@@ -72,6 +72,12 @@ async def fetch_ftx_market(get_session):
 async def fetch_ftx_funding_rate(get_session):
     ftx_manager.update_funding_rate_state()
 
+@CoroutineScheduler.register_interval_job(60)
+async def experiment_my_ftx_strategy(get_session):
+    for subaccount_name in [None, '期现套利子帳戶']:
+        api_client = await get_current_ftx_rest_api_client(subaccount_name=subaccount_name)
+        ftx_manager.apply_spot_futures_arbitrage_strategy(rest_api_client=api_client)
+
 @CoroutineScheduler.register_interval_job(120)
 async def experiment_my_ftx_leverage_alarm(get_session):
     messages = []
