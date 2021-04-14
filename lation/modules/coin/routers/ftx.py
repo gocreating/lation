@@ -83,7 +83,7 @@ async def list_spot_margin_borrow_histories(api_client=Depends(get_current_ftx_r
 
 @router.get('/ftx/summary', tags=['ftx'])
 async def get_summary(api_client=Depends(get_current_ftx_rest_api_client)):
-    leverage = ftx_manager.get_leverage(rest_api_client=api_client)
+    risk_index = ftx_manager.get_risk_index(rest_api_client=api_client)
     funding_payments_30d = api_client.list_funding_payments(start_time=datetime.now() - timedelta(days=30),
                                                             end_time=datetime.now())
     borrow_histories_30d = api_client.list_spot_margin_borrow_histories(start_time=datetime.now() - timedelta(days=30),
@@ -118,7 +118,7 @@ async def get_summary(api_client=Depends(get_current_ftx_rest_api_client)):
         for spot_name in spot_names
     }
     return {
-        'leverage': leverage,
+        'risk_index': risk_index,
         'funding_payment_30d': future_funding_payment_30d_map,
         'borrow_history_30d': spot_borrow_history_30d_map,
         'total_funding_payment_usd_amount': sum([p['total_usd_amount'] for p in future_funding_payment_30d_map.values()]),
