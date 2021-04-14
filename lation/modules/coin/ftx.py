@@ -75,13 +75,29 @@ class FTXManager(metaclass=SingletonMetaclass):
         return spot_market, perp_market
 
     @fallback_empty_kwarg_to_member('rest_api_client')
-    def get_leverage(self, rest_api_client: Optional[FTXRestAPIClient] = None):
+    def get_risk_index(self, rest_api_client: Optional[FTXRestAPIClient] = None):
         account_info = rest_api_client.get_account_info()
-        current_leverage = account_info['totalPositionSize'] / account_info['collateral']
-        max_leverage = account_info['leverage']
+        # current_leverage = account_info['totalPositionSize'] / account_info['collateral']
         return {
-            'current': current_leverage,
-            'max': max_leverage,
+            'raw': {
+                'total_account_value': account_info['totalAccountValue'],
+                'collateral': account_info['collateral'],
+                'total_position_size': account_info['totalPositionSize'],
+                'liquidating': account_info['liquidating'],
+            },
+            'margin_fraction': {
+                'current': account_info['marginFraction'],
+                'initial_requirement': account_info['initialMarginRequirement'],
+                'maintenance_requirement': account_info['maintenanceMarginRequirement'],
+                'open': account_info['openMarginFraction'],
+            },
+            'leverage': {
+                'current': 1 / account_info['marginFraction'],
+                'initial_requirement': 1 / account_info['initialMarginRequirement'],
+                'maintenance_requirement': 1 / account_info['maintenanceMarginRequirement'],
+                'open': 1 / account_info['openMarginFraction'],
+                'max': account_info['leverage'],
+            },
         }
 
     @fallback_empty_kwarg_to_member('rest_api_client')

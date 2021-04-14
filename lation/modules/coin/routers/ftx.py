@@ -64,10 +64,10 @@ async def list_ranked_spot_perp_pairs(funding_rate_1y_lower_bound: Optional[floa
     pairs = sorted(pairs, key=lambda p: p['spot_volume_usd_24h_rank'] + p['funding_rate_1h_rank'])
     return pairs
 
-@router.get('/ftx/account/leverage', tags=['ftx'])
-async def get_account_leverage(api_client=Depends(get_current_ftx_rest_api_client)):
-    leverage = ftx_manager.get_leverage(rest_api_client=api_client)
-    return leverage
+@router.get('/ftx/account/risk-index', tags=['ftx'])
+async def get_account_risk_index(api_client=Depends(get_current_ftx_rest_api_client)):
+    risk_index = ftx_manager.get_risk_index(rest_api_client=api_client)
+    return risk_index
 
 @router.get('/ftx/funding-payments/30d', tags=['ftx'])
 async def list_funding_payments(api_client=Depends(get_current_ftx_rest_api_client)):
