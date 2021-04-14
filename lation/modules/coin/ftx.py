@@ -12,6 +12,10 @@ from requests import Request, Session, Response
 from lation.core.utils import RateLimiter, SingletonMetaclass, fallback_empty_kwarg_to_member
 
 
+# https://help.ftx.com/hc/en-us/articles/360031149632-Non-USD-Collateral
+NON_USD_COLLATERALS = ['1INCH', 'AAPL', 'AAVE', 'ABNB', 'ACB', 'ALPHA', 'AMC', 'AMD', 'AMZN', 'APHA', 'ARKK', 'AUD', 'BABA', 'BADGER', 'BAND', 'BAO', 'BB', 'BCH', 'BILI', 'BITW', 'BNB', 'BNT', 'BNTX', 'BRL', 'BRZ', 'BTC', 'BTMX', 'BUSD', 'BVOL', 'BYND', 'CAD', 'CBSE', 'CEL', 'CGC', 'CHF', 'CRON', 'CUSDT', 'DAI', 'DOGE', 'ETH', 'ETHE', 'EUR', 'FB', 'FIDA', 'FTM', 'FTT', 'GBP', 'GBTC', 'GDX', 'GDXJ', 'GLD', 'GLXY', 'GME', 'GOOGL', 'GRT', 'HKD', 'HOLY', 'HOOD', 'HT', 'HUSD', 'HXRO', 'IBVOL', 'KIN', 'KNC', 'LEND', 'LEO', 'LINK', 'LRC', 'LTC', 'MATIC', 'MKR', 'MOB', 'MRNA', 'MSTR', 'NFLX', 'NIO', 'NOK', 'NVDA', 'OKB', 'OMG', 'PAX', 'PAXG', 'PENN', 'PFE', 'PYPL', 'RAY', 'REN', 'RSR', 'RUNE', 'SECO', 'SGD', 'SLV', 'SNX', 'SOL', 'SPY', 'SQ', 'SRM', 'SUSHI', 'SXP', 'TLRY', 'TOMO', 'TRX', 'TRY', 'TRYB', 'TSLA', 'TSM', 'TUSD', 'TWTR', 'UBER', 'UNI', 'USD', 'USDC', 'USDT', 'USO', 'WBTC', 'WUSDC', 'XAUT', 'XRP', 'YFI', 'ZAR', 'ZM', 'ZRX']
+
+
 class FTXManager(metaclass=SingletonMetaclass):
 
     class QuoteCurrencyEnum(str, enum.Enum):
@@ -52,6 +56,14 @@ class FTXManager(metaclass=SingletonMetaclass):
     def update_funding_rate_state(self):
         funding_rates = self.rest_api_client.list_funding_rates()
         self.funding_rate_name_map = {funding_rate['future']: funding_rate for funding_rate in funding_rates}
+
+    def list_spot_perp_base_currencies(self) -> List[str]:
+        spot_base_currency_map = self.spot_base_currency_map
+        perp_underlying_map = self.perp_underlying_map
+        base_currencies = set(spot_base_currency_map.keys())\
+            .intersection(set(perp_underlying_map.keys()))\
+            .intersection(set(NON_USD_COLLATERALS))
+        return base_currencies
 
     def get_spot_perp_market(self, base_currency: str, quote_currency: QuoteCurrencyEnum) -> Tuple[dict, dict]:
         spot_market_name = f'{base_currency}/{quote_currency.value}'

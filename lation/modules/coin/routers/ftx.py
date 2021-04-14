@@ -19,13 +19,13 @@ async def list_pairs():
     perp_underlying_map = ftx_manager.perp_underlying_map
     funding_rate_name_map = ftx_manager.funding_rate_name_map
 
-    pair_currencies = set(spot_base_currency_map.keys()).intersection(set(perp_underlying_map.keys()))
+    base_currencies = ftx_manager.list_spot_perp_base_currencies()
     pairs = [{
         'currency': spot_base_currency_map[currency]['baseCurrency'],
         'spot_name': spot_base_currency_map[currency]['name'],
         'spot_volume_usd_24h': spot_base_currency_map[currency]['volumeUsd24h'],
         'perp_name': perp_underlying_map[currency]['name'],
-    } for currency in pair_currencies]
+    } for currency in base_currencies]
     pairs = [{
         **pair,
         'min_provide_size': max(
