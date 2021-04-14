@@ -93,7 +93,10 @@ async def get_summary(api_client=Depends(get_current_ftx_rest_api_client)):
     future_funding_payment_30d_map = {
         future_name: {
             # 'record_count': len([p for p in funding_payments_30d if p['future'] == future_name]),
-            'last_paid_time': max([p['time'] for p in funding_payments_30d if p['future'] == future_name]),
+            'time_period': {
+                'start': min([p['time'] for p in funding_payments_30d if p['future'] == future_name]),
+                'end': max([p['time'] for p in funding_payments_30d if p['future'] == future_name]),
+            },
             'mean_funding_rate_1h': statistics.mean([p['rate'] for p in funding_payments_30d if p['future'] == future_name]),
             'mean_funding_rate_30d': statistics.mean([p['rate'] for p in funding_payments_30d if p['future'] == future_name]) * 24 * 30,
             'mean_funding_rate_1y': statistics.mean([p['rate'] for p in funding_payments_30d if p['future'] == future_name]) * 24 * 365,
@@ -103,7 +106,10 @@ async def get_summary(api_client=Depends(get_current_ftx_rest_api_client)):
     }
     spot_borrow_history_30d_map = {
         spot_name: {
-            'last_borrowed_time': max([b['time'] for b in borrow_histories_30d if b['coin'] == spot_name]),
+            'time_period': {
+                'start': min([b['time'] for b in borrow_histories_30d if b['coin'] == spot_name]),
+                'end': max([b['time'] for b in borrow_histories_30d if b['coin'] == spot_name]),
+            },
             'mean_borrow_rate_1h': statistics.mean([b['rate'] for b in borrow_histories_30d if b['coin'] == spot_name]),
             'mean_borrow_rate_30d': statistics.mean([b['rate'] for b in borrow_histories_30d if b['coin'] == spot_name]) * 24 * 30,
             'mean_borrow_rate_1y': statistics.mean([b['rate'] for b in borrow_histories_30d if b['coin'] == spot_name]) * 24 * 365,
