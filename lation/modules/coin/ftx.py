@@ -1,5 +1,6 @@
 from __future__ import annotations
 import asyncio
+import enum
 import hmac
 import time
 import urllib.parse
@@ -12,6 +13,10 @@ from lation.core.utils import RateLimiter, SingletonMetaclass, fallback_empty_kw
 
 
 class FTXManager(metaclass=SingletonMetaclass):
+
+    class QuoteCurrencyEnum(str, enum.Enum):
+        USD = 'USD'
+        USDT = 'USDT'
 
     @staticmethod
     def lowest_common_price_increment(a: float, b: float):
@@ -30,17 +35,16 @@ class FTXManager(metaclass=SingletonMetaclass):
         self.perp_underlying_map = {}
         self.funding_rate_name_map = {}
 
-    def update_market_state(self, quoteCurrency: str = 'USD'):
+    def update_market_state(self):
         markets = self.rest_api_client.list_markets()
         futures = self.rest_api_client.list_futures()
 
-        # TODO: filter markets which has initialized at least 100 days
         self.market_name_map = {market['name']: market
                                 for market in markets
                                 if market['enabled']}
         self.spot_base_currency_map = {market['baseCurrency']: market
                                        for market in self.market_name_map.values()
-                                       if market['type'] == 'spot' and market['quoteCurrency'] == quoteCurrency}
+                                       if market['type'] == 'spot'}
         self.perp_underlying_map = {future['underlying']: future
                                     for future in futures
                                     if future['enabled'] and future['perpetual']}
@@ -49,8 +53,8 @@ class FTXManager(metaclass=SingletonMetaclass):
         funding_rates = self.rest_api_client.list_funding_rates()
         self.funding_rate_name_map = {funding_rate['future']: funding_rate for funding_rate in funding_rates}
 
-    def get_spot_perp_market(self, base_currency: str, quote_currency: str) -> Tuple[dict, dict]:
-        spot_market_name = f'{base_currency}/{quote_currency}'
+    def get_spot_perp_market(self, base_currency: str, quote_currency: QuoteCurrencyEnum) -> Tuple[dict, dict]:
+        spot_market_name = f'{base_currency}/{quote_currency.value}'
         perp_market_name = f'{base_currency}-PERP'
         spot_market = self.market_name_map.get(spot_market_name, None)
         perp_market = self.market_name_map.get(perp_market_name, None)
@@ -71,7 +75,8 @@ class FTXManager(metaclass=SingletonMetaclass):
     @fallback_empty_kwarg_to_member('rest_api_client')
     async def place_spot_perp_order(self, base_currency: str,
                                     base_amount: Optional[Decimal] = None,
-                                    quote_amount: Optional[Decimal] = None, quote_currency: str = 'USD',
+                                    quote_amount: Optional[Decimal] = None,
+                                    quote_currency: Optional[QuoteCurrencyEnum] = QuoteCurrencyEnum.USD,
                                     rest_api_client: Optional[FTXRestAPIClient] = None,
                                     reverse_side: Optional[bool] = False) -> Tuple[dict, dict]:
         if (base_amount and quote_amount) or (not base_amount and not quote_amount):
@@ -89,7 +94,7 @@ class FTXManager(metaclass=SingletonMetaclass):
             base_amount = quote_amount / spot_ask
         order_size = float(base_amount.quantize(size_increment.normalize(), rounding=ROUND_FLOOR))
         if order_size < min_order_size:
-            raise Exception(f'`quote_amount` is too small. Please provide at least `{quote_currency} {min_order_size * float(spot_ask)}`')
+            raise Exception(f'`quote_amount` is too small. Please provide at least `{quote_currency.value} {min_order_size * float(spot_ask)}`')
         order_price = None # Send null for market orders
         order_type = 'market' # "limit" or "market"
         ts = int(time.time() * 1000)
@@ -124,7 +129,7 @@ class FTXManager(metaclass=SingletonMetaclass):
 
     @fallback_empty_kwarg_to_member('rest_api_client')
     def place_spot_perp_balancing_order(self, base_currency: str,
-                                        quote_currency: str = 'USD',
+                                        quote_currency: Optional[QuoteCurrencyEnum] = QuoteCurrencyEnum.USD,
                                         rest_api_client: Optional[FTXRestAPIClient] = None) -> dict:
         spot_market, perp_market = self.get_spot_perp_market(base_currency, quote_currency)
         spot_market_name = spot_market['name']
