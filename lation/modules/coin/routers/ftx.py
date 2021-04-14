@@ -2,7 +2,7 @@ import statistics
 
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import List, Literal, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from lation.modules.coin.dependencies import get_current_ftx_rest_api_client
@@ -101,7 +101,8 @@ async def get_summary(api_client=Depends(get_current_ftx_rest_api_client)):
 @router.post('/ftx/orders/spot-perp/{base_currency}', tags=['ftx'])
 async def create_spot_perp_order(base_currency:str,
                                  base_amount:Optional[str]=None,
-                                 quote_currency:Optional[Literal['USD', 'USDT']]='USD', quote_amount:Optional[str]=None,
+                                 quote_currency:Optional[ftx_manager.QuoteCurrencyEnum]=ftx_manager.QuoteCurrencyEnum.USD,
+                                 quote_amount:Optional[str]=None,
                                  api_client=Depends(get_current_ftx_rest_api_client)):
     if base_amount:
         base_amount = Decimal(base_amount)
@@ -122,9 +123,10 @@ async def create_spot_perp_order(base_currency:str,
 
 @router.delete('/ftx/orders/spot-perp/{base_currency}', tags=['ftx'])
 async def create_spot_perp_cancellation_order(base_currency:str,
-                                 base_amount:Optional[str]=None,
-                                 quote_currency:Optional[Literal['USD', 'USDT']]='USD', quote_amount:Optional[str]=None,
-                                 api_client=Depends(get_current_ftx_rest_api_client)):
+                                              base_amount:Optional[str]=None,
+                                              quote_currency:Optional[ftx_manager.QuoteCurrencyEnum]=ftx_manager.QuoteCurrencyEnum.USD,
+                                              quote_amount:Optional[str]=None,
+                                              api_client=Depends(get_current_ftx_rest_api_client)):
     if base_amount:
         base_amount = Decimal(base_amount)
     if quote_amount:
@@ -145,7 +147,7 @@ async def create_spot_perp_cancellation_order(base_currency:str,
 
 @router.post('/ftx/orders/spot-perp/{base_currency}/balance', tags=['ftx'])
 async def create_spot_perp_balancing_order(base_currency:str,
-                                           quote_currency:Optional[Literal['USD', 'USDT']]='USD',
+                                           quote_currency:Optional[ftx_manager.QuoteCurrencyEnum]=ftx_manager.QuoteCurrencyEnum.USD,
                                            api_client=Depends(get_current_ftx_rest_api_client)):
     try:
         perp_order = ftx_manager.place_spot_perp_balancing_order(base_currency,
