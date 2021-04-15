@@ -39,6 +39,8 @@ class FTXManager(metaclass=SingletonMetaclass):
         self.perp_underlying_map = {}
         self.funding_rate_name_map = {}
 
+        self.alarm_enabled = True
+        self.leverage_alarm = 14
         self.strategy_enabled = True
         self.leverage_low = 11
         self.leverage_high = 13
