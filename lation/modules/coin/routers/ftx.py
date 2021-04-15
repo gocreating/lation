@@ -182,3 +182,20 @@ async def create_spot_perp_balancing_order(base_currency:str,
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     return perp_order
+
+@router.post('/ftx/strategies/spot-futures-arbitrage/apply-iteration', tags=['ftx'])
+async def apply_spot_futures_arbitrage_strategy_iteration(leverage_low: float = 11,
+                                           leverage_high: float = 13,
+                                           api_client=Depends(get_current_ftx_rest_api_client)):
+    try:
+        await ftx_manager.apply_spot_futures_arbitrage_strategy_iteration(
+            leverage_low, leverage_high, rest_api_client=api_client)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    return
+
+@router.post('/ftx/strategies/spot-futures-arbitrage', tags=['ftx'])
+async def config_spot_futures_arbitrage_strategy(enabled: bool, leverage_low: float = 11, leverage_high: float = 13):
+    ftx_manager.strategy_enabled = enabled
+    ftx_manager.leverage_low = leverage_low
+    ftx_manager.leverage_high = leverage_high

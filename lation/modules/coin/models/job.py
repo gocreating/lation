@@ -72,12 +72,6 @@ async def fetch_ftx_market(get_session):
 async def fetch_ftx_funding_rate(get_session):
     ftx_manager.update_funding_rate_state()
 
-@CoroutineScheduler.register_interval_job(60)
-async def experiment_my_ftx_strategy(get_session):
-    for subaccount_name in [None, '期现套利子帳戶']:
-        api_client = await get_current_ftx_rest_api_client(subaccount_name=subaccount_name)
-        ftx_manager.apply_spot_futures_arbitrage_strategy(rest_api_client=api_client)
-
 @CoroutineScheduler.register_interval_job(120)
 async def experiment_my_ftx_leverage_alarm(get_session):
     messages = []
@@ -85,7 +79,7 @@ async def experiment_my_ftx_leverage_alarm(get_session):
         api_client = await get_current_ftx_rest_api_client(subaccount_name=subaccount_name)
         risk_index = ftx_manager.get_risk_index(rest_api_client=api_client)
         current_leverage = risk_index['leverage']['current']
-        if current_leverage > 12:
+        if current_leverage > 14:
             account_name = subaccount_name
             if not account_name:
                 account_name = '主帳戶'
@@ -105,3 +99,34 @@ async def experiment_my_ftx_leverage_alarm(get_session):
         return
 
     my_line_user.push_message(messages)
+
+@CoroutineScheduler.register_interval_job(5)
+async def experiment_my_ftx_leverage_alarm(get_session):
+    if not ftx_manager.strategy_enabled:
+        return
+    messages = []
+    for subaccount_name in [None, '期现套利子帳戶']:
+        try:
+            api_client = await get_current_ftx_rest_api_client(subaccount_name=subaccount_name)
+            await ftx_manager.apply_spot_futures_arbitrage_strategy_iteration(ftx_manager.leverage_low, ftx_manager.leverage_high, rest_api_client=api_client)
+        except Exception as e:
+            messages.append({
+                'type': 'text',
+                'text': f'您的 FTX「{account_name}」執行策略時發生錯誤：',
+            })
+            messages.append({
+                'type': 'text',
+                'text': str(e),
+            })
+
+    if not messages:
+        return
+    session = get_session()
+    my_line_user = session.query(LineUser)\
+        .filter(LineUser.account_identifier == 'U5abfe9090acd8357516e26604a3606b6')\
+        .one_or_none()
+    if not my_line_user:
+        return
+
+    my_line_user.push_message(messages)
+

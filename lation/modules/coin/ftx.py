@@ -39,6 +39,10 @@ class FTXManager(metaclass=SingletonMetaclass):
         self.perp_underlying_map = {}
         self.funding_rate_name_map = {}
 
+        self.strategy_enabled = True
+        self.leverage_low = 11
+        self.leverage_high = 13
+
     def update_market_state(self):
         markets = self.rest_api_client.list_markets()
         futures = self.rest_api_client.list_futures()
@@ -191,9 +195,73 @@ class FTXManager(metaclass=SingletonMetaclass):
         return perp_order
 
     @fallback_empty_kwarg_to_member('rest_api_client')
-    def apply_spot_futures_arbitrage_strategy(self, rest_api_client: Optional[FTXRestAPIClient] = None):
+    async def apply_spot_futures_arbitrage_strategy_iteration(self, leverage_low, leverage_high,
+                                                              rest_api_client: Optional[FTXRestAPIClient] = None):
         risk_index = self.get_risk_index(rest_api_client=rest_api_client)
-        can_buy = (risk_index['margin_fraction']['current'] > risk_index['margin_fraction']['initial_requirement'])
+        current_leverage = risk_index['leverage']['current']
+        if leverage_low <= current_leverage <= leverage_high:
+            return
+
+        base_currencies = self.list_spot_perp_base_currencies()
+        pairs = [{
+            'base_currency': self.spot_base_currency_map[currency]['baseCurrency'],
+            'quote_currency': self.spot_base_currency_map[currency]['quoteCurrency'],
+            'spot_name': self.spot_base_currency_map[currency]['name'],
+            'perp_name': self.perp_underlying_map[currency]['name'],
+            'funding_rate_1h': self.funding_rate_name_map[self.perp_underlying_map[currency]['name']]['rate'],
+        } for currency in base_currencies]
+        pairs = sorted(pairs, key=lambda p: p['funding_rate_1h'], reverse=True)
+
+        if current_leverage < leverage_low:
+            # buy spot & create position
+            can_buy = (risk_index['margin_fraction']['current'] > risk_index['margin_fraction']['initial_requirement'])
+            if not can_buy:
+                return
+            pair = pairs[0]
+            if pair['funding_rate_1h'] < 0:
+                return
+            quote_currency = next(e for e in FTXManager.QuoteCurrencyEnum if e.value == pair['quote_currency'])
+            spot_market, perp_market = self.get_spot_perp_market(pair['base_currency'], quote_currency)
+            base_amount = max(spot_market['minProvideSize'], perp_market['minProvideSize'])
+            spot_order, perp_order = await self.place_spot_perp_order(pair['base_currency'],
+                                                                      base_amount=Decimal(str(base_amount)),
+                                                                      quote_currency=quote_currency,
+                                                                      quote_amount=Decimal('20'),
+                                                                      rest_api_client=rest_api_client)
+
+        elif current_leverage > leverage_high:
+            # sell spot & close position
+            account_info = rest_api_client.get_account_info()
+            positions = account_info['positions']
+            position_map = {p['future']: p for p in positions}
+            position_future_names = [p['future'] for p in positions]
+            balances = rest_api_client.list_wallet_balances()
+            balance_map = {b['coin']: b for b in balances}
+            balance_coin_names = [b['coin'] for b in balances]
+
+            closable_pairs = []
+            for pair in pairs:
+                if pair['perp_name'] not in position_future_names or pair['base_currency'] not in balance_coin_names:
+                    continue
+                quote_currency = next(e for e in FTXManager.QuoteCurrencyEnum if e.value == pair['quote_currency'])
+                spot_market, perp_market = self.get_spot_perp_market(pair['base_currency'], quote_currency)
+                if position_map[pair['perp_name']]['openSize'] < perp_market['minProvideSize']:
+                    continue
+                if balance_map[pair['base_currency']]['availableWithoutBorrow'] < spot_market['minProvideSize']:
+                    continue
+                closable_pairs.append(pair)
+
+            if len(closable_pairs) == 0:
+                return
+            pair = closable_pairs[-1] # pair of lowest funding rate
+            quote_currency = next(e for e in FTXManager.QuoteCurrencyEnum if e.value == pair['quote_currency'])
+            spot_market, perp_market = self.get_spot_perp_market(pair['base_currency'], quote_currency)
+            base_amount = max(spot_market['minProvideSize'], perp_market['minProvideSize'])
+            spot_order, perp_order = await self.place_spot_perp_order(pair['base_currency'],
+                                                                      base_amount=Decimal(str(base_amount)),
+                                                                      quote_currency=quote_currency,
+                                                                      rest_api_client=rest_api_client,
+                                                                      reverse_side=True)
 
 
 # https://github.com/ftexchange/ftx/blob/master/rest/client.py
