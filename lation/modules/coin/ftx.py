@@ -107,7 +107,7 @@ class FTXManager(metaclass=SingletonMetaclass):
                                     quote_currency: Optional[QuoteCurrencyEnum] = QuoteCurrencyEnum.USD,
                                     rest_api_client: Optional[FTXRestAPIClient] = None,
                                     reverse_side: Optional[bool] = False) -> Tuple[dict, dict]:
-        if (base_amount and quote_amount) or (not base_amount and not quote_amount):
+        if not base_amount and not quote_amount:
             raise Exception('Either `base_amount` or `quote_amount` is requried')
         spot_market, perp_market = self.get_spot_perp_market(base_currency, quote_currency)
         spot_market_name = spot_market['name']
@@ -116,10 +116,15 @@ class FTXManager(metaclass=SingletonMetaclass):
         min_order_size = max(spot_market['minProvideSize'], perp_market['minProvideSize'])
         size_increment = Decimal(str(FTXManager.lowest_common_size_increment(
             spot_market['sizeIncrement'], perp_market['sizeIncrement'])))
-        if not base_amount:
+        if base_amount and quote_amount:
             recent_spot_market = rest_api_client.get_market(spot_market_name)
-            spot_ask = Decimal(str(recent_spot_market['ask']))
-            base_amount = quote_amount / spot_ask
+            spot_price = Decimal(str(recent_spot_market['bid' if reverse_side else 'ask']))
+            derived_base_amount = quote_amount / spot_price
+            base_amount = min(base_amount, derived_base_amount)
+        elif not base_amount:
+            recent_spot_market = rest_api_client.get_market(spot_market_name)
+            spot_price = Decimal(str(recent_spot_market['bid' if reverse_side else 'ask']))
+            base_amount = quote_amount / spot_price
         order_size = float(base_amount.quantize(size_increment.normalize(), rounding=ROUND_FLOOR))
         if order_size < min_order_size:
             raise Exception(f'`quote_amount` is too small. Please provide at least `{quote_currency.value} {min_order_size * float(spot_ask)}`')
@@ -134,17 +139,17 @@ class FTXManager(metaclass=SingletonMetaclass):
         if not reverse_side:
             spot_order, perp_order = await asyncio.gather(
                 loop.run_in_executor(None, lambda: rest_api_client.place_order(spot_market_name, 'buy', order_price, order_size,
-                                                                            type_=order_type, client_id=client_id_spot)),
+                                                                               type_=order_type, client_id=client_id_spot)),
                 loop.run_in_executor(None, lambda: rest_api_client.place_order(perp_market_name, 'sell', order_price, order_size,
-                                                                            type_=order_type, client_id=client_id_perp)),
+                                                                               type_=order_type, client_id=client_id_perp)),
                 return_exceptions=True
             )
         else:
-            spot_order, perp_order = await asyncio.gather(
-                loop.run_in_executor(None, lambda: rest_api_client.place_order(spot_market_name, 'sell', order_price, order_size,
-                                                                            type_=order_type, client_id=client_id_spot)),
+            perp_order, spot_order = await asyncio.gather(
                 loop.run_in_executor(None, lambda: rest_api_client.place_order(perp_market_name, 'buy', order_price, order_size,
-                                                                            type_=order_type, client_id=client_id_perp)),
+                                                                               type_=order_type, client_id=client_id_perp)),
+                loop.run_in_executor(None, lambda: rest_api_client.place_order(spot_market_name, 'sell', order_price, order_size,
+                                                                               type_=order_type, client_id=client_id_spot)),
                 return_exceptions=True
             )
 
