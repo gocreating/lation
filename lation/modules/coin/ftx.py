@@ -249,7 +249,7 @@ class FTXManager(metaclass=SingletonMetaclass):
                 spot_market, perp_market = self.get_spot_perp_market(pair['base_currency'], quote_currency)
                 if position_map[pair['perp_name']]['openSize'] < perp_market['minProvideSize']:
                     continue
-                if balance_map[pair['base_currency']]['availableWithoutBorrow'] < spot_market['minProvideSize']:
+                if balance_map[pair['base_currency']]['total'] < spot_market['minProvideSize']:
                     continue
                 closable_pairs.append(pair)
 
