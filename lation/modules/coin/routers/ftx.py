@@ -12,6 +12,21 @@ from lation.modules.coin.ftx import FTXManager, ftx_manager
 router = APIRouter()
 
 
+class TimedeltaEnum(enum.Enum):
+    HOUR_1 = 'HOUR_1'
+    DAY_1 = 'DAY_1'
+    DAY_30 = 'DAY_30'
+
+def to_td(td: TimedeltaEnum):
+    if td == TimedeltaEnum.HOUR_1:
+        return timedelta(hours=1)
+    elif td == TimedeltaEnum.DAY_1:
+        return timedelta(days=1)
+    elif td == TimedeltaEnum.DAY_30:
+        return timedelta(days=30)
+    else:
+        raise NotImplementedError
+
 @router.get('/ftx/spot-perp-pairs/ranked', tags=['ftx'])
 async def list_ranked_spot_perp_pairs(funding_rate_1y_lower_bound: Optional[float] = 0):
     market_name_map = ftx_manager.market_name_map
@@ -69,17 +84,23 @@ async def get_risk_index(api_client=Depends(get_current_ftx_rest_api_client)):
     risk_index = ftx_manager.get_risk_index(rest_api_client=api_client)
     return risk_index
 
-@router.get('/ftx/funding-payments/30d', tags=['ftx'])
-async def list_funding_payments(api_client=Depends(get_current_ftx_rest_api_client)):
-    funding_payments_30d = api_client.list_funding_payments(start_time=datetime.now() - timedelta(days=30),
-                                                            end_time=datetime.now())
-    return funding_payments_30d
+@router.get('/ftx/funding-payments', tags=['ftx'])
+async def list_funding_payments(td: TimedeltaEnum = None, api_client=Depends(get_current_ftx_rest_api_client)):
+    if td:
+        funding_payments = api_client.list_funding_payments(
+            start_time=datetime.now() - to_td(td), end_time=datetime.now())
+    else:
+        funding_payments = api_client.list_funding_payments()
+    return funding_payments
 
-@router.get('/ftx/spot-margin/borrow-histories/30d', tags=['ftx'])
-async def list_spot_margin_borrow_histories(api_client=Depends(get_current_ftx_rest_api_client)):
-    spot_margin_borrow_histories_30d = api_client.list_spot_margin_borrow_histories(start_time=datetime.now() - timedelta(days=30),
-                                                                                    end_time=datetime.now())
-    return spot_margin_borrow_histories_30d
+@router.get('/ftx/borrow-histories/spot-margin', tags=['ftx'])
+async def list_spot_margin_borrow_histories(td: TimedeltaEnum = None, api_client=Depends(get_current_ftx_rest_api_client)):
+    if td:
+        spot_margin_borrow_histories = api_client.list_spot_margin_borrow_histories(
+            start_time=datetime.now() - to_td(td), end_time=datetime.now())
+    else:
+        spot_margin_borrow_histories = api_client.list_spot_margin_borrow_histories()
+    return spot_margin_borrow_histories
 
 @router.get('/ftx/summary', tags=['ftx'])
 async def get_summary(api_client=Depends(get_current_ftx_rest_api_client)):
