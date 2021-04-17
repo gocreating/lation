@@ -1,4 +1,6 @@
+import enum
 import statistics
+from collections import defaultdict
 
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -102,47 +104,49 @@ async def list_spot_margin_borrow_histories(td: TimedeltaEnum = None, api_client
         spot_margin_borrow_histories = api_client.list_spot_margin_borrow_histories()
     return spot_margin_borrow_histories
 
-@router.get('/ftx/summary', tags=['ftx'])
-async def get_summary(api_client=Depends(get_current_ftx_rest_api_client)):
-    risk_index = ftx_manager.get_risk_index(rest_api_client=api_client)
-    funding_payments_30d = api_client.list_funding_payments(start_time=datetime.now() - timedelta(days=30),
-                                                            end_time=datetime.now())
-    borrow_histories_30d = api_client.list_spot_margin_borrow_histories(start_time=datetime.now() - timedelta(days=30),
-                                                                        end_time=datetime.now())
-    future_names = set([p['future'] for p in funding_payments_30d])
-    spot_names = set([b['coin'] for b in borrow_histories_30d])
-    future_funding_payment_30d_map = {
-        future_name: {
-            # 'record_count': len([p for p in funding_payments_30d if p['future'] == future_name]),
-            'time_period': {
-                'start': min([p['time'] for p in funding_payments_30d if p['future'] == future_name]),
-                'end': max([p['time'] for p in funding_payments_30d if p['future'] == future_name]),
-            },
-            'mean_funding_rate_1h': statistics.mean([p['rate'] for p in funding_payments_30d if p['future'] == future_name]),
-            'mean_funding_rate_30d': statistics.mean([p['rate'] for p in funding_payments_30d if p['future'] == future_name]) * 24 * 30,
-            'mean_funding_rate_1y': statistics.mean([p['rate'] for p in funding_payments_30d if p['future'] == future_name]) * 24 * 365,
-            'total_usd_amount': -sum([p['payment'] for p in funding_payments_30d if p['future'] == future_name]),
-        }
-        for future_name in future_names
-    }
-    spot_borrow_history_30d_map = {
-        spot_name: {
-            'time_period': {
-                'start': min([b['time'] for b in borrow_histories_30d if b['coin'] == spot_name]),
-                'end': max([b['time'] for b in borrow_histories_30d if b['coin'] == spot_name]),
-            },
-            'mean_borrow_rate_1h': statistics.mean([b['rate'] for b in borrow_histories_30d if b['coin'] == spot_name]),
-            'mean_borrow_rate_30d': statistics.mean([b['rate'] for b in borrow_histories_30d if b['coin'] == spot_name]) * 24 * 30,
-            'mean_borrow_rate_1y': statistics.mean([b['rate'] for b in borrow_histories_30d if b['coin'] == spot_name]) * 24 * 365,
-            'total_cost_amount': sum([b['cost'] for b in borrow_histories_30d if b['coin'] == spot_name]),
-        }
-        for spot_name in spot_names
-    }
+@router.get('/ftx/performance-report', tags=['ftx'])
+async def get_performance_report(td: TimedeltaEnum = None, api_client=Depends(get_current_ftx_rest_api_client)):
+    if td:
+        funding_payments = api_client.list_funding_payments(
+            start_time=datetime.now() - to_td(td), end_time=datetime.now())
+        borrow_histories = api_client.list_spot_margin_borrow_histories(
+            start_time=datetime.now() - to_td(td), end_time=datetime.now())
+    else:
+        funding_payments = api_client.list_funding_payments()
+        borrow_histories = api_client.list_spot_margin_borrow_histories()
+
+    funding_payment_time_map = defaultdict(float)
+    if td in [TimedeltaEnum.HOUR_1, TimedeltaEnum.DAY_1]:
+        for fp in funding_payments:
+            funding_payment_time_map[fp['time']] += -fp['payment']
+    else:
+        for fp in funding_payments:
+            funding_payment_time_map[fp['time'][:10]] += -fp['payment']
+
+    borrow_history_coin_map = {}
+    for bh in borrow_histories:
+        coin = bh['coin']
+        if not borrow_history_coin_map.get(coin):
+            borrow_history_coin_map[coin] = { '_accumulated_size': 0, 'cost': 0 }
+        borrow_history_coin_map[coin]['_accumulated_size'] += bh['size']
+        borrow_history_coin_map[coin]['cost'] += bh['cost']
+    for m in borrow_history_coin_map.values():
+        m['avg_rate_1h'] = m['cost'] / m['_accumulated_size']
+        m['avg_rate_1y'] = m['avg_rate_1h'] * 24 * 365
+        del m['_accumulated_size']
+
+    total_funding_payment_amount = sum(funding_payment_time_map.values())
+    total_usd_like_borrow_cost_amount = sum(m['cost'] for coin, m in borrow_history_coin_map.items() if coin in ['USD', 'USDT'])
     return {
-        'risk_index': risk_index,
-        'funding_payment_30d': future_funding_payment_30d_map,
-        'borrow_history_30d': spot_borrow_history_30d_map,
-        'total_funding_payment_usd_amount': sum([p['total_usd_amount'] for p in future_funding_payment_30d_map.values()]),
+        'overview': {
+            'total_funding_payment_amount': total_funding_payment_amount,
+            'total_usd_like_borrow_cost_amount': total_usd_like_borrow_cost_amount,
+            'total_usd_rough_profit': total_funding_payment_amount - total_usd_like_borrow_cost_amount,
+        },
+        'breakdown': {
+            'funding_payment': funding_payment_time_map,
+            'borrow_history': borrow_history_coin_map,
+        },
     }
 
 @router.post('/ftx/orders/spot-perp/{base_currency}', tags=['ftx'])
