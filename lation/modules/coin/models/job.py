@@ -74,14 +74,15 @@ async def fetch_ftx_funding_rate(get_session):
 
 @CoroutineScheduler.register_interval_job(120)
 async def experiment_my_ftx_leverage_alarm(get_session):
-    if not ftx_manager.alarm_enabled:
+    config = ftx_manager.get_config()
+    if not config['alarm_enabled']:
         return
     messages = []
     for subaccount_name in [None, '期现套利子帳戶']:
         api_client = await get_current_ftx_rest_api_client(subaccount_name=subaccount_name)
         risk_index = ftx_manager.get_risk_index(rest_api_client=api_client)
         current_leverage = risk_index['leverage']['current']
-        if current_leverage > ftx_manager.leverage_alarm:
+        if current_leverage > config['leverage_alarm']:
             account_name = subaccount_name
             if not account_name:
                 account_name = '主帳戶'
@@ -104,13 +105,15 @@ async def experiment_my_ftx_leverage_alarm(get_session):
 
 @CoroutineScheduler.register_interval_job(5)
 async def experiment_my_ftx_strategy(get_session):
-    if not ftx_manager.strategy_enabled:
+    config = ftx_manager.get_config()
+    if not config['strategy_enabled']:
         return
     messages = []
     for subaccount_name in [None, '期现套利子帳戶']:
         try:
             api_client = await get_current_ftx_rest_api_client(subaccount_name=subaccount_name)
-            await ftx_manager.apply_spot_futures_arbitrage_strategy_iteration(ftx_manager.leverage_low, ftx_manager.leverage_high, rest_api_client=api_client)
+            await ftx_manager.apply_spot_futures_arbitrage_strategy_iteration(
+                config['leverage_low'], config['leverage_high'], rest_api_client=api_client)
         except Exception as e:
             messages.append({
                 'type': 'text',
@@ -131,4 +134,3 @@ async def experiment_my_ftx_strategy(get_session):
         return
 
     my_line_user.push_message(messages)
-

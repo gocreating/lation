@@ -39,11 +39,35 @@ class FTXManager(metaclass=SingletonMetaclass):
         self.perp_underlying_map = {}
         self.funding_rate_name_map = {}
 
-        self.alarm_enabled = True
-        self.leverage_alarm = 14
-        self.strategy_enabled = True
-        self.leverage_low = 11
-        self.leverage_high = 13
+        self._config = {
+            'alarm_enabled': True,
+            'leverage_alarm': 17,
+            'strategy_enabled': True,
+            'leverage_low': 12,
+            'leverage_high': 16.5,
+        }
+
+    def get_config(self):
+        return self._config
+
+    def update_config(self,
+                      alarm_enabled: bool = None,
+                      leverage_alarm: float = None,
+                      strategy_enabled: bool = None,
+                      leverage_low: float = None,
+                      leverage_high: float = None):
+        if alarm_enabled != None:
+            self._config['alarm_enabled'] = alarm_enabled
+        if leverage_alarm != None:
+            self._config['leverage_alarm'] = leverage_alarm
+
+        if strategy_enabled != None:
+            self._config['strategy_enabled'] = strategy_enabled
+        if leverage_low != None:
+            self._config['leverage_low'] = leverage_low
+        if leverage_high != None:
+            self._config['leverage_high'] = leverage_high
+        return self.get_config()
 
     def update_market_state(self):
         markets = self.rest_api_client.list_markets()

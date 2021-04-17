@@ -194,11 +194,10 @@ async def apply_spot_futures_arbitrage_strategy_iteration(leverage_low: float = 
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     return
 
-@router.post('/ftx/strategies/spot-futures-arbitrage', tags=['ftx'])
-async def config_spot_futures_arbitrage_strategy(alarm_enabled: bool, strategy_enabled: bool, leverage_alarm: float = 14, leverage_low: float = 11, leverage_high: float = 13):
-    ftx_manager.alarm_enabled = alarm_enabled
-    ftx_manager.leverage_alarm = leverage_alarm
+@router.get('/ftx/strategies/spot-futures-arbitrage/config', tags=['ftx'])
+async def get_spot_futures_arbitrage_strategy_config():
+    return ftx_manager.get_config()
 
-    ftx_manager.strategy_enabled = strategy_enabled
-    ftx_manager.leverage_low = leverage_low
-    ftx_manager.leverage_high = leverage_high
+@router.patch('/ftx/strategies/spot-futures-arbitrage/config', tags=['ftx'])
+async def config_spot_futures_arbitrage_strategy(config=Depends(ftx_manager.update_config)):
+    return config
