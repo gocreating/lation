@@ -111,11 +111,12 @@ class FTXManager(metaclass=SingletonMetaclass):
         account_info = rest_api_client.get_account_info()
         # current_leverage = account_info['totalPositionSize'] / account_info['collateral']
         return {
-            'raw': {
-                'total_account_value': account_info['totalAccountValue'],
-                'collateral': account_info['collateral'],
-                'total_position_size': account_info['totalPositionSize'],
-                'liquidating': account_info['liquidating'],
+            'leverage': {
+                'current': 1 / account_info['marginFraction'],
+                'initial_requirement': 1 / account_info['initialMarginRequirement'],
+                'maintenance_requirement': 1 / account_info['maintenanceMarginRequirement'],
+                'open': 1 / account_info['openMarginFraction'],
+                'max': account_info['leverage'],
             },
             'margin_fraction': {
                 'current': account_info['marginFraction'],
@@ -123,12 +124,11 @@ class FTXManager(metaclass=SingletonMetaclass):
                 'maintenance_requirement': account_info['maintenanceMarginRequirement'],
                 'open': account_info['openMarginFraction'],
             },
-            'leverage': {
-                'current': 1 / account_info['marginFraction'],
-                'initial_requirement': 1 / account_info['initialMarginRequirement'],
-                'maintenance_requirement': 1 / account_info['maintenanceMarginRequirement'],
-                'open': 1 / account_info['openMarginFraction'],
-                'max': account_info['leverage'],
+            'raw': {
+                'total_account_value': account_info['totalAccountValue'],
+                'collateral': account_info['collateral'],
+                'total_position_size': account_info['totalPositionSize'],
+                'liquidating': account_info['liquidating'],
             },
         }
 
