@@ -4,6 +4,7 @@ import enum
 import hmac
 import time
 import urllib.parse
+from datetime import datetime, timedelta
 from decimal import ROUND_FLOOR, Decimal
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -84,7 +85,8 @@ class FTXManager(metaclass=SingletonMetaclass):
                                     if future['enabled'] and future['perpetual']}
 
     def update_funding_rate_state(self):
-        funding_rates = self.rest_api_client.list_funding_rates()
+        funding_rates = self.rest_api_client.list_funding_rates(
+            start_time=datetime.now() - timedelta(hours=1), end_time=datetime.now())
         self.funding_rate_name_map = {funding_rate['future']: funding_rate for funding_rate in funding_rates}
 
     def list_spot_perp_base_currencies(self) -> List[str]:
@@ -376,8 +378,8 @@ class FTXRestAPIClient:
     def list_futures(self) -> List[dict]:
         return self.get('/futures')
 
-    def list_funding_rates(self) -> List[dict]:
-        return self.get('/funding_rates')
+    def list_funding_rates(self, **kwargs) -> List[dict]:
+        return self.get('/funding_rates', FTXRestAPIClient.get_page_params(**kwargs))
 
     # Auth Requests
 
