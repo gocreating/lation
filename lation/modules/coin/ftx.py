@@ -88,9 +88,8 @@ class FTXSpotFuturesArbitrageStrategy():
                     'perp_market_name': perp_market['name'],
                     'base_currency': base_currency,
                     'quote_currency': quote_currency,
-                    'common_price_increment': max(spot_market['priceIncrement'], perp_market['priceIncrement']),
-                    'common_size_increment': Decimal(max(spot_market['sizeIncrement'], perp_market['sizeIncrement'])).normalize(),
-                    'min_provide_size': Decimal(max(spot_market['minProvideSize'], perp_market['minProvideSize'])),
+                    'common_size_increment': Decimal(str(max(spot_market['sizeIncrement'], perp_market['sizeIncrement']))).normalize(),
+                    'min_provide_size': Decimal(str(max(spot_market['minProvideSize'], perp_market['minProvideSize']))),
                 }
         self.pair_map = pair_map
 
