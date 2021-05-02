@@ -246,6 +246,7 @@ class FTXSpotFuturesArbitrageStrategy():
             amount = fixed_amount
         elif fixed_quote_amount:
             amount = fixed_quote_amount / Decimal(pair['spot_price'])
+            amount = min(amount, abs(balance['total']), abs(position['net_size']))
         else:
             amount = pair['min_provide_size']
 
@@ -282,7 +283,7 @@ class FTXSpotFuturesArbitrageStrategy():
         elif self.config['leverage_close'] < current_leverage:
             pair, balance, position = self.get_worst_pair_from_asset()
             if pair:
-                fixed_amount = Decimal(min(abs(balance['total']), abs(position['net_size'])))
+                fixed_amount = Decimal(str(min(abs(balance['total']), abs(position['net_size']))))
                 spot_order, perp_order = await self.decrease_pair(pair, balance, position, fixed_amount=fixed_amount)
 
         # TODO: balance pairs
