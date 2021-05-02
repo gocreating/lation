@@ -1,5 +1,4 @@
 import enum
-import statistics
 from collections import defaultdict
 
 from datetime import datetime, timedelta
@@ -7,7 +6,7 @@ from decimal import Decimal
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from lation.modules.coin.dependencies import get_current_ftx_rest_api_client
+from lation.modules.coin.dependencies import get_current_ftx_rest_api_client, get_current_ftx_spot_futures_arbitrage_strategy
 from lation.modules.coin.ftx import FTXManager, ftx_manager
 
 
@@ -220,9 +219,29 @@ async def apply_spot_futures_arbitrage_strategy_iteration(leverage_low: float = 
     return
 
 @router.get('/ftx/strategies/spot-futures-arbitrage/config', tags=['ftx'])
-async def get_spot_futures_arbitrage_strategy_config():
-    return ftx_manager.get_config()
+async def get_spot_futures_arbitrage_strategy_config(strategy=Depends(get_current_ftx_spot_futures_arbitrage_strategy)):
+    return strategy.get_config()
 
 @router.patch('/ftx/strategies/spot-futures-arbitrage/config', tags=['ftx'])
-async def config_spot_futures_arbitrage_strategy(config=Depends(ftx_manager.update_config)):
+async def config_spot_futures_arbitrage_strategy(strategy=Depends(get_current_ftx_spot_futures_arbitrage_strategy),
+                                                 alarm_enabled: bool = None,
+                                                 leverage_alarm: float = None,
+                                                 strategy_enabled: bool = None,
+                                                 leverage_low: float = None,
+                                                 leverage_high: float = None,
+                                                 leverage_close: float = None):
+    config = strategy.get_config()
+    leverage_low = leverage_low or config['leverage_low']
+    leverage_high = leverage_high or config['leverage_high']
+    leverage_close = leverage_close or config['leverage_close']
+    if leverage_low and leverage_high:
+        assert leverage_low < leverage_high
+    if leverage_high and leverage_close:
+        assert leverage_high < leverage_close
+    config = strategy.update_config(alarm_enabled=alarm_enabled,
+                                    leverage_alarm=leverage_alarm,
+                                    strategy_enabled=strategy_enabled,
+                                    leverage_low=leverage_low,
+                                    leverage_high=leverage_high,
+                                    leverage_close=leverage_close)
     return config

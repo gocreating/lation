@@ -5,7 +5,7 @@ from fastapi import Depends, HTTPException, status
 
 from lation.core.env import get_env
 from lation.modules.coin.bitfinex_api_client import BitfinexAPIClient
-from lation.modules.coin.ftx import FTXRestAPIClient
+from lation.modules.coin.ftx import FTXRestAPIClient, FTXSpotFuturesArbitrageStrategy
 from lation.modules.customer.dependencies import login_required, get_current_user
 
 
@@ -31,3 +31,11 @@ async def get_current_ftx_rest_api_client(subaccount_name: Optional[SubaccountNa
                                            api_secret=FTX_API_SECRET,
                                            subaccount_name=subaccount_name)
     return ftx_rest_api_client
+
+async def get_current_ftx_spot_futures_arbitrage_strategy(subaccount_name: Optional[SubaccountNameEnum] = None) -> FTXSpotFuturesArbitrageStrategy:
+    from lation.modules.coin.models.job import ftx_spot_futures_arbitrage_strategies
+    strategy = next((strategy for strategy in ftx_spot_futures_arbitrage_strategies
+                    if strategy.rest_api_client.subaccount_name == subaccount_name), None)
+    if not strategy:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='FTX spot futures arbitrage strategy not found')
+    return strategy
