@@ -20,7 +20,10 @@ NON_USD_COLLATERALS = ['1INCH', 'AAPL', 'AAVE', 'ABNB', 'ACB', 'ALPHA', 'AMC', '
 
 class FTXSpotFuturesArbitrageStrategy():
 
-    NON_USD_COLLATERALS = ['1INCH', 'AAPL', 'AAVE', 'ABNB', 'ACB', 'ALPHA', 'AMC', 'AMD', 'AMZN', 'APHA', 'ARKK', 'AUD', 'BABA', 'BADGER', 'BAND', 'BAO', 'BB', 'BCH', 'BILI', 'BITW', 'BNB', 'BNT', 'BNTX', 'BRL', 'BRZ', 'BTC', 'BTMX', 'BUSD', 'BVOL', 'BYND', 'CAD', 'CBSE', 'CEL', 'CGC', 'CHF', 'CRON', 'CUSDT', 'DAI', 'DOGE', 'ETH', 'ETHE', 'EUR', 'FB', 'FIDA', 'FTM', 'FTT', 'GBP', 'GBTC', 'GDX', 'GDXJ', 'GLD', 'GLXY', 'GME', 'GOOGL', 'GRT', 'HKD', 'HOLY', 'HOOD', 'HT', 'HUSD', 'HXRO', 'IBVOL', 'KNC', 'LEND', 'LEO', 'LINK', 'LRC', 'LTC', 'MATIC', 'MKR', 'MOB', 'MRNA', 'MSTR', 'NFLX', 'NIO', 'NOK', 'NVDA', 'OKB', 'OMG', 'PAX', 'PAXG', 'PENN', 'PFE', 'PYPL', 'RAY', 'REN', 'RSR', 'RUNE', 'SECO', 'SGD', 'SLV', 'SNX', 'SOL', 'SPY', 'SQ', 'SRM', 'SUSHI', 'SXP', 'TLRY', 'TOMO', 'TRX', 'TRY', 'TRYB', 'TSLA', 'TSM', 'TUSD', 'TWTR', 'UBER', 'UNI', 'USD', 'USDC', 'USDT', 'USO', 'WBTC', 'WUSDC', 'XAUT', 'XRP', 'YFI', 'ZAR', 'ZM']
+    # https://help.ftx.com/hc/en-us/articles/360031149632-Non-USD-Collateral
+    NON_USD_COLLATERALS = ['1INCH', 'AAPL', 'AAVE', 'ABNB', 'ACB', 'ALPHA', 'AMC', 'AMD', 'AMZN', 'APHA', 'ARKK', 'AUD', 'BABA', 'BADGER', 'BAND', 'BAO', 'BB', 'BCH', 'BILI', 'BITW', 'BNB', 'BNT', 'BNTX', 'BRL', 'BRZ', 'BTC', 'BTMX', 'BUSD', 'BVOL', 'BYND', 'CAD', 'CBSE', 'CEL', 'CGC', 'CHF', 'CRON', 'CUSDT', 'DAI', 'DOGE', 'ETH', 'ETHE', 'EUR', 'FB', 'FIDA', 'FTM', 'FTT', 'GBP', 'GBTC', 'GDX', 'GDXJ', 'GLD', 'GLXY', 'GME', 'GOOGL', 'GRT', 'HKD', 'HOLY', 'HOOD', 'HT', 'HUSD', 'HXRO', 'IBVOL', 'KIN', 'KNC', 'LEND', 'LEO', 'LINK', 'LRC', 'LTC', 'MATIC', 'MKR', 'MOB', 'MRNA', 'MSTR', 'NFLX', 'NIO', 'NOK', 'NVDA', 'OKB', 'OMG', 'PAX', 'PAXG', 'PENN', 'PFE', 'PYPL', 'RAY', 'REN', 'RSR', 'RUNE', 'SECO', 'SGD', 'SLV', 'SNX', 'SOL', 'SPY', 'SQ', 'SRM', 'SUSHI', 'SXP', 'TLRY', 'TOMO', 'TRX', 'TRY', 'TRYB', 'TSLA', 'TSM', 'TUSD', 'TWTR', 'UBER', 'UNI', 'USD', 'USDC', 'USDT', 'USO', 'WBTC', 'WUSDC', 'XAUT', 'XRP', 'YFI', 'ZAR', 'ZM', 'ZRX']
+    # TODO: find all non-borrowable collaterals
+    NON_BORROWABLE_COLLATERALS = ['KIN', 'ZRX']
     QUOTE_CURRENCIES = ['USD', 'USDT']
 
     pair_map = None
@@ -78,7 +81,7 @@ class FTXSpotFuturesArbitrageStrategy():
     def initialize_pair_map(self):
         market_name_map = self.get_market_name_map()
         pair_map = {}
-        for base_currency in self.NON_USD_COLLATERALS:
+        for base_currency in set(self.NON_USD_COLLATERALS) - set(self.NON_BORROWABLE_COLLATERALS):
             for quote_currency in self.QUOTE_CURRENCIES:
                 spot_market, perp_market = FTXSpotFuturesArbitrageStrategy.get_pair_market(market_name_map, base_currency, quote_currency)
                 if not spot_market or not perp_market:
@@ -215,6 +218,8 @@ class FTXSpotFuturesArbitrageStrategy():
         if isinstance(perp_order, Exception):
             exception_descriptions.append('Failed to create spot order')
         if exception_descriptions:
+            print('[FTX Strategy] Failed when making below pair:')
+            print(pair)
             raise Exception(','.join(exception_descriptions))
         return spot_order, perp_order
 
