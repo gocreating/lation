@@ -92,7 +92,7 @@ async def execute_ftx_spot_futures_arbitrage_strategies(get_session):
         await strategy.execute()
 
 @CoroutineScheduler.register_interval_job(15)
-async def execute_ftx_spot_futures_arbitrage_strategies(get_session):
+async def execute_ftx_spot_futures_arbitrage_strategy_garbage_collections(get_session):
     for strategy in ftx_spot_futures_arbitrage_strategies:
         await strategy.decrease_negative_funding_payment_pairs()
 
