@@ -100,6 +100,12 @@ class FTXSpotFuturesArbitrageStrategy():
                 }
         self.pair_map = pair_map
 
+    def should_update_spread_rate(self):
+        # won't update spread within every 5 seconds
+        cls = self.__class__
+        utc_now = datetime.utcnow()
+        return not cls.last_spread_rate_update_time or utc_now - cls.last_spread_rate_update_time >= timedelta(seconds=5)
+
     def update_spread_rate(self, market_name_map: dict):
         for base_currency, quote_currency in self.pair_map:
             spot_market, perp_market = FTXSpotFuturesArbitrageStrategy.get_pair_market(market_name_map, base_currency, quote_currency)
@@ -113,6 +119,15 @@ class FTXSpotFuturesArbitrageStrategy():
             })
         cls = self.__class__
         cls.last_spread_rate_update_time = datetime.utcnow()
+
+    def should_update_funding_rate(self):
+        # won't update funding rate within the same hour
+        cls = self.__class__
+        utc_now = datetime.utcnow()
+        return not cls.last_funding_rate_update_time or (
+            utc_now.date() == cls.last_funding_rate_update_time.date() and
+            utc_now.hour != cls.last_funding_rate_update_time.hour
+        )
 
     def update_funding_rate(self, market_name_map: dict):
         funding_rates = self.rest_api_client.list_funding_rates(
@@ -130,19 +145,14 @@ class FTXSpotFuturesArbitrageStrategy():
         cls.last_funding_rate_update_time = datetime.utcnow()
 
     def get_sorted_pairs_from_market(self, reverse=False) -> List[dict]:
-        cls = self.__class__
-        utc_now = datetime.utcnow()
         market_name_map = self.get_market_name_map()
 
         # won't update spread within every 5 seconds
-        if not cls.last_spread_rate_update_time or utc_now - cls.last_spread_rate_update_time >= timedelta(seconds=5):
+        if self.should_update_spread_rate():
             self.update_spread_rate(market_name_map)
 
         # won't update funding rate within the same hour
-        if not cls.last_funding_rate_update_time or (
-            utc_now.date() == cls.last_funding_rate_update_time.date() and
-            utc_now.hour != cls.last_funding_rate_update_time.hour
-        ):
+        if self.should_update_funding_rate():
             self.update_funding_rate(market_name_map)
 
         # filter out risking pairs
