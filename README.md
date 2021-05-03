@@ -68,6 +68,8 @@ sudo ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubu
 sudo ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubuntu@instance-2.lation.app
 sudo ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubuntu@instance-3.lation.app
 sudo ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubuntu@instance-4.lation.app
+sudo ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubuntu@instance-5.lation.app
+sudo ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubuntu@instance-6.lation.app
 ```
 
 ## Debug Container
