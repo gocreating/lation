@@ -15,6 +15,7 @@ FTX_API_SECRET = get_env('FTX_API_SECRET')
 class SubaccountNameEnum(str, enum.Enum):
     期现套利子帳戶 = '期现套利子帳戶'
     媽媽 = '媽媽'
+    姊姊 = '姊姊'
 
 async def get_bitfinex_api_client(end_user=Depends(get_current_user)) -> BitfinexAPIClient:
     end_user_bitfinex_config = end_user.end_user_bitfinex_config
