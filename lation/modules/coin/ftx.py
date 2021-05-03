@@ -169,11 +169,7 @@ class FTXSpotFuturesArbitrageStrategy():
 
     def get_worst_pair_from_asset(self) -> Optional[dict]:
         sorted_pairs = self.get_sorted_pairs_from_market(reverse=True)
-        balances = self.rest_api_client.list_wallet_balances()
-        balance_map = {balance['coin']: {'total': balance['total']} for balance in balances if balance['coin'] != 0}
-        positions = self.rest_api_client.list_positions()
-        # netSize: Size of position. Positive if long, negative if short.
-        position_map = {position['future']: {'net_size': position['netSize']} for position in positions if position['size'] != 0}
+        balance_map, position_map = self.get_asset_map()
         for pair in sorted_pairs:
             balance = balance_map.get(pair['base_currency'])
             position = position_map.get(pair['perp_market_name'])
@@ -183,6 +179,14 @@ class FTXSpotFuturesArbitrageStrategy():
                 continue
             return pair, balance, position
         return None
+
+    def get_asset_map(self) -> Tuple[dict, dict]:
+        balances = self.rest_api_client.list_wallet_balances()
+        balance_map = {balance['coin']: {'total': balance['total']} for balance in balances if balance['total'] != 0}
+        positions = self.rest_api_client.list_positions()
+        # netSize: Size of position. Positive if long, negative if short.
+        position_map = {position['future']: {'net_size': position['netSize']} for position in positions if position['netSize'] != 0}
+        return balance_map, position_map
 
     async def make_pair(self, pair: dict, amount: Decimal, order_direction: OrderDirection) -> Tuple[dict, dict]:
         cls = self.__class__
