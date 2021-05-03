@@ -91,7 +91,11 @@ class FTXSpotFuturesArbitrageStrategy():
                     'perp_market_name': perp_market['name'],
                     'base_currency': base_currency,
                     'quote_currency': quote_currency,
+                    'spot_size_increment': Decimal(str(spot_market['sizeIncrement'])),
+                    'perp_size_increment': Decimal(str(perp_market['sizeIncrement'])),
                     'common_size_increment': Decimal(str(max(spot_market['sizeIncrement'], perp_market['sizeIncrement']))).normalize(),
+                    'spot_min_provide_size': Decimal(str(spot_market['minProvideSize'])),
+                    'perp_min_provide_size': Decimal(str(perp_market['minProvideSize'])),
                     'min_provide_size': Decimal(str(max(spot_market['minProvideSize'], perp_market['minProvideSize']))),
                 }
         self.pair_map = pair_map
@@ -188,6 +192,25 @@ class FTXSpotFuturesArbitrageStrategy():
         position_map = {position['future']: {'net_size': position['netSize']} for position in positions if position['netSize'] != 0}
         return balance_map, position_map
 
+    def get_imbalanced_pairs(self, balance_map: dict, position_map: dict) -> List[dict]:
+        unique_base_currencies = set(['USD', 'USDT'])
+        imbalanced_pairs = []
+        for pair in self.pair_map.values():
+            if pair['base_currency'] in unique_base_currencies:
+                continue
+            unique_base_currencies.add(pair['base_currency'])
+            balance = balance_map.get(pair['base_currency'])
+            position = position_map.get(pair['perp_market_name'])
+            if not balance and not position:
+                continue
+            if (balance and not position) or (not balance and position):
+                imbalanced_pairs.append(pair)
+                continue
+            if abs(abs(balance['total']) - abs(position['net_size'])) < pair['min_provide_size']:
+                continue
+            imbalanced_pairs.append(pair)
+        return imbalanced_pairs
+
     async def make_pair(self, pair: dict, amount: Decimal, order_direction: OrderDirection) -> Tuple[dict, dict]:
         cls = self.__class__
         order_size = float(amount.quantize(pair['common_size_increment'], rounding=ROUND_FLOOR))
@@ -268,8 +291,63 @@ class FTXSpotFuturesArbitrageStrategy():
 
         return await self.make_pair(pair, amount, order_direction)
 
-    async def balance_pair(self, pair: dict) -> Tuple[dict, dict]:
-        raise NotImplementedError
+    def balance_pair(self, pair: dict, balance: Optional[dict], position: Optional[dict]) -> Optional[dict]:
+        order_price = None # Send null for market orders
+        order_type = 'market' # "limit" or "market"
+        ts = int(time.time() * 1000)
+
+        if balance and position:
+            if balance['total'] < 0 and position['net_size'] < 0:
+                return None
+            if balance['total'] > 0 and position['net_size'] > 0:
+                return None
+            amount = Decimal(str(abs(abs(balance['total']) - abs(position['net_size']))))
+            if abs(balance['total']) > abs(position['net_size']):
+                if amount < pair['spot_min_provide_size']:
+                    return None
+                order_size = float(amount.quantize(pair['spot_size_increment'], rounding=ROUND_FLOOR))
+                order_market = pair['spot_market_name']
+                order_client_id = f'lation_coin_spot_order_{ts}'
+                if balance['total'] > 0:
+                    order_side = 'sell'
+                elif balance['total'] < 0:
+                    order_side = 'buy'
+            elif abs(balance['total']) < abs(position['net_size']):
+                if amount < pair['perp_min_provide_size']:
+                    return None
+                order_size = float(amount.quantize(pair['perp_size_increment'], rounding=ROUND_FLOOR))
+                order_market = pair['perp_market_name']
+                order_client_id = f'lation_coin_perp_order_{ts}'
+                if position['net_size'] > 0:
+                    order_side = 'sell'
+                elif position['net_size'] < 0:
+                    order_side = 'buy'
+        elif balance and not position:
+            amount = Decimal(str(abs(balance['total'])))
+            if amount < pair['spot_min_provide_size']:
+                return None
+            order_size = float(amount.quantize(pair['spot_size_increment'], rounding=ROUND_FLOOR))
+            order_market = pair['spot_market_name']
+            order_client_id = f'lation_coin_spot_order_{ts}'
+            if balance['total'] > 0:
+                order_side = 'sell'
+            elif balance['total'] < 0:
+                order_side = 'buy'
+        elif not balance and position:
+            amount = Decimal(str(abs(position['net_size'])))
+            if amount < pair['perp_min_provide_size']:
+                return None
+            order_size = float(amount.quantize(pair['perp_size_increment'], rounding=ROUND_FLOOR))
+            order_market = pair['perp_market_name']
+            order_client_id = f'lation_coin_perp_order_{ts}'
+            if position['net_size'] > 0:
+                order_side = 'sell'
+            elif position['net_size'] < 0:
+                order_side = 'buy'
+
+        order = self.rest_api_client.place_order(
+            order_market, order_side, order_price, order_size, type_=order_type, client_id=order_client_id)
+        return order
 
     async def execute(self):
         if not self.config['strategy_enabled']:
@@ -295,9 +373,15 @@ class FTXSpotFuturesArbitrageStrategy():
                 fixed_amount = Decimal(str(min(abs(balance['total']), abs(position['net_size']))))
                 spot_order, perp_order = await self.decrease_pair(pair, balance, position, fixed_amount=fixed_amount)
 
-        # TODO: balance pairs
+        # balance pairs
+        balance_map, position_map = self.get_asset_map()
+        imbalanced_pairs = self.get_imbalanced_pairs(balance_map, position_map)
+        for pair in imbalanced_pairs:
+            balance = balance_map.get(pair['base_currency'])
+            position = position_map.get(pair['perp_market_name'])
+            self.balance_pair(pair, balance, position)
 
-        # TODO: check unhealth funding payments
+        # TODO: check unhealth funding payments (e.g. evict pair of negative funding payment)
 
     def should_raise_leverage_alarm(self) -> Tuple[bool, float]:
         current_leverage = self.get_current_leverage()
