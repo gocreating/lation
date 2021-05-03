@@ -81,15 +81,20 @@ ftx_rest_api_client_3 = FTXRestAPIClient(api_key=FTX_API_KEY,
                                          api_secret=FTX_API_SECRET,
                                          subaccount_name='媽媽')
 ftx_spot_futures_arbitrage_strategies = [
-    FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_1, strategy_enabled=False),
-    FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_2, strategy_enabled=False),
-    FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_3, strategy_enabled=False),
+    FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_1, strategy_enabled=True, garbage_collection_enabled=True),
+    FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_2, strategy_enabled=True, garbage_collection_enabled=True),
+    FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_3, strategy_enabled=True, garbage_collection_enabled=True),
 ]
 
 @CoroutineScheduler.register_interval_job(15)
 async def execute_ftx_spot_futures_arbitrage_strategies(get_session):
     for strategy in ftx_spot_futures_arbitrage_strategies:
         await strategy.execute()
+
+@CoroutineScheduler.register_interval_job(15)
+async def execute_ftx_spot_futures_arbitrage_strategies(get_session):
+    for strategy in ftx_spot_futures_arbitrage_strategies:
+        await strategy.decrease_negative_funding_payment_pairs()
 
 @CoroutineScheduler.register_interval_job(120)
 async def ftx_spot_futures_arbitrage_strategy_alarms(get_session):

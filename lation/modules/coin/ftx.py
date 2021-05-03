@@ -46,7 +46,8 @@ class FTXSpotFuturesArbitrageStrategy():
                  strategy_enabled: bool = True,
                  leverage_low: float = 11,
                  leverage_high: float = 17,
-                 leverage_close: float = 19):
+                 leverage_close: float = 19,
+                 garbage_collection_enabled: bool = True):
         self.rest_api_client = rest_api_client
         self.config = {
             'alarm_enabled': alarm_enabled,
@@ -55,6 +56,7 @@ class FTXSpotFuturesArbitrageStrategy():
             'leverage_low': leverage_low,
             'leverage_high': leverage_high,
             'leverage_close': leverage_close,
+            'garbage_collection_enabled': garbage_collection_enabled,
         }
         self.initialize_pair_map()
 
@@ -391,7 +393,38 @@ class FTXSpotFuturesArbitrageStrategy():
             position = position_map.get(pair['perp_market_name'])
             self.balance_pair(pair, balance, position)
 
-        # TODO: check unhealth funding payments (e.g. evict pair of negative funding payment)
+    async def decrease_negative_funding_payment_pairs(self):
+        if not self.config['garbage_collection_enabled']:
+            return
+
+        local_now = datetime.now()
+        funding_payments = self.rest_api_client.list_funding_payments(
+            start_time=local_now - timedelta(hours=2), end_time=local_now)
+        funding_payment_map = defaultdict(list)
+        for fp in funding_payments:
+            funding_payment_map[fp['future']].append(fp['payment'])
+
+        evictable_candidates = []
+        balance_map, position_map = self.get_asset_map()
+        for perp_market_name, payments in funding_payment_map.items():
+            if all([p > 0 for p in payments]):
+                pair = next(pair for pair in self.pair_map.values() if pair['perp_market_name'] == perp_market_name)
+                balance = balance_map.get(pair['base_currency'])
+                position = position_map.get(pair['perp_market_name'])
+                if not balance or not position:
+                    continue
+                if abs(balance['total']) < pair['min_provide_size'] or abs(position['net_size']) < pair['min_provide_size']:
+                    continue
+                evictable_candidates.append((pair, balance, position))
+        if not evictable_candidates:
+            return
+
+        market_name_map = self.get_market_name_map()
+        if self.should_update_spread_rate():
+            self.update_spread_rate(market_name_map)
+        for pair, balance, position in evictable_candidates:
+            if abs(pair['spread_rate']) < 0.003:
+                spot_order, perp_order = await self.decrease_pair(pair, balance, position)
 
     def should_raise_leverage_alarm(self) -> Tuple[bool, float]:
         current_leverage = self.get_current_leverage()

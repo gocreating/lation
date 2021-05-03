@@ -229,7 +229,8 @@ async def config_spot_futures_arbitrage_strategy(strategy=Depends(get_current_ft
                                                  strategy_enabled: bool = None,
                                                  leverage_low: float = None,
                                                  leverage_high: float = None,
-                                                 leverage_close: float = None):
+                                                 leverage_close: float = None,
+                                                 garbage_collection_enabled: bool = None):
     config = strategy.get_config()
     leverage_low = leverage_low or config['leverage_low']
     leverage_high = leverage_high or config['leverage_high']
@@ -243,5 +244,6 @@ async def config_spot_futures_arbitrage_strategy(strategy=Depends(get_current_ft
                                     strategy_enabled=strategy_enabled,
                                     leverage_low=leverage_low,
                                     leverage_high=leverage_high,
-                                    leverage_close=leverage_close)
+                                    leverage_close=leverage_close,
+                                    garbage_collection_enabled=garbage_collection_enabled)
     return config
