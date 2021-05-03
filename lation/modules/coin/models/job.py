@@ -95,8 +95,8 @@ async def execute_ftx_spot_futures_arbitrage_strategies(get_session):
 async def ftx_spot_futures_arbitrage_strategy_alarms(get_session):
     messages = []
     for strategy in ftx_spot_futures_arbitrage_strategies:
-        should_alarm, current_leverage = strategy.should_alarm()
-        if not should_alarm:
+        should_raise_alarm, current_leverage = strategy.should_raise_leverage_alarm()
+        if not should_raise_alarm:
             continue
         account_name = strategy.rest_api_client.subaccount_name
         if not account_name:

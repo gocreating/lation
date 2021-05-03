@@ -299,7 +299,7 @@ class FTXSpotFuturesArbitrageStrategy():
 
         # TODO: check unhealth funding payments
 
-    def should_alarm(self) -> Tuple[bool, float]:
+    def should_raise_leverage_alarm(self) -> Tuple[bool, float]:
         current_leverage = self.get_current_leverage()
         return self.config['alarm_enabled'] and self.config['leverage_alarm'] < current_leverage, current_leverage
 
