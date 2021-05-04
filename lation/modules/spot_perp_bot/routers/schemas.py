@@ -26,7 +26,7 @@ if FTX_API_KEY_ROOT and FTX_API_SECRET_ROOT:
     ftx_spot_futures_arbitrage_strategies.append(
         FTXSpotFuturesArbitrageStrategy(
             FTXRestAPIClient(api_key=FTX_API_KEY_ROOT, api_secret=FTX_API_SECRET_ROOT, subaccount_name=None),
-            strategy_enabled=False, garbage_collection_enabled=False))
+            strategy_enabled=True, garbage_collection_enabled=True))
 
 if FTX_API_KEY_ME and FTX_API_SECRET_ME:
     class SubaccountNameEnumMe(enum.Enum):
@@ -35,7 +35,7 @@ if FTX_API_KEY_ME and FTX_API_SECRET_ME:
     ftx_spot_futures_arbitrage_strategies.append(
         FTXSpotFuturesArbitrageStrategy(
             FTXRestAPIClient(api_key=FTX_API_KEY_ME, api_secret=FTX_API_SECRET_ME, subaccount_name='期现套利子帳戶'),
-            strategy_enabled=False, garbage_collection_enabled=False))
+            strategy_enabled=True, garbage_collection_enabled=True))
 
 if FTX_API_KEY_MOM and FTX_API_SECRET_MOM:
     class SubaccountNameEnumMom(enum.Enum):
@@ -44,7 +44,7 @@ if FTX_API_KEY_MOM and FTX_API_SECRET_MOM:
     ftx_spot_futures_arbitrage_strategies.append(
         FTXSpotFuturesArbitrageStrategy(
             FTXRestAPIClient(api_key=FTX_API_KEY_MOM, api_secret=FTX_API_SECRET_MOM, subaccount_name='媽媽'),
-            strategy_enabled=False, garbage_collection_enabled=False))
+            strategy_enabled=True, garbage_collection_enabled=True))
 
 if FTX_API_KEY_SISTER and FTX_API_SECRET_SISTER:
     class SubaccountNameEnumSister(enum.Enum):
@@ -53,4 +53,4 @@ if FTX_API_KEY_SISTER and FTX_API_SECRET_SISTER:
     ftx_spot_futures_arbitrage_strategies.append(
         FTXSpotFuturesArbitrageStrategy(
             FTXRestAPIClient(api_key=FTX_API_KEY_SISTER, api_secret=FTX_API_SECRET_SISTER, subaccount_name='姊姊'),
-            strategy_enabled=False, garbage_collection_enabled=False))
+            strategy_enabled=True, garbage_collection_enabled=True))
