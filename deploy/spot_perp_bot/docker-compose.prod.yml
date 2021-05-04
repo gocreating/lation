@@ -7,7 +7,7 @@ services:
       - "5678:8000"
     environment:
       - APP=spot_perp_bot
-      - HOST=https://spot-perp-bot-api.lation.app:5678
+      - HOST=https://instance-5.lation.app:5678
       - LINE_CHANNEL_ACCESS_TOKEN=$COIN_LINE_CHANNEL_ACCESS_TOKEN
       - FTX_API_KEY_ROOT=$SPOT_PERP_BOT_FTX_API_KEY_ROOT
       - FTX_API_SECRET_ROOT=$SPOT_PERP_BOT_FTX_API_SECRET_ROOT
@@ -20,7 +20,7 @@ services:
       - "443:8000"
     environment:
       - APP=spot_perp_bot
-      - HOST=https://spot-perp-bot-api.lation.app
+      - HOST=https://instance-6.lation.app
       - LINE_CHANNEL_ACCESS_TOKEN=$COIN_LINE_CHANNEL_ACCESS_TOKEN
       - FTX_API_KEY_MOM=$SPOT_PERP_BOT_FTX_API_KEY_MOM
       - FTX_API_SECRET_MOM=$SPOT_PERP_BOT_FTX_API_SECRET_MOM
