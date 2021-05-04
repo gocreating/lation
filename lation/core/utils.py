@@ -1,4 +1,5 @@
 import asyncio
+import enum
 import inspect
 import time
 from datetime import datetime, timedelta
@@ -85,3 +86,9 @@ class RateLimiter:
 
     def raise_strategy(self, func):
         raise NotImplementedError
+
+def extend_enum(target_enum, source_enum):
+    target_dict = {e.name: e.value for e in target_enum}
+    source_dict = {e.name: e.value for e in source_enum}
+    target_dict.update(source_dict)
+    return enum.Enum(target_enum.__name__, target_dict)
