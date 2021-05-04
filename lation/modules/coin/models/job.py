@@ -68,27 +68,27 @@ def apply_bitfinex_funding_strategy(cron_job) -> str:
 FTX_API_KEY = get_env('FTX_API_KEY')
 FTX_API_SECRET = get_env('FTX_API_SECRET')
 
-assert FTX_API_KEY != None
-assert FTX_API_SECRET != None
+ftx_spot_futures_arbitrage_strategies = []
 
-ftx_rest_api_client_1 = FTXRestAPIClient(api_key=FTX_API_KEY,
-                                         api_secret=FTX_API_SECRET,
-                                         subaccount_name=None)
-ftx_rest_api_client_2 = FTXRestAPIClient(api_key=FTX_API_KEY,
-                                         api_secret=FTX_API_SECRET,
-                                         subaccount_name='期现套利子帳戶')
-ftx_rest_api_client_3 = FTXRestAPIClient(api_key=FTX_API_KEY,
-                                         api_secret=FTX_API_SECRET,
-                                         subaccount_name='媽媽')
-ftx_rest_api_client_4 = FTXRestAPIClient(api_key=FTX_API_KEY,
-                                         api_secret=FTX_API_SECRET,
-                                         subaccount_name='姊姊')
-ftx_spot_futures_arbitrage_strategies = [
-    FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_1, strategy_enabled=False, garbage_collection_enabled=False),
-    FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_2, strategy_enabled=False, garbage_collection_enabled=False),
-    FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_3, strategy_enabled=False, garbage_collection_enabled=False),
-    FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_4, strategy_enabled=False, garbage_collection_enabled=False),
-]
+if FTX_API_KEY and FTX_API_SECRET:
+    ftx_rest_api_client_1 = FTXRestAPIClient(api_key=FTX_API_KEY,
+                                            api_secret=FTX_API_SECRET,
+                                            subaccount_name=None)
+    ftx_rest_api_client_2 = FTXRestAPIClient(api_key=FTX_API_KEY,
+                                            api_secret=FTX_API_SECRET,
+                                            subaccount_name='期现套利子帳戶')
+    ftx_rest_api_client_3 = FTXRestAPIClient(api_key=FTX_API_KEY,
+                                            api_secret=FTX_API_SECRET,
+                                            subaccount_name='媽媽')
+    ftx_rest_api_client_4 = FTXRestAPIClient(api_key=FTX_API_KEY,
+                                            api_secret=FTX_API_SECRET,
+                                            subaccount_name='姊姊')
+    ftx_spot_futures_arbitrage_strategies = [
+        FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_1, strategy_enabled=False, garbage_collection_enabled=False),
+        FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_2, strategy_enabled=False, garbage_collection_enabled=False),
+        FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_3, strategy_enabled=False, garbage_collection_enabled=False),
+        FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_4, strategy_enabled=False, garbage_collection_enabled=False),
+    ]
 
 # @CoroutineScheduler.register_interval_job(15)
 # async def execute_ftx_spot_futures_arbitrage_strategies(get_session):
