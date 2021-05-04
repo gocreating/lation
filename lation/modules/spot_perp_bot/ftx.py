@@ -20,7 +20,7 @@ class FTXSpotFuturesArbitrageStrategy():
     # https://help.ftx.com/hc/en-us/articles/360031149632-Non-USD-Collateral
     NON_USD_COLLATERALS = ['1INCH', 'AAPL', 'AAVE', 'ABNB', 'ACB', 'ALPHA', 'AMC', 'AMD', 'AMZN', 'APHA', 'ARKK', 'AUD', 'BABA', 'BADGER', 'BAND', 'BAO', 'BB', 'BCH', 'BILI', 'BITW', 'BNB', 'BNT', 'BNTX', 'BRL', 'BRZ', 'BTC', 'BTMX', 'BUSD', 'BVOL', 'BYND', 'CAD', 'CBSE', 'CEL', 'CGC', 'CHF', 'CRON', 'CUSDT', 'DAI', 'DOGE', 'ETH', 'ETHE', 'EUR', 'FB', 'FIDA', 'FTM', 'FTT', 'GBP', 'GBTC', 'GDX', 'GDXJ', 'GLD', 'GLXY', 'GME', 'GOOGL', 'GRT', 'HKD', 'HOLY', 'HOOD', 'HT', 'HUSD', 'HXRO', 'IBVOL', 'KIN', 'KNC', 'LEND', 'LEO', 'LINK', 'LRC', 'LTC', 'MATIC', 'MKR', 'MOB', 'MRNA', 'MSTR', 'NFLX', 'NIO', 'NOK', 'NVDA', 'OKB', 'OMG', 'PAX', 'PAXG', 'PENN', 'PFE', 'PYPL', 'RAY', 'REN', 'RSR', 'RUNE', 'SECO', 'SGD', 'SLV', 'SNX', 'SOL', 'SPY', 'SQ', 'SRM', 'SUSHI', 'SXP', 'TLRY', 'TOMO', 'TRX', 'TRY', 'TRYB', 'TSLA', 'TSM', 'TUSD', 'TWTR', 'UBER', 'UNI', 'USD', 'USDC', 'USDT', 'USO', 'WBTC', 'WUSDC', 'XAUT', 'XRP', 'YFI', 'ZAR', 'ZM', 'ZRX']
     # TODO: find all non-borrowable collaterals
-    NON_BORROWABLE_COLLATERALS = ['KIN', 'ZRX']
+    NON_BORROWABLE_COLLATERALS = ['KIN', 'RAY', 'ZRX']
     QUOTE_CURRENCIES = ['USD', 'USDT']
 
     pair_map = None
@@ -79,6 +79,7 @@ class FTXSpotFuturesArbitrageStrategy():
         return market_name_map
 
     def initialize_pair_map(self):
+        cls = self.__class__
         market_name_map = self.get_market_name_map()
         pair_map = {}
         for base_currency in set(self.NON_USD_COLLATERALS) - set(self.NON_BORROWABLE_COLLATERALS):
@@ -98,7 +99,7 @@ class FTXSpotFuturesArbitrageStrategy():
                     'perp_min_provide_size': Decimal(str(perp_market['minProvideSize'])),
                     'min_provide_size': Decimal(str(max(spot_market['minProvideSize'], perp_market['minProvideSize']))),
                 }
-        self.pair_map = pair_map
+        cls.pair_map = pair_map
 
     def should_update_spread_rate(self):
         # won't update spread within every 5 seconds
@@ -107,17 +108,17 @@ class FTXSpotFuturesArbitrageStrategy():
         return not cls.last_spread_rate_update_time or utc_now - cls.last_spread_rate_update_time >= timedelta(seconds=5)
 
     def update_spread_rate(self, market_name_map: dict):
-        for base_currency, quote_currency in self.pair_map:
+        cls = self.__class__
+        for base_currency, quote_currency in cls.pair_map:
             spot_market, perp_market = FTXSpotFuturesArbitrageStrategy.get_pair_market(market_name_map, base_currency, quote_currency)
             spot_price = (spot_market['bid'] + spot_market['ask']) / 2
             perp_price = (perp_market['bid'] + perp_market['ask']) / 2
             spread_rate = (perp_price - spot_price) / spot_price
-            self.pair_map[(base_currency, quote_currency)].update({
+            cls.pair_map[(base_currency, quote_currency)].update({
                 'spot_price': spot_price,
                 'perp_price': perp_price,
                 'spread_rate': spread_rate,
             })
-        cls = self.__class__
         cls.last_spread_rate_update_time = datetime.utcnow()
 
     def should_update_funding_rate(self):
@@ -130,21 +131,22 @@ class FTXSpotFuturesArbitrageStrategy():
         )
 
     def update_funding_rate(self, market_name_map: dict):
+        cls = self.__class__
         funding_rates = self.rest_api_client.list_funding_rates(
             start_time=datetime.now() - timedelta(hours=6), end_time=datetime.now())
         funding_rates_map = defaultdict(list)
         for fr in funding_rates:
             funding_rates_map[fr['future']].append(fr['rate'])
-        for base_currency, quote_currency in self.pair_map:
+        for base_currency, quote_currency in cls.pair_map:
             _, perp_market = FTXSpotFuturesArbitrageStrategy.get_pair_market(market_name_map, base_currency, quote_currency)
             funding_rates = funding_rates_map[perp_market['name']]
-            self.pair_map[(base_currency, quote_currency)].update({
+            cls.pair_map[(base_currency, quote_currency)].update({
                 'funding_rate': statistics.mean(funding_rates),
             })
-        cls = self.__class__
         cls.last_funding_rate_update_time = datetime.utcnow()
 
     def get_sorted_pairs_from_market(self, reverse=False) -> List[dict]:
+        cls = self.__class__
         market_name_map = self.get_market_name_map()
 
         # won't update spread within every 5 seconds
@@ -156,7 +158,7 @@ class FTXSpotFuturesArbitrageStrategy():
             self.update_funding_rate(market_name_map)
 
         # filter out risking pairs
-        pair_map = {key: pair for key, pair in self.pair_map.items()
+        pair_map = {key: pair for key, pair in cls.pair_map.items()
                     if pair['spread_rate'] * pair['funding_rate'] > 0}
         pairs = pair_map.values()
 
@@ -203,9 +205,10 @@ class FTXSpotFuturesArbitrageStrategy():
         return balance_map, position_map
 
     def get_imbalanced_pairs(self, balance_map: dict, position_map: dict) -> List[dict]:
+        cls = self.__class__
         unique_base_currencies = set(['USD', 'USDT'])
         imbalanced_pairs = []
-        for pair in self.pair_map.values():
+        for pair in cls.pair_map.values():
             if pair['base_currency'] in unique_base_currencies:
                 continue
             unique_base_currencies.add(pair['base_currency'])
@@ -392,6 +395,7 @@ class FTXSpotFuturesArbitrageStrategy():
             self.balance_pair(pair, balance, position)
 
     async def decrease_negative_funding_payment_pairs(self):
+        cls = self.__class__
         if not self.config['garbage_collection_enabled']:
             return
 
@@ -406,7 +410,7 @@ class FTXSpotFuturesArbitrageStrategy():
         balance_map, position_map = self.get_asset_map()
         for perp_market_name, payments in funding_payment_map.items():
             if all([p > 0 for p in payments]):
-                pair = next(pair for pair in self.pair_map.values() if pair['perp_market_name'] == perp_market_name)
+                pair = next(pair for pair in cls.pair_map.values() if pair['perp_market_name'] == perp_market_name)
                 balance = balance_map.get(pair['base_currency'])
                 position = position_map.get(pair['perp_market_name'])
                 if not balance or not position:
