@@ -271,6 +271,19 @@ jobs:
                   ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-4.lation.app "sudo docker-compose -f lation-deploy-$lation_app_name-$IMAGE_TAG/$lation_app_name/docker-compose.prod.yml up -d --remove-orphans job_scheduler job_worker"
                   ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-3.lation.app "sudo docker system prune --force"
                   ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-4.lation.app "sudo docker system prune --force"
+      - when:
+          condition:
+            equal: [ <<parameters.lation_app_name>>, spot_perp_bot ]
+          steps:
+            - run:
+                name: Deploy and Cleanup Docker Image
+                command: |
+                  scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@instance-5.lation.app:/home/ubuntu/lation-deploy-$lation_app_name-$IMAGE_TAG
+                  ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-5.lation.app "sudo docker-compose -f lation-deploy-$lation_app_name-$IMAGE_TAG/$lation_app_name/docker-compose.prod.yml up -d --remove-orphans web_server_for_myself"
+                  scp -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa -pr ./deploy ubuntu@instance-6.lation.app:/home/ubuntu/lation-deploy-$lation_app_name-$IMAGE_TAG
+                  ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-4.lation.app "sudo docker-compose -f lation-deploy-$lation_app_name-$IMAGE_TAG/$lation_app_name/docker-compose.prod.yml up -d --remove-orphans web_server_for_family_members"
+                  ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-5.lation.app "sudo docker system prune --force"
+                  ssh -o StrictHostKeyChecking=no -i /tmp/deploy_server_id_rsa ubuntu@instance-6.lation.app "sudo docker system prune --force"
       - run:
           name: Cleanup
           command: |
@@ -557,6 +570,36 @@ workflows:
           install_data: true
           requires:
             - coin_prod_request_migrate_install_data
+
+      #####################
+      ##                 ##
+      ##  Spot Perp Bot  ##
+      ##                 ##
+      #####################
+      - spot_perp_bot_prod_request_manage:
+          requires:
+            - release_image
+          type: approval
+          filters:
+            branches:
+              only: master
+
+      # deploy
+      - spot_perp_bot_prod_request_deploy:
+          requires:
+            - spot_perp_bot_prod_request_manage
+          type: approval
+          filters:
+            branches:
+              only: master
+      - deploy_lation_app:
+          name: spot_perp_bot_prod_deploy
+          lation_app_name: spot_perp_bot
+          requires:
+            - spot_perp_bot_prod_request_deploy
+          filters:
+            branches:
+              only: master
 
   renew_tls_certificates_workflow:
     jobs:

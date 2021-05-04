@@ -1,0 +1,28 @@
+version: "3"
+services:
+  web_server_for_myself:
+    image: gocreating/lation:$IMAGE_TAG
+    ports:
+      # external port: internal port
+      - "5678:8000"
+    environment:
+      - APP=spot_perp_bot
+      - HOST=https://spot-perp-bot-api.lation.app:5678
+      - LINE_CHANNEL_ACCESS_TOKEN=$COIN_LINE_CHANNEL_ACCESS_TOKEN
+      - FTX_API_KEY_ROOT=$SPOT_PERP_BOT_FTX_API_KEY_ROOT
+      - FTX_API_SECRET_ROOT=$SPOT_PERP_BOT_FTX_API_SECRET_ROOT
+      - FTX_API_KEY_ME=$SPOT_PERP_BOT_FTX_API_KEY_ME
+      - FTX_API_SECRET_ME=$SPOT_PERP_BOT_FTX_API_SECRET_ME
+  web_server_for_family_members:
+    image: gocreating/lation:$IMAGE_TAG
+    ports:
+      # external port: internal port
+      - "443:8000"
+    environment:
+      - APP=spot_perp_bot
+      - HOST=https://spot-perp-bot-api.lation.app
+      - LINE_CHANNEL_ACCESS_TOKEN=$COIN_LINE_CHANNEL_ACCESS_TOKEN
+      - FTX_API_KEY_MOM=$SPOT_PERP_BOT_FTX_API_KEY_MOM
+      - FTX_API_SECRET_MOM=$SPOT_PERP_BOT_FTX_API_SECRET_MOM
+      - FTX_API_KEY_SISTER=$SPOT_PERP_BOT_FTX_API_KEY_SISTER
+      - FTX_API_SECRET_SISTER=$SPOT_PERP_BOT_FTX_API_SECRET_SISTER
