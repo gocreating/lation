@@ -5,17 +5,17 @@ from lation.core.utils import extend_enum
 from lation.modules.spot_perp_bot.ftx import FTXRestAPIClient, FTXSpotFuturesArbitrageStrategy
 
 
-FTX_API_KEY_ROOT = get_env('SPOT_PERP_BOT_FTX_API_KEY_ROOT')
-FTX_API_SECRET_ROOT = get_env('SPOT_PERP_BOT_FTX_API_SECRET_ROOT')
+FTX_API_KEY_ROOT = get_env('FTX_API_KEY_ROOT')
+FTX_API_SECRET_ROOT = get_env('FTX_API_SECRET_ROOT')
 
-FTX_API_KEY_ME = get_env('SPOT_PERP_BOT_FTX_API_KEY_ME')
-FTX_API_SECRET_ME = get_env('SPOT_PERP_BOT_FTX_API_SECRET_ME')
+FTX_API_KEY_ME = get_env('FTX_API_KEY_ME')
+FTX_API_SECRET_ME = get_env('FTX_API_SECRET_ME')
 
-FTX_API_KEY_MOM = get_env('SPOT_PERP_BOT_FTX_API_KEY_MOM')
-FTX_API_SECRET_MOM = get_env('SPOT_PERP_BOT_FTX_API_SECRET_MOM')
+FTX_API_KEY_MOM = get_env('FTX_API_KEY_MOM')
+FTX_API_SECRET_MOM = get_env('FTX_API_SECRET_MOM')
 
-FTX_API_KEY_SISTER = get_env('SPOT_PERP_BOT_FTX_API_KEY_SISTER')
-FTX_API_SECRET_SISTER = get_env('SPOT_PERP_BOT_FTX_API_SECRET_SISTER')
+FTX_API_KEY_SISTER = get_env('FTX_API_KEY_SISTER')
+FTX_API_SECRET_SISTER = get_env('FTX_API_SECRET_SISTER')
 
 ftx_spot_futures_arbitrage_strategies = []
 
