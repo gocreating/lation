@@ -84,48 +84,48 @@ ftx_rest_api_client_4 = FTXRestAPIClient(api_key=FTX_API_KEY,
                                          api_secret=FTX_API_SECRET,
                                          subaccount_name='姊姊')
 ftx_spot_futures_arbitrage_strategies = [
-    FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_1, strategy_enabled=True, garbage_collection_enabled=True),
-    FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_2, strategy_enabled=True, garbage_collection_enabled=True),
-    FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_3, strategy_enabled=True, garbage_collection_enabled=True),
-    FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_4, strategy_enabled=True, garbage_collection_enabled=True),
+    FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_1, strategy_enabled=False, garbage_collection_enabled=False),
+    FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_2, strategy_enabled=False, garbage_collection_enabled=False),
+    FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_3, strategy_enabled=False, garbage_collection_enabled=False),
+    FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_4, strategy_enabled=False, garbage_collection_enabled=False),
 ]
 
-@CoroutineScheduler.register_interval_job(15)
-async def execute_ftx_spot_futures_arbitrage_strategies(get_session):
-    for strategy in ftx_spot_futures_arbitrage_strategies:
-        await strategy.execute()
+# @CoroutineScheduler.register_interval_job(15)
+# async def execute_ftx_spot_futures_arbitrage_strategies(get_session):
+#     for strategy in ftx_spot_futures_arbitrage_strategies:
+#         await strategy.execute()
 
-@CoroutineScheduler.register_interval_job(15)
-async def execute_ftx_spot_futures_arbitrage_strategy_garbage_collections(get_session):
-    for strategy in ftx_spot_futures_arbitrage_strategies:
-        await strategy.decrease_negative_funding_payment_pairs()
+# @CoroutineScheduler.register_interval_job(15)
+# async def execute_ftx_spot_futures_arbitrage_strategy_garbage_collections(get_session):
+#     for strategy in ftx_spot_futures_arbitrage_strategies:
+#         await strategy.decrease_negative_funding_payment_pairs()
 
-@CoroutineScheduler.register_interval_job(120)
-async def ftx_spot_futures_arbitrage_strategy_alarms(get_session):
-    messages = []
-    for strategy in ftx_spot_futures_arbitrage_strategies:
-        should_raise_alarm, current_leverage = strategy.should_raise_leverage_alarm()
-        if not should_raise_alarm:
-            continue
-        account_name = strategy.rest_api_client.subaccount_name
-        if not account_name:
-            account_name = '主帳戶'
-        quantized_current_leverage = Decimal(current_leverage).quantize(Decimal('.00'))
-        messages.append({
-            'type': 'text',
-            'text': f'您的 FTX (子)帳戶「{account_name}」目前槓桿 {quantized_current_leverage} 倍',
-        })
-    if not messages:
-        return
+# @CoroutineScheduler.register_interval_job(120)
+# async def ftx_spot_futures_arbitrage_strategy_alarms(get_session):
+#     messages = []
+#     for strategy in ftx_spot_futures_arbitrage_strategies:
+#         should_raise_alarm, current_leverage = strategy.should_raise_leverage_alarm()
+#         if not should_raise_alarm:
+#             continue
+#         account_name = strategy.rest_api_client.subaccount_name
+#         if not account_name:
+#             account_name = '主帳戶'
+#         quantized_current_leverage = Decimal(current_leverage).quantize(Decimal('.00'))
+#         messages.append({
+#             'type': 'text',
+#             'text': f'您的 FTX (子)帳戶「{account_name}」目前槓桿 {quantized_current_leverage} 倍',
+#         })
+#     if not messages:
+#         return
 
-    session = get_session()
-    my_line_user = session.query(LineUser)\
-        .filter(LineUser.account_identifier == 'U5abfe9090acd8357516e26604a3606b6')\
-        .one_or_none()
-    if not my_line_user:
-        return
+#     session = get_session()
+#     my_line_user = session.query(LineUser)\
+#         .filter(LineUser.account_identifier == 'U5abfe9090acd8357516e26604a3606b6')\
+#         .one_or_none()
+#     if not my_line_user:
+#         return
 
-    my_line_user.push_message(messages)
+#     my_line_user.push_message(messages)
 
 # @CoroutineScheduler.register_interval_job(600)
 # async def fetch_ftx_market(get_session):
