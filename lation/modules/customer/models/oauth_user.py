@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, backref, relationship
 from lation.core.database.types import JSON, STRING_L_SIZE, STRING_M_SIZE, STRING_S_SIZE, STRING_XS_SIZE, Integer, String
 from lation.core.orm import Base, JoinedTableInheritanceMixin
 from lation.modules.base.models.end_user import EndUser, EndUserEmail
-from lation.modules.customer.line_api_client import LineAPIClient
+from lation.modules.base_fastapi.line_api_client import LineAPIClient
 from lation.modules.customer.schemas.oauth import BaseAuthorizationSchema, GoogleAuthorizationSchema, LineAuthorizationSchema
 
 
