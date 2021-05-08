@@ -190,7 +190,10 @@ class FTXSpotFuturesArbitrageStrategy():
 
     def get_best_pair_from_market(self) -> dict:
         sorted_pairs = self.get_sorted_pairs_from_market()
-        return sorted_pairs[0]
+        if self.config.increase_pair.allow_spot_short_perp_long:
+            return sorted_pairs[0]
+        else:
+            return next(pair for pair in sorted_pairs if pair['funding_rate'] > 0)
 
     def get_worst_pair_from_asset(self) -> Optional[dict]:
         sorted_pairs = self.get_sorted_pairs_from_market(reverse=True)

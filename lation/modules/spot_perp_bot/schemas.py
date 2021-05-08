@@ -18,6 +18,7 @@ class FtxArbitrageStrategyConfig(BaseModel):
 
     class IncreasePairConfig(BaseModel):
         enabled: bool = False
+        allow_spot_short_perp_long: bool = False
         lt_leverage: float = 11.0
         gt_spread_rate: float = 0.0035
         leverage_diff_to_quote_amount_rules: List[FtxArbitrageStrategyConfig.LeverageDiffToQuoteAmountRule] = []
