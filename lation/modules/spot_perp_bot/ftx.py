@@ -10,9 +10,10 @@ from datetime import datetime, timedelta
 from decimal import ROUND_FLOOR, Decimal
 from typing import Any, Dict, List, Optional, Tuple
 
+from pydantic.utils import deep_update
 from requests import Request, Session, Response
 
-from lation.core.utils import RateLimiter, rsetattr
+from lation.core.utils import RateLimiter
 from lation.modules.spot_perp_bot.schemas import FtxArbitrageStrategyConfig
 
 
@@ -57,7 +58,7 @@ class FTXSpotFuturesArbitrageStrategy():
         return self.config
 
     def update_config(self, partial_config: dict) -> FtxArbitrageStrategyConfig:
-        self.config = self.config.copy(update=partial_config)
+        self.config = FtxArbitrageStrategyConfig(**deep_update(self.config.dict(), partial_config))
         return self.get_config()
 
     def get_current_leverage(self) -> float:
