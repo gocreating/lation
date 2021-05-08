@@ -12,7 +12,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from requests import Request, Session, Response
 
-from lation.core.utils import RateLimiter
+from lation.core.utils import RateLimiter, rsetattr
+from lation.modules.spot_perp_bot.schemas import FtxArbitrageStrategyConfig
 
 
 class FTXSpotFuturesArbitrageStrategy():
@@ -37,34 +38,26 @@ class FTXSpotFuturesArbitrageStrategy():
         perp_market = market_name_map.get(f'{base_currency}-PERP')
         return spot_market, perp_market
 
-    def __init__(self, rest_api_client: FTXRestAPIClient,
-                 alarm_enabled: bool = True,
-                 leverage_alarm: float = 17.5,
-                 strategy_enabled: bool = True,
-                 leverage_low: float = 11,
-                 leverage_high: float = 17,
-                 leverage_close: float = 19,
-                 garbage_collection_enabled: bool = True):
+    @staticmethod
+    def get_quote_amount_from_rules(leverage_diff, leverage_diff_to_quote_amount_rules: List[FtxArbitrageStrategyConfig.LeverageDiffToQuoteAmountRule]) -> Optional[Decimal]:
+        quote_amount = None
+        for rule in leverage_diff_to_quote_amount_rules:
+            if rule.gte_leverage_diff <= leverage_diff < rule.lt_leverage_diff:
+                quote_amount = rule.quote_amount
+                break
+        return quote_amount
+
+    def __init__(self, rest_api_client: FTXRestAPIClient, config: FtxArbitrageStrategyConfig):
         self.rest_api_client = rest_api_client
-        self.config = {
-            'alarm_enabled': alarm_enabled,
-            'leverage_alarm': leverage_alarm,
-            'strategy_enabled': strategy_enabled,
-            'leverage_low': leverage_low,
-            'leverage_high': leverage_high,
-            'leverage_close': leverage_close,
-            'garbage_collection_enabled': garbage_collection_enabled,
-        }
+        self.config = config
         self.initialize_pair_map()
         # TODO: check margin funding is enabled
 
-    def get_config(self) -> dict:
+    def get_config(self) -> FtxArbitrageStrategyConfig:
         return self.config
 
-    def update_config(self, **kwargs) -> dict:
-        for k, v in kwargs.items():
-            if v != None:
-                self.config[k] = v
+    def update_config(self, partial_config: dict) -> FtxArbitrageStrategyConfig:
+        self.config = self.config.copy(update=partial_config)
         return self.get_config()
 
     def get_current_leverage(self) -> float:
@@ -363,24 +356,25 @@ class FTXSpotFuturesArbitrageStrategy():
         return order
 
     async def execute(self):
-        if not self.config['strategy_enabled']:
-            return
-        current_leverage = self.get_current_leverage()
+        if self.config.increase_pair.enabled or self.config.decrease_pair.enabled:
+            current_leverage = self.get_current_leverage()
 
-        # increase / decrease pairs
-        if current_leverage < self.config['leverage_low']:
+        # increase / decrease / close pairs
+        if self.config.increase_pair.enabled and current_leverage < self.config.increase_pair.lt_leverage:
             pair = self.get_best_pair_from_market()
-            if abs(pair['spread_rate']) > 0.003:
-                leverage_diff = self.config['leverage_low'] - current_leverage
-                fixed_quote_amount = None if abs(leverage_diff) < 2 else Decimal('50')
+            if abs(pair['spread_rate']) > self.config.increase_pair.gt_spread_rate:
+                leverage_diff = self.config.increase_pair.lt_leverage - current_leverage
+                fixed_quote_amount = FTXSpotFuturesArbitrageStrategy.get_quote_amount_from_rules(
+                    abs(leverage_diff), self.config.increase_pair.leverage_diff_to_quote_amount_rules)
                 spot_order, perp_order = await self.increase_pair(pair, fixed_quote_amount=fixed_quote_amount)
-        elif self.config['leverage_high'] < current_leverage <= self.config['leverage_close']:
+        elif self.config.decrease_pair.enabled and self.config.decrease_pair.gt_leverage < current_leverage <= self.config.close_pair.gt_leverage:
             pair, balance, position = self.get_worst_pair_from_asset()
-            if pair and abs(pair['spread_rate']) < 0.003:
-                leverage_diff = current_leverage - self.config['leverage_high']
-                fixed_quote_amount = None if abs(leverage_diff) < 2 else Decimal('50')
+            if pair and abs(pair['spread_rate']) < self.config.decrease_pair.lt_spread_rate:
+                leverage_diff = current_leverage - self.config.decrease_pair.gt_leverage
+                fixed_quote_amount = FTXSpotFuturesArbitrageStrategy.get_quote_amount_from_rules(
+                    abs(leverage_diff), self.config.decrease_pair.leverage_diff_to_quote_amount_rules)
                 spot_order, perp_order = await self.decrease_pair(pair, balance, position, fixed_quote_amount=fixed_quote_amount)
-        elif self.config['leverage_close'] < current_leverage:
+        elif self.config.close_pair.gt_leverage < current_leverage:
             pair, balance, position = self.get_worst_pair_from_asset()
             if pair:
                 fixed_amount = Decimal(str(min(abs(balance['total']), abs(position['net_size']))))
@@ -396,7 +390,7 @@ class FTXSpotFuturesArbitrageStrategy():
 
     async def decrease_negative_funding_payment_pairs(self):
         cls = self.__class__
-        if not self.config['garbage_collection_enabled']:
+        if not self.config.garbage_collect.enabled:
             return
 
         local_now = datetime.now()
@@ -425,12 +419,12 @@ class FTXSpotFuturesArbitrageStrategy():
         if self.should_update_spread_rate():
             self.update_spread_rate(market_name_map)
         for pair, balance, position in evictable_candidates:
-            if abs(pair['spread_rate']) < 0.003:
+            if abs(pair['spread_rate']) < self.config.garbage_collect.lt_spread_rate:
                 spot_order, perp_order = await self.decrease_pair(pair, balance, position)
 
     def should_raise_leverage_alarm(self) -> Tuple[bool, float]:
         current_leverage = self.get_current_leverage()
-        return self.config['alarm_enabled'] and self.config['leverage_alarm'] < current_leverage, current_leverage
+        return self.config.alarm.enabled and self.config.alarm.gt_leverage < current_leverage, current_leverage
 
 
 # https://github.com/ftexchange/ftx/blob/master/rest/client.py

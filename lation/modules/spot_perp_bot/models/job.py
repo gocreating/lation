@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from lation.modules.base.models.job import CoroutineScheduler
 from lation.modules.base_fastapi.line_api_client import LineAPIClient
-from lation.modules.spot_perp_bot.routers.schemas import ftx_spot_futures_arbitrage_strategies
+from lation.modules.spot_perp_bot.app import ftx_spot_futures_arbitrage_strategies
 
 
 #########

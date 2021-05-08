@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends
 from lation.modules.spot_perp_bot.dependencies import get_current_ftx_spot_futures_arbitrage_strategy
+from lation.modules.spot_perp_bot.schemas import FtxArbitrageStrategyConfig
 
 
 router = APIRouter()
@@ -31,30 +32,12 @@ async def get_spot_futures_arbitrage_strategy_config(strategy=Depends(get_curren
     return strategy.get_config()
 
 @router.patch('/ftx/strategies/spot-futures-arbitrage/config', tags=['ftx'])
-async def config_spot_futures_arbitrage_strategy(strategy=Depends(get_current_ftx_spot_futures_arbitrage_strategy),
-                                                 alarm_enabled: bool = None,
-                                                 leverage_alarm: float = None,
-                                                 strategy_enabled: bool = None,
-                                                 leverage_low: float = None,
-                                                 leverage_high: float = None,
-                                                 leverage_close: float = None,
-                                                 garbage_collection_enabled: bool = None):
-    config = strategy.get_config()
-    leverage_low = leverage_low or config['leverage_low']
-    leverage_high = leverage_high or config['leverage_high']
-    leverage_close = leverage_close or config['leverage_close']
-    if leverage_low and leverage_high:
-        assert leverage_low < leverage_high
-    if leverage_high and leverage_close:
-        assert leverage_high < leverage_close
-    config = strategy.update_config(alarm_enabled=alarm_enabled,
-                                    leverage_alarm=leverage_alarm,
-                                    strategy_enabled=strategy_enabled,
-                                    leverage_low=leverage_low,
-                                    leverage_high=leverage_high,
-                                    leverage_close=leverage_close,
-                                    garbage_collection_enabled=garbage_collection_enabled)
-    return config
+async def config_spot_futures_arbitrage_strategy(config: FtxArbitrageStrategyConfig,
+                                                 strategy=Depends(get_current_ftx_spot_futures_arbitrage_strategy)):
+    current_config = strategy.get_config()
+    partial_config = config.dict(exclude_unset=True)
+    new_config = strategy.update_config(partial_config)
+    return new_config
 
 @router.get('/ftx/leverage', tags=['ftx'])
 async def get_leverage(strategy=Depends(get_current_ftx_spot_futures_arbitrage_strategy)):

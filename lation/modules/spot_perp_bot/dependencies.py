@@ -1,10 +1,12 @@
 from fastapi import HTTPException, status
 
 from lation.modules.spot_perp_bot.ftx import FTXSpotFuturesArbitrageStrategy
-from lation.modules.spot_perp_bot.routers.schemas import SubaccountNameEnum, ftx_spot_futures_arbitrage_strategies
+from lation.modules.spot_perp_bot.routers.schemas import SubaccountNameEnum
 
 
 async def get_current_ftx_spot_futures_arbitrage_strategy(subaccount_name: SubaccountNameEnum = None) -> FTXSpotFuturesArbitrageStrategy:
+    from lation.modules.spot_perp_bot.app import ftx_spot_futures_arbitrage_strategies
+
     strategy = next((strategy for strategy in ftx_spot_futures_arbitrage_strategies
                     if subaccount_name == None or strategy.rest_api_client.subaccount_name == subaccount_name.value), None)
     if not strategy:
