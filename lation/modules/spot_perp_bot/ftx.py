@@ -20,10 +20,20 @@ from lation.modules.spot_perp_bot.schemas import FtxArbitrageStrategyConfig
 class FTXSpotFuturesArbitrageStrategy():
 
     # https://help.ftx.com/hc/en-us/articles/360031149632-Non-USD-Collateral
-    NON_USD_COLLATERALS = ['1INCH', 'AAPL', 'AAVE', 'ABNB', 'ACB', 'ALPHA', 'AMC', 'AMD', 'AMZN', 'APHA', 'ARKK', 'AUD', 'BABA', 'BADGER', 'BAND', 'BAO', 'BB', 'BCH', 'BILI', 'BITW', 'BNB', 'BNT', 'BNTX', 'BRL', 'BRZ', 'BTC', 'BTMX', 'BUSD', 'BVOL', 'BYND', 'CAD', 'CBSE', 'CEL', 'CGC', 'CHF', 'CRON', 'CUSDT', 'DAI', 'DOGE', 'ETH', 'ETHE', 'EUR', 'FB', 'FIDA', 'FTM', 'FTT', 'GBP', 'GBTC', 'GDX', 'GDXJ', 'GLD', 'GLXY', 'GME', 'GOOGL', 'GRT', 'HKD', 'HOLY', 'HOOD', 'HT', 'HUSD', 'HXRO', 'IBVOL', 'KIN', 'KNC', 'LEND', 'LEO', 'LINK', 'LRC', 'LTC', 'MATIC', 'MKR', 'MOB', 'MRNA', 'MSTR', 'NFLX', 'NIO', 'NOK', 'NVDA', 'OKB', 'OMG', 'PAX', 'PAXG', 'PENN', 'PFE', 'PYPL', 'RAY', 'REN', 'RSR', 'RUNE', 'SECO', 'SGD', 'SLV', 'SNX', 'SOL', 'SPY', 'SQ', 'SRM', 'SUSHI', 'SXP', 'TLRY', 'TOMO', 'TRX', 'TRY', 'TRYB', 'TSLA', 'TSM', 'TUSD', 'TWTR', 'UBER', 'UNI', 'USD', 'USDC', 'USDT', 'USO', 'WBTC', 'WUSDC', 'XAUT', 'XRP', 'YFI', 'ZAR', 'ZM', 'ZRX']
-    # TODO: find all non-borrowable collaterals
-    NON_BORROWABLE_COLLATERALS = ['KIN', 'PAXG', 'RAY', 'ZRX']
+    # NON_USD_COLLATERALS = ['1INCH', 'AAPL', 'AAVE', 'ABNB', 'ACB', 'ALPHA', 'AMC', 'AMD', 'AMZN', 'APHA', 'ARKK', 'AUD', 'BABA', 'BADGER', 'BAND', 'BAO', 'BB', 'BCH', 'BILI', 'BITW', 'BNB', 'BNT', 'BNTX', 'BRL', 'BRZ', 'BTC', 'BTMX', 'BUSD', 'BVOL', 'BYND', 'CAD', 'CBSE', 'CEL', 'CGC', 'CHF', 'CRON', 'CUSDT', 'DAI', 'DOGE', 'ETH', 'ETHE', 'EUR', 'FB', 'FIDA', 'FTM', 'FTT', 'GBP', 'GBTC', 'GDX', 'GDXJ', 'GLD', 'GLXY', 'GME', 'GOOGL', 'GRT', 'HKD', 'HOLY', 'HOOD', 'HT', 'HUSD', 'HXRO', 'IBVOL', 'KIN', 'KNC', 'LEND', 'LEO', 'LINK', 'LRC', 'LTC', 'MATIC', 'MKR', 'MOB', 'MRNA', 'MSTR', 'NFLX', 'NIO', 'NOK', 'NVDA', 'OKB', 'OMG', 'PAX', 'PAXG', 'PENN', 'PFE', 'PYPL', 'RAY', 'REN', 'RSR', 'RUNE', 'SECO', 'SGD', 'SLV', 'SNX', 'SOL', 'SPY', 'SQ', 'SRM', 'SUSHI', 'SXP', 'TLRY', 'TOMO', 'TRX', 'TRY', 'TRYB', 'TSLA', 'TSM', 'TUSD', 'TWTR', 'UBER', 'UNI', 'USD', 'USDC', 'USDT', 'USO', 'WBTC', 'WUSDC', 'XAUT', 'XRP', 'YFI', 'ZAR', 'ZM', 'ZRX']
+
     QUOTE_CURRENCIES = ['USD', 'USDT']
+    black_list_coins = set([
+        # usd-fungible coins
+        'USD', 'TUSD', 'USDC', 'PAX', 'BUSD', 'HUSD', 'WUSDC',
+        # fiat coins
+        'USD', 'EUR', 'GBP', 'AUD', 'HKD', 'SGD', 'TRY', 'ZAR', 'CAD', 'CHF', 'BRL',
+        # non-spot-margin coins
+        'FTT', 'TUSD', 'USDC', 'PAX', 'BUSD', 'HUSD', 'HKD', 'SGD', 'TRY', 'ZAR', 'CHF', 'COMP', 'SRM', 'SOL', 'HXRO', 'WUSDC', 'FIDA', 'HOLY', 'SECO', 'BAO', 'BADGER', 'RAY', 'KIN', 'ZRX', 'FTM', 'LRC', 'WUSDT', 'COPE', 'BVOL', 'IBVOL',
+        # custom selected coins
+        'USDT',
+    ])
+    white_list_coins = set(['FTT'])
 
     pair_map = None
     last_spread_rate_update_time = None
@@ -72,11 +82,16 @@ class FTXSpotFuturesArbitrageStrategy():
         market_name_map = {market['name']: market for market in markets}
         return market_name_map
 
+    def get_support_coins(self) -> set:
+        wallet_coins = self.rest_api_client.list_wallet_coins()
+        collateral_coins = set([coin['id'] for coin in wallet_coins if coin['collateral']])
+        return (collateral_coins - self.black_list_coins).union(self.white_list_coins)
+
     def initialize_pair_map(self):
         cls = self.__class__
         market_name_map = self.get_market_name_map()
         pair_map = {}
-        for base_currency in set(self.NON_USD_COLLATERALS) - set(self.NON_BORROWABLE_COLLATERALS):
+        for base_currency in self.get_support_coins():
             for quote_currency in self.QUOTE_CURRENCIES:
                 spot_market, perp_market = FTXSpotFuturesArbitrageStrategy.get_pair_market(market_name_map, base_currency, quote_currency)
                 if not spot_market or not perp_market:
@@ -524,6 +539,9 @@ class FTXRestAPIClient:
 
     def list_wallet_balances(self) -> List[dict]:
         return self.auth_get('/wallet/balances')
+
+    def list_wallet_coins(self) -> List[dict]:
+        return self.auth_get('/wallet/coins')
 
     def list_positions(self) -> List[dict]:
         return self.auth_get('/positions')
