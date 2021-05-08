@@ -275,9 +275,9 @@ class FTXSpotFuturesArbitrageStrategy():
         if exception_descriptions:
             logger.error('[FTX Strategy] [pair failed]')
             if isinstance(spot_order, Exception):
-                logger.error(f"[FTX Strategy] - [spot] {pair['spot_market_name']}")
+                logger.error(f"[FTX Strategy] - [spot] {pair['spot_market_name']}, {spot_order}")
             if isinstance(perp_order, Exception):
-                logger.error(f"[FTX Strategy] - [perp] {pair['perp_market_name']}")
+                logger.error(f"[FTX Strategy] - [perp] {pair['perp_market_name']}, {perp_order}")
             raise Exception(','.join(exception_descriptions))
         return spot_order, perp_order
 
@@ -393,7 +393,7 @@ class FTXSpotFuturesArbitrageStrategy():
                 fixed_quote_amount = FTXSpotFuturesArbitrageStrategy.get_quote_amount_from_rules(
                     abs(leverage_diff), self.config.increase_pair.leverage_diff_to_quote_amount_rules)
                 spot_order, perp_order = await self.increase_pair(pair, fixed_quote_amount=fixed_quote_amount)
-                logger.info('[FTX Strategy] [pair increased] at leverage {current_leverage}')
+                logger.info(f'[FTX Strategy] [pair increased] at leverage {current_leverage}')
                 logger.info(f"[FTX Strategy] - [spot] {spot_order['market']}: {spot_order['side']} amount {spot_order['size']}")
                 logger.info(f"[FTX Strategy] - [perp] {perp_order['market']}: {perp_order['side']} amount {perp_order['size']}")
         elif self.config.decrease_pair.enabled and self.config.decrease_pair.gt_leverage < current_leverage <= self.config.close_pair.gt_leverage:
@@ -403,7 +403,7 @@ class FTXSpotFuturesArbitrageStrategy():
                 fixed_quote_amount = FTXSpotFuturesArbitrageStrategy.get_quote_amount_from_rules(
                     abs(leverage_diff), self.config.decrease_pair.leverage_diff_to_quote_amount_rules)
                 spot_order, perp_order = await self.decrease_pair(pair, balance, position, fixed_quote_amount=fixed_quote_amount)
-                logger.info('[FTX Strategy] [pair decreased] at leverage {current_leverage}')
+                logger.info(f'[FTX Strategy] [pair decreased] at leverage {current_leverage}')
                 logger.info(f"[FTX Strategy] - [spot] {spot_order['market']}: {spot_order['side']} amount {spot_order['size']}")
                 logger.info(f"[FTX Strategy] - [perp] {perp_order['market']}: {perp_order['side']} amount {perp_order['size']}")
         elif self.config.close_pair.gt_leverage < current_leverage:
@@ -411,7 +411,7 @@ class FTXSpotFuturesArbitrageStrategy():
             if pair:
                 fixed_amount = Decimal(str(min(abs(balance['total']), abs(position['net_size']))))
                 spot_order, perp_order = await self.decrease_pair(pair, balance, position, fixed_amount=fixed_amount)
-                logger.info('[FTX Strategy] [pair closed] at leverage {current_leverage}')
+                logger.info(f'[FTX Strategy] [pair closed] at leverage {current_leverage}')
                 logger.info(f"[FTX Strategy] - [spot] {spot_order['market']}: {spot_order['side']} amount {spot_order['size']}")
                 logger.info(f"[FTX Strategy] - [perp] {perp_order['market']}: {perp_order['side']} amount {perp_order['size']}")
 
