@@ -77,7 +77,7 @@ class FTXSpotFuturesArbitrageStrategy():
         current_leverage = 0 if not current_mf else 1 / current_mf
         return current_leverage
 
-    def get_market_name_map(self):
+    def get_market_name_map(self) -> dict:
         markets = self.rest_api_client.list_markets()
         market_name_map = {market['name']: market for market in markets}
         return market_name_map
