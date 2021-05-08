@@ -1,9 +1,9 @@
 import enum
 from collections import defaultdict
-
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends
+
 from lation.modules.spot_perp_bot.dependencies import get_current_ftx_spot_futures_arbitrage_strategy
 from lation.modules.spot_perp_bot.schemas import FtxArbitrageStrategyConfig
 
