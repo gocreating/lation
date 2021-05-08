@@ -372,6 +372,7 @@ class FTXSpotFuturesArbitrageStrategy():
         return order
 
     async def execute(self):
+        current_leverage = -1
         if self.config.increase_pair.enabled or self.config.decrease_pair.enabled:
             current_leverage = self.get_current_leverage()
 
