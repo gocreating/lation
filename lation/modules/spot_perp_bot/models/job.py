@@ -21,6 +21,7 @@ default_strategy_config = FtxArbitrageStrategyConfig(
             FtxArbitrageStrategyConfig.LeverageDiffToQuoteAmountRule(gte_leverage_diff=2, lt_leverage_diff=20, quote_amount=Decimal('50')),
         ]
     ),
+    always_increase_pair=FtxArbitrageStrategyConfig.AlwaysIncreasePairConfig(),
     decrease_pair=FtxArbitrageStrategyConfig.DecreasePairConfig(
         leverage_diff_to_quote_amount_rules=[
             FtxArbitrageStrategyConfig.LeverageDiffToQuoteAmountRule(gte_leverage_diff=1, lt_leverage_diff=2, quote_amount=Decimal('20')),
