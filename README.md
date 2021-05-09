@@ -58,6 +58,7 @@ pip3 install -r lation/requirements.txt
 ``` sh
 docker-compose -f ./deploy/stock/docker-compose.local.yml up
 docker-compose -f ./deploy/coin/docker-compose.local.yml up
+docker-compose -f ./deploy/spot_perp_bot/docker-compose.local.yml up
 ```
 
 ## Connect to Instance
@@ -76,8 +77,10 @@ sudo ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubu
 
 ``` bash
 $ winpty docker exec -it <container_id> bash # for windows
+$ sudo docker exec spot_perp_bot_web_server_for_myself_1 bash -c 'cat "logs/$(ls logs | tail -n 1)"'
 root@<container_id>:/app# cat deploy/logs/access.log
 root@<container_id>:/app# cat deploy/logs/error.log
+root@<container_id>:/app# cat "logs/$(ls logs | tail -n 1)"
 ```
 
 ## Postgres Sequence Issue when id exists
