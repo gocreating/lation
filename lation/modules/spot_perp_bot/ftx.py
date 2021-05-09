@@ -168,6 +168,31 @@ class FTXSpotFuturesArbitrageStrategy():
             })
         cls.last_funding_rate_update_time = datetime.utcnow()
 
+    def get_too_much_currencies(self, balance_map: dict) -> List[str]:
+        # check each coin shares balanced percentage
+        usd_value = balance_map['USD']['total']
+        total_value = usd_value
+        value_map = {
+            'USD': usd_value,
+        }
+        for base_currency, balance in balance_map.items():
+            for quote_currency in self.QUOTE_CURRENCIES:
+                pair = self.pair_map.get((base_currency, quote_currency))
+                if not pair:
+                    continue
+                spot_price = pair.get('spot_price')
+                if not spot_price:
+                    continue
+                value = balance['total'] * spot_price
+                value_map[base_currency] = value
+                total_value += value
+                break
+        too_much_currencies = []
+        for base_currency, value in value_map.items():
+            if value / total_value > self.config.increase_pair.max_balance_rate:
+                too_much_currencies.append(base_currency)
+        return too_much_currencies
+
     def get_sorted_pairs_from_market(self, reverse=False) -> List[dict]:
         cls = self.__class__
         market_name_map = self.get_market_name_map()
@@ -182,7 +207,7 @@ class FTXSpotFuturesArbitrageStrategy():
 
         # filter out risking pairs
         pair_map = {key: pair for key, pair in cls.pair_map.items()
-                    if pair['spread_rate'] * pair['funding_rate'] > 0}
+                    if pair['is_valid'] and pair['spread_rate'] * pair['funding_rate'] > 0}
         pairs = pair_map.values()
 
         # sort by spread rate
@@ -203,11 +228,13 @@ class FTXSpotFuturesArbitrageStrategy():
         return sorted_pairs
 
     def get_best_pair_from_market(self) -> dict:
+        balance_map = self.get_balance_map()
+        too_much_currencies = self.get_too_much_currencies(balance_map)
         sorted_pairs = self.get_sorted_pairs_from_market()
         if self.config.increase_pair.allow_spot_short_perp_long:
-            return sorted_pairs[0]
+            return next(pair for pair in sorted_pairs if pair['base_currency'] not in too_much_currencies)
         else:
-            return next(pair for pair in sorted_pairs if pair['funding_rate'] > 0)
+            return next(pair for pair in sorted_pairs if pair['base_currency'] not in too_much_currencies and pair['funding_rate'] > 0)
 
     def get_worst_pair_from_asset(self) -> Optional[dict]:
         sorted_pairs = self.get_sorted_pairs_from_market(reverse=True)
