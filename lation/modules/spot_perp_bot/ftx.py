@@ -220,13 +220,19 @@ class FTXSpotFuturesArbitrageStrategy():
             return pair, balance, position
         return None
 
-    def get_asset_map(self) -> Tuple[dict, dict]:
+    def get_balance_map(self) -> dict:
         balances = self.rest_api_client.list_wallet_balances()
         balance_map = {balance['coin']: {'total': balance['total']} for balance in balances if balance['total'] != 0}
+        return balance_map
+
+    def get_position_map(self) -> dict:
         positions = self.rest_api_client.list_positions()
         # netSize: Size of position. Positive if long, negative if short.
         position_map = {position['future']: {'net_size': position['netSize']} for position in positions if position['netSize'] != 0}
-        return balance_map, position_map
+        return position_map
+
+    def get_asset_map(self) -> Tuple[dict, dict]:
+        return self.get_balance_map(), self.get_position_map()
 
     def get_imbalanced_pairs(self, balance_map: dict, position_map: dict) -> List[dict]:
         cls = self.__class__
