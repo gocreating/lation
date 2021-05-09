@@ -94,21 +94,23 @@ class FTXSpotFuturesArbitrageStrategy():
         market_name_map = {market['name']: market for market in markets}
         return market_name_map
 
-    def get_support_coins(self) -> set:
+    def get_coins(self) -> Tuple[set, set]:
         wallet_coins = self.rest_api_client.list_wallet_coins()
         collateral_coins = set([coin['id'] for coin in wallet_coins if coin['collateral']])
-        return (collateral_coins - self.black_list_coins).union(self.white_list_coins)
+        return collateral_coins, (collateral_coins - self.black_list_coins).union(self.white_list_coins)
 
     def initialize_pair_map(self):
         cls = self.__class__
         market_name_map = self.get_market_name_map()
+        all_coins, support_coins = self.get_coins()
         pair_map = {}
-        for base_currency in self.get_support_coins():
+        for base_currency in all_coins:
             for quote_currency in self.QUOTE_CURRENCIES:
                 spot_market, perp_market = FTXSpotFuturesArbitrageStrategy.get_pair_market(market_name_map, base_currency, quote_currency)
                 if not spot_market or not perp_market:
                     continue
                 pair_map[(base_currency, quote_currency)] = {
+                    'is_valid': base_currency in support_coins,
                     'spot_market_name': spot_market['name'],
                     'perp_market_name': perp_market['name'],
                     'base_currency': base_currency,
