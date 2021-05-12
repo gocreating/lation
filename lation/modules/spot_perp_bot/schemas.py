@@ -35,6 +35,11 @@ class FtxArbitrageStrategyConfig(BaseModel):
         lt_spread_rate: float = 0.0005
         leverage_diff_to_quote_amount_rules: List[FtxArbitrageStrategyConfig.LeverageDiffToQuoteAmountRule] = []
 
+    class AlwaysDecreasePairConfig(BaseModel):
+        enabled: bool = True
+        lt_spread_rate: float = -0.001
+        quote_amount: Decimal = Decimal('50')
+
     class ClosePairConfig(BaseModel):
         gt_leverage: float = 20.0
 
@@ -46,6 +51,7 @@ class FtxArbitrageStrategyConfig(BaseModel):
     increase_pair: Optional[FtxArbitrageStrategyConfig.IncreasePairConfig]
     always_increase_pair: Optional[FtxArbitrageStrategyConfig.AlwaysIncreasePairConfig]
     decrease_pair: Optional[FtxArbitrageStrategyConfig.DecreasePairConfig]
+    always_decrease_pair: Optional[FtxArbitrageStrategyConfig.AlwaysDecreasePairConfig]
     close_pair: Optional[FtxArbitrageStrategyConfig.ClosePairConfig]
     garbage_collect: Optional[FtxArbitrageStrategyConfig.GarbageCollectConfig]
 
