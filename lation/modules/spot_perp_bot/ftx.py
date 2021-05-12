@@ -306,9 +306,9 @@ class FTXSpotFuturesArbitrageStrategy():
         elif order_direction == cls.OrderDirection.SPOT_SHORT_PERP_LONG:
             spot_order, perp_order = await asyncio.gather(
                 loop.run_in_executor(None, lambda: self.rest_api_client.place_order(
-                    pair['spot_market_name'], 'sell', order_price, order_size, type_=order_type, client_id=client_id_spot)),
-                loop.run_in_executor(None, lambda: self.rest_api_client.place_order(
                     pair['perp_market_name'], 'buy', order_price, order_size, type_=order_type, client_id=client_id_perp)),
+                loop.run_in_executor(None, lambda: self.rest_api_client.place_order(
+                    pair['spot_market_name'], 'sell', order_price, order_size, type_=order_type, client_id=client_id_spot)),
                 return_exceptions=True
             )
         exception_descriptions = []
@@ -429,15 +429,20 @@ class FTXSpotFuturesArbitrageStrategy():
         if self.config.increase_pair.enabled or self.config.decrease_pair.enabled:
             current_leverage = self.get_current_leverage()
 
-        # increase / decrease / close pairs
+        # increase pairs
         if self.config.always_increase_pair.enabled or self.config.increase_pair.enabled:
             pair = self.get_best_pair_from_market()
-            if self.config.always_increase_pair.enabled and abs(pair['spread_rate']) > self.config.always_increase_pair.gt_spread_rate:
+            # only applicable to single side
+            if self.config.always_increase_pair.enabled and pair['spread_rate'] > self.config.always_increase_pair.gt_spread_rate:
                 spot_order, perp_order = await self.increase_pair(pair, fixed_quote_amount=self.config.always_increase_pair.quote_amount)
                 self.log_info(f'[pair always increased]')
                 self.log_info(f"- [spot] {spot_order['market']}: {spot_order['side']} amount {spot_order['size']}")
                 self.log_info(f"- [perp] {perp_order['market']}: {perp_order['side']} amount {perp_order['size']}")
-            elif self.config.increase_pair.enabled and current_leverage < self.config.increase_pair.lt_leverage and abs(pair['spread_rate']) > self.config.increase_pair.gt_spread_rate:
+            elif (
+                self.config.increase_pair.enabled and
+                current_leverage < self.config.increase_pair.lt_leverage and
+                abs(pair['spread_rate']) > self.config.increase_pair.gt_spread_rate
+            ):
                 leverage_diff = self.config.increase_pair.lt_leverage - current_leverage
                 fixed_quote_amount = FTXSpotFuturesArbitrageStrategy.get_quote_amount_from_rules(
                     abs(leverage_diff), self.config.increase_pair.leverage_diff_to_quote_amount_rules)
@@ -445,9 +450,21 @@ class FTXSpotFuturesArbitrageStrategy():
                 self.log_info(f'[pair increased] at leverage {current_leverage}')
                 self.log_info(f"- [spot] {spot_order['market']}: {spot_order['side']} amount {spot_order['size']}")
                 self.log_info(f"- [perp] {perp_order['market']}: {perp_order['side']} amount {perp_order['size']}")
-        elif self.config.decrease_pair.enabled and self.config.decrease_pair.gt_leverage < current_leverage <= self.config.close_pair.gt_leverage:
+
+        # decrease pairs
+        if self.config.always_decrease_pair.enabled or self.config.decrease_pair.enabled:
             pair, balance, position = self.get_worst_pair_from_asset()
-            if pair and abs(pair['spread_rate']) < self.config.decrease_pair.lt_spread_rate:
+            # only applicable to single side
+            if self.config.always_decrease_pair.enabled and pair['spread_rate'] < self.config.always_decrease_pair.lt_spread_rate:
+                spot_order, perp_order = await self.decrease_pair(pair, balance, position, fixed_quote_amount=self.config.always_decrease_pair.quote_amount)
+                self.log_info(f'[pair always decreased]')
+                self.log_info(f"- [spot] {spot_order['market']}: {spot_order['side']} amount {spot_order['size']}")
+                self.log_info(f"- [perp] {perp_order['market']}: {perp_order['side']} amount {perp_order['size']}")
+            elif (
+                self.config.decrease_pair.enabled and
+                self.config.decrease_pair.gt_leverage < current_leverage <= self.config.close_pair.gt_leverage and
+                pair and abs(pair['spread_rate']) < self.config.decrease_pair.lt_spread_rate
+            ):
                 leverage_diff = current_leverage - self.config.decrease_pair.gt_leverage
                 fixed_quote_amount = FTXSpotFuturesArbitrageStrategy.get_quote_amount_from_rules(
                     abs(leverage_diff), self.config.decrease_pair.leverage_diff_to_quote_amount_rules)
@@ -455,7 +472,9 @@ class FTXSpotFuturesArbitrageStrategy():
                 self.log_info(f'[pair decreased] at leverage {current_leverage}')
                 self.log_info(f"- [spot] {spot_order['market']}: {spot_order['side']} amount {spot_order['size']}")
                 self.log_info(f"- [perp] {perp_order['market']}: {perp_order['side']} amount {perp_order['size']}")
-        elif self.config.close_pair.gt_leverage < current_leverage:
+
+        # close pairs
+        if self.config.close_pair.gt_leverage < current_leverage:
             pair, balance, position = self.get_worst_pair_from_asset()
             if pair:
                 fixed_amount = Decimal(str(min(abs(balance['total']), abs(position['net_size']))))
