@@ -38,7 +38,7 @@ class FtxArbitrageStrategyConfig(BaseModel):
     class AlwaysDecreasePairConfig(BaseModel):
         enabled: bool = True
         lt_spread_rate: float = -0.001
-        quote_amount: Decimal = Decimal('50')
+        quote_amount: Decimal = Decimal('80')
 
     class ClosePairConfig(BaseModel):
         gt_leverage: float = 20.0
