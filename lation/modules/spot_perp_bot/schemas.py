@@ -27,7 +27,7 @@ class FtxArbitrageStrategyConfig(BaseModel):
     class AlwaysIncreasePairConfig(BaseModel):
         enabled: bool = True
         gt_spread_rate: float = 0.0065
-        quote_amount: Decimal = Decimal('50')
+        quote_amount: Decimal = Decimal('80')
 
     class DecreasePairConfig(BaseModel):
         enabled: bool = False
