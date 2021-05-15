@@ -3,7 +3,6 @@ import os
 import random
 from datetime import datetime
 
-import requests
 from bs4 import BeautifulSoup
 from fastapi import APIRouter
 from fastapi.responses import FileResponse

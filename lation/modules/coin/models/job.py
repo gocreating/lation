@@ -1,16 +1,11 @@
 import statistics
-from decimal import Decimal
 
 from sqlalchemy.orm import object_session
 
-from lation.core.env import get_env
 from lation.modules.base.models.end_user import EndUser
 from lation.modules.base.models.job import CoroutineScheduler, JobProducer, Scheduler
 from lation.modules.coin.bitfinex_api_client import BitfinexAPIClient
-from lation.modules.coin.dependencies import get_current_ftx_rest_api_client
-from lation.modules.coin.ftx import FTXRestAPIClient, FTXSpotFuturesArbitrageStrategy, ftx_manager
 from lation.modules.coin.models.config import EndUserBitfinexConfig
-from lation.modules.customer.models.oauth_user import LineUser
 
 
 ##############
@@ -59,141 +54,3 @@ def apply_bitfinex_funding_strategy(cron_job) -> str:
 
     end_user_ids = [end_user.id for end_user in end_users]
     return f'ask_rate={ask_rate}, end_user_ids={end_user_ids}'
-
-
-#########
-## FTX ##
-#########
-
-FTX_API_KEY = get_env('FTX_API_KEY')
-FTX_API_SECRET = get_env('FTX_API_SECRET')
-
-ftx_spot_futures_arbitrage_strategies = []
-
-if FTX_API_KEY and FTX_API_SECRET:
-    ftx_rest_api_client_1 = FTXRestAPIClient(api_key=FTX_API_KEY,
-                                             api_secret=FTX_API_SECRET,
-                                             subaccount_name=None)
-    ftx_rest_api_client_2 = FTXRestAPIClient(api_key=FTX_API_KEY,
-                                             api_secret=FTX_API_SECRET,
-                                             subaccount_name='期现套利子帳戶')
-    ftx_rest_api_client_3 = FTXRestAPIClient(api_key=FTX_API_KEY,
-                                             api_secret=FTX_API_SECRET,
-                                             subaccount_name='媽媽')
-    ftx_rest_api_client_4 = FTXRestAPIClient(api_key=FTX_API_KEY,
-                                             api_secret=FTX_API_SECRET,
-                                             subaccount_name='姊姊')
-    ftx_spot_futures_arbitrage_strategies = [
-        FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_1, strategy_enabled=False, garbage_collection_enabled=False),
-        FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_2, strategy_enabled=False, garbage_collection_enabled=False),
-        FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_3, strategy_enabled=False, garbage_collection_enabled=False),
-        FTXSpotFuturesArbitrageStrategy(ftx_rest_api_client_4, strategy_enabled=False, garbage_collection_enabled=False),
-    ]
-
-# @CoroutineScheduler.register_interval_job(15)
-# async def execute_ftx_spot_futures_arbitrage_strategies(get_session):
-#     for strategy in ftx_spot_futures_arbitrage_strategies:
-#         await strategy.execute()
-
-# @CoroutineScheduler.register_interval_job(15)
-# async def execute_ftx_spot_futures_arbitrage_strategy_garbage_collections(get_session):
-#     for strategy in ftx_spot_futures_arbitrage_strategies:
-#         await strategy.decrease_negative_funding_payment_pairs()
-
-# @CoroutineScheduler.register_interval_job(120)
-# async def ftx_spot_futures_arbitrage_strategy_alarms(get_session):
-#     messages = []
-#     for strategy in ftx_spot_futures_arbitrage_strategies:
-#         should_raise_alarm, current_leverage = strategy.should_raise_leverage_alarm()
-#         if not should_raise_alarm:
-#             continue
-#         account_name = strategy.rest_api_client.subaccount_name
-#         if not account_name:
-#             account_name = '主帳戶'
-#         quantized_current_leverage = Decimal(current_leverage).quantize(Decimal('.00'))
-#         messages.append({
-#             'type': 'text',
-#             'text': f'您的 FTX (子)帳戶「{account_name}」目前槓桿 {quantized_current_leverage} 倍',
-#         })
-#     if not messages:
-#         return
-
-#     session = get_session()
-#     my_line_user = session.query(LineUser)\
-#         .filter(LineUser.account_identifier == 'U5abfe9090acd8357516e26604a3606b6')\
-#         .one_or_none()
-#     if not my_line_user:
-#         return
-
-#     my_line_user.push_message(messages)
-
-# @CoroutineScheduler.register_interval_job(600)
-# async def fetch_ftx_market(get_session):
-#     ftx_manager.update_market_state()
-
-# @CoroutineScheduler.register_interval_job(30)
-# async def fetch_ftx_funding_rate(get_session):
-#     ftx_manager.update_funding_rate_state()
-
-# @CoroutineScheduler.register_interval_job(120)
-# async def experiment_my_ftx_leverage_alarm(get_session):
-#     config = ftx_manager.get_config()
-#     if not config['alarm_enabled']:
-#         return
-#     messages = []
-#     for subaccount_name in [None, '期现套利子帳戶']:
-#         api_client = await get_current_ftx_rest_api_client(subaccount_name=subaccount_name)
-#         risk_index = ftx_manager.get_risk_index(rest_api_client=api_client)
-#         current_leverage = risk_index['leverage']['current']
-#         if current_leverage > config['leverage_alarm']:
-#             account_name = subaccount_name
-#             if not account_name:
-#                 account_name = '主帳戶'
-#             quantized_current_leverage = Decimal(current_leverage).quantize(Decimal('.00'))
-#             messages.append({
-#                 'type': 'text',
-#                 'text': f'您的 FTX「{account_name}」目前槓桿 {quantized_current_leverage} 倍',
-#             })
-#     if not messages:
-#         return
-
-#     session = get_session()
-#     my_line_user = session.query(LineUser)\
-#         .filter(LineUser.account_identifier == 'U5abfe9090acd8357516e26604a3606b6')\
-#         .one_or_none()
-#     if not my_line_user:
-#         return
-
-#     my_line_user.push_message(messages)
-
-# @CoroutineScheduler.register_interval_job(5)
-# async def experiment_my_ftx_strategy(get_session):
-#     config = ftx_manager.get_config()
-#     if not config['strategy_enabled']:
-#         return
-#     messages = []
-#     for subaccount_name in [None, '期现套利子帳戶']:
-#         try:
-#             api_client = await get_current_ftx_rest_api_client(subaccount_name=subaccount_name)
-#             await ftx_manager.apply_spot_futures_arbitrage_strategy_iteration(
-#                 config['leverage_low'], config['leverage_high'], rest_api_client=api_client)
-#         except Exception as e:
-#             messages.append({
-#                 'type': 'text',
-#                 'text': f'您的 FTX「{account_name}」執行策略時發生錯誤：',
-#             })
-#             messages.append({
-#                 'type': 'text',
-#                 'text': str(e),
-#             })
-
-#     if not messages:
-#         return
-#     session = get_session()
-#     my_line_user = session.query(LineUser)\
-#         .filter(LineUser.account_identifier == 'U5abfe9090acd8357516e26604a3606b6')\
-#         .one_or_none()
-#     if not my_line_user:
-#         return
-
-#     my_line_user.push_message(messages)
