@@ -354,7 +354,7 @@ class FTXSpotFuturesArbitrageStrategy():
             amount = fixed_amount
         elif fixed_quote_amount:
             amount = fixed_quote_amount / Decimal(pair['spot_price'])
-            amount = min(amount, abs(balance['total']), abs(position['net_size']))
+            amount = Decimal(min(amount, abs(balance['total']), abs(position['net_size'])))
         else:
             amount = pair['min_provide_size']
 
