@@ -217,7 +217,10 @@ class FTXSpotFuturesArbitrageStrategy():
         pairs = pair_map.values()
 
         # sort by spread rate
-        spread_rate_pairs = [pair for pair in sorted(pairs, key=lambda pair: abs(pair['spread_rate']), reverse=True)]
+        if self.config.increase_pair.allow_spot_short_perp_long:
+            spread_rate_pairs = [pair for pair in sorted(pairs, key=lambda pair: abs(pair['spread_rate']), reverse=True)]
+        else:
+            spread_rate_pairs = [pair for pair in sorted(pairs, key=lambda pair: pair['spread_rate'], reverse=True)]
         for i, pair in enumerate(spread_rate_pairs):
             pair_map[(pair['base_currency'], pair['quote_currency'])].update({
                 'spread_rate_rank': i,
