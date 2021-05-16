@@ -44,7 +44,6 @@ class FTXSpotFuturesArbitrageStrategy():
     white_list_coins = set(['FTT'])
 
     pair_map = None
-    last_spread_rate_update_time = None
     last_funding_rate_update_time = None
 
     class OrderDirection(str, enum.Enum):
@@ -66,10 +65,12 @@ class FTXSpotFuturesArbitrageStrategy():
                 break
         return quote_amount
 
-    def __init__(self, rest_api_client: FTXRestAPIClient, config: FtxArbitrageStrategyConfig):
+    def __init__(self, rest_api_client: FTXRestAPIClient, ws_client: FtxWebsocketClient, config: FtxArbitrageStrategyConfig):
         self.rest_api_client = rest_api_client
+        self.ws_client = ws_client
         self.config = config
         self.initialize_pair_map()
+        self.update_spread_rate()
         # TODO: check margin funding is enabled
 
     def log(self, fn_name: str, msg: str, *args, **kwargs):
@@ -114,6 +115,11 @@ class FTXSpotFuturesArbitrageStrategy():
                 spot_market, perp_market = FTXSpotFuturesArbitrageStrategy.get_pair_market(market_name_map, base_currency, quote_currency)
                 if not spot_market or not perp_market:
                     continue
+
+                # subscribe to tickers
+                self.ws_client.get_ticker(spot_market['name'])
+                self.ws_client.get_ticker(perp_market['name'])
+
                 pair_map[(base_currency, quote_currency)] = {
                     'is_valid': base_currency in support_coins,
                     'spot_market_name': spot_market['name'],
@@ -129,25 +135,23 @@ class FTXSpotFuturesArbitrageStrategy():
                 }
         cls.pair_map = pair_map
 
-    def should_update_spread_rate(self):
-        # won't update spread within every 5 seconds
+    def update_spread_rate(self):
         cls = self.__class__
-        utc_now = datetime.utcnow()
-        return not cls.last_spread_rate_update_time or utc_now - cls.last_spread_rate_update_time >= timedelta(seconds=5)
-
-    def update_spread_rate(self, market_name_map: dict):
-        cls = self.__class__
-        for base_currency, quote_currency in cls.pair_map:
-            spot_market, perp_market = FTXSpotFuturesArbitrageStrategy.get_pair_market(market_name_map, base_currency, quote_currency)
-            spot_price = (spot_market['bid'] + spot_market['ask']) / 2
-            perp_price = (perp_market['bid'] + perp_market['ask']) / 2
+        for pair_key, pair in cls.pair_map.items():
+            spot_ticker = self.ws_client.get_ticker(pair['spot_market_name'])
+            perp_ticker = self.ws_client.get_ticker(pair['perp_market_name'])
+            if not spot_ticker or not perp_ticker:
+                time.sleep(1)
+                self.update_spread_rate()
+                return
+            spot_price = (spot_ticker['bid'] + spot_ticker['ask']) / 2
+            perp_price = (perp_ticker['bid'] + perp_ticker['ask']) / 2
             spread_rate = (perp_price - spot_price) / spot_price
-            cls.pair_map[(base_currency, quote_currency)].update({
+            cls.pair_map[pair_key].update({
                 'spot_price': spot_price,
                 'perp_price': perp_price,
                 'spread_rate': spread_rate,
             })
-        cls.last_spread_rate_update_time = datetime.utcnow()
 
     def should_update_funding_rate(self):
         # won't update funding rate within the same hour
@@ -200,14 +204,11 @@ class FTXSpotFuturesArbitrageStrategy():
 
     def get_sorted_pairs_from_market(self, reverse=False) -> List[dict]:
         cls = self.__class__
-        market_name_map = self.get_market_name_map()
-
-        # won't update spread within every 5 seconds
-        if self.should_update_spread_rate():
-            self.update_spread_rate(market_name_map)
+        self.update_spread_rate()
 
         # won't update funding rate within the same hour
         if self.should_update_funding_rate():
+            market_name_map = self.get_market_name_map()
             self.update_funding_rate(market_name_map)
 
         # filter out risking pairs
@@ -541,8 +542,7 @@ class FTXSpotFuturesArbitrageStrategy():
             return
 
         market_name_map = self.get_market_name_map()
-        if self.should_update_spread_rate():
-            self.update_spread_rate(market_name_map)
+        self.update_spread_rate(market_name_map)
         for pair, balance, position in evictable_candidates:
             if abs(pair['spread_rate']) < self.config.garbage_collect.lt_spread_rate:
                 spot_order, perp_order = await self.decrease_pair(pair, balance, position)
