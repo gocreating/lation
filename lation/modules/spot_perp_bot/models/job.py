@@ -7,7 +7,7 @@ from lation.modules.spot_perp_bot.env import \
     FTX_API_KEY_ME, FTX_API_SECRET_ME, \
     FTX_API_KEY_MOM, FTX_API_SECRET_MOM, \
     FTX_API_KEY_SISTER, FTX_API_SECRET_SISTER
-from lation.modules.spot_perp_bot.ftx import FTXRestAPIClient, FTXSpotFuturesArbitrageStrategy
+from lation.modules.spot_perp_bot.ftx import FTXRestAPIClient, FTXSpotFuturesArbitrageStrategy, FtxWebsocketClient
 from lation.modules.spot_perp_bot.schemas import FtxArbitrageStrategyConfig
 
 
@@ -39,6 +39,8 @@ if FTX_API_KEY_ROOT and FTX_API_SECRET_ROOT:
             FTXRestAPIClient(api_key=FTX_API_KEY_ROOT,
                              api_secret=FTX_API_SECRET_ROOT,
                              subaccount_name=None),
+            FtxWebsocketClient(api_key=FTX_API_KEY_ROOT,
+                               api_secret=FTX_API_SECRET_ROOT),
             default_strategy_config))
 
 if FTX_API_KEY_ME and FTX_API_SECRET_ME:
@@ -47,6 +49,8 @@ if FTX_API_KEY_ME and FTX_API_SECRET_ME:
             FTXRestAPIClient(api_key=FTX_API_KEY_ME,
                              api_secret=FTX_API_SECRET_ME,
                              subaccount_name='期现套利子帳戶'),
+            FtxWebsocketClient(api_key=FTX_API_KEY_ME,
+                               api_secret=FTX_API_SECRET_ME),
             default_strategy_config))
 
 if FTX_API_KEY_MOM and FTX_API_SECRET_MOM:
@@ -55,6 +59,8 @@ if FTX_API_KEY_MOM and FTX_API_SECRET_MOM:
             FTXRestAPIClient(api_key=FTX_API_KEY_MOM,
                              api_secret=FTX_API_SECRET_MOM,
                              subaccount_name='媽媽'),
+            FtxWebsocketClient(api_key=FTX_API_KEY_MOM,
+                               api_secret=FTX_API_SECRET_MOM),
             default_strategy_config))
 
 if FTX_API_KEY_SISTER and FTX_API_SECRET_SISTER:
@@ -63,6 +69,8 @@ if FTX_API_KEY_SISTER and FTX_API_SECRET_SISTER:
             FTXRestAPIClient(api_key=FTX_API_KEY_SISTER,
                              api_secret=FTX_API_SECRET_SISTER,
                              subaccount_name='姊姊'),
+            FtxWebsocketClient(api_key=FTX_API_KEY_SISTER,
+                               api_secret=FTX_API_SECRET_SISTER),
             default_strategy_config))
 
 

@@ -17,7 +17,7 @@ class FtxArbitrageStrategyConfig(BaseModel):
         gt_leverage: float = 17.5
 
     class IncreasePairConfig(BaseModel):
-        enabled: bool = False
+        enabled: bool = True
         allow_spot_short_perp_long: bool = False
         lt_leverage: float = 11.0
         gt_spread_rate: float = 0.0035
