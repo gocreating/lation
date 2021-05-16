@@ -78,6 +78,7 @@ sudo ssh -o StrictHostKeyChecking=no -i ./secrets/instance-keys/oracle-cloud ubu
 ``` bash
 $ winpty docker exec -it <container_id> bash # for windows
 $ sudo docker exec spot_perp_bot_web_server_for_myself_1 bash -c 'cat "logs/$(ls logs | tail -n 1)"'
+$ sudo docker exec spot_perp_bot_web_server_for_family_members_1 bash -c 'cat "logs/$(ls logs | tail -n 1)"'
 root@<container_id>:/app# cat deploy/logs/access.log
 root@<container_id>:/app# cat deploy/logs/error.log
 root@<container_id>:/app# cat "logs/$(ls logs | tail -n 1)"
