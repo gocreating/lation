@@ -66,6 +66,7 @@ urllib3==1.25.10
 uvicorn==0.12.3
 uvloop==0.14.0
 vine==5.0.0
+websocket-client==0.59.0
 Werkzeug==1.0.1
 wincertstore==0.2
 wordcloud==1.8.1
