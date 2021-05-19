@@ -485,6 +485,7 @@ class FTXSpotFuturesArbitrageStrategy():
         if self.config.always_decrease_pair.enabled or self.config.decrease_pair.enabled:
             pair_collections = self.get_worst_pair_collections_from_asset()
             # only applicable to single side
+            is_always_decreased = False
             if self.config.always_decrease_pair.enabled:
                 for pair, balance, position in pair_collections:
                     if pair['decrease_spread_rate'] < self.config.always_decrease_pair.lt_spread_rate:
@@ -492,12 +493,13 @@ class FTXSpotFuturesArbitrageStrategy():
                         self.log_info(f"- [base currency] {pair['base_currency']}")
                         spot_order, perp_order = await self.decrease_pair(pair, balance, position, fixed_quote_amount=self.config.always_decrease_pair.quote_amount)
                         if spot_order and perp_order:
+                            is_always_decreased = True
                             self.log_info(f'[pair always decreased]')
                             self.log_info(f"- [spot] {spot_order['market']}: {spot_order['side']} amount {spot_order['size']}")
                             self.log_info(f"- [perp] {perp_order['market']}: {perp_order['side']} amount {perp_order['size']}")
                         else:
                             self.log_info(f'[pair unable to always decrease]')
-            elif (
+            if not is_always_decreased and (
                 self.config.decrease_pair.enabled and
                 self.config.decrease_pair.gt_leverage < current_leverage <= self.config.close_pair.gt_leverage and
                 pair and abs(pair['decrease_spread_rate']) < self.config.decrease_pair.lt_spread_rate
