@@ -252,15 +252,15 @@ class FTXSpotFuturesArbitrageStrategy():
         sorted_pairs = sorted(pair_map.values(), key=lambda pair: pair['spread_rate_rank'] + pair['funding_rate_rank'], reverse=reverse)
         return sorted_pairs
 
-    def get_best_pair_from_market(self) -> dict:
+    def get_best_pair_from_market(self) -> Optional[dict]:
         cls = self.__class__
         balance_map = self.get_balance_map()
         too_much_currencies = self.get_too_much_currencies(balance_map)
         sorted_pairs = self.get_sorted_pairs_from_market(cls.OrderDirection.SPOT_LONG_PERP_SHORT)
         if self.config.increase_pair.allow_spot_short_perp_long:
-            return next(pair for pair in sorted_pairs if pair['base_currency'] not in too_much_currencies)
+            return next((pair for pair in sorted_pairs if pair['base_currency'] not in too_much_currencies), None)
         else:
-            return next(pair for pair in sorted_pairs if pair['base_currency'] not in too_much_currencies and pair['funding_rate'] > 0)
+            return next((pair for pair in sorted_pairs if pair['base_currency'] not in too_much_currencies and pair['funding_rate'] > 0), None)
 
     def get_worst_pair_collections_from_asset(self) -> List[Tuple[dict, dict, dict]]:
         cls = self.__class__
@@ -460,26 +460,29 @@ class FTXSpotFuturesArbitrageStrategy():
         # increase pairs
         if self.config.always_increase_pair.enabled or self.config.increase_pair.enabled:
             pair = self.get_best_pair_from_market()
-            # only applicable to single side
-            if self.config.always_increase_pair.enabled and pair['increase_spread_rate'] > self.config.always_increase_pair.gt_spread_rate:
-                self.log_info(f'[pair always increasing...]')
-                spot_order, perp_order = await self.increase_pair(pair, fixed_quote_amount=self.config.always_increase_pair.quote_amount)
-                self.log_info(f'[pair always increased]')
-                self.log_info(f"- [spot] {spot_order['market']}: {spot_order['side']} amount {spot_order['size']}")
-                self.log_info(f"- [perp] {perp_order['market']}: {perp_order['side']} amount {perp_order['size']}")
-            elif (
-                self.config.increase_pair.enabled and
-                current_leverage < self.config.increase_pair.lt_leverage and
-                abs(pair['increase_spread_rate']) > self.config.increase_pair.gt_spread_rate
-            ):
-                leverage_diff = self.config.increase_pair.lt_leverage - current_leverage
-                fixed_quote_amount = FTXSpotFuturesArbitrageStrategy.get_quote_amount_from_rules(
-                    abs(leverage_diff), self.config.increase_pair.leverage_diff_to_quote_amount_rules)
-                self.log_info(f'[pair increasing...] at leverage {current_leverage}')
-                spot_order, perp_order = await self.increase_pair(pair, fixed_quote_amount=fixed_quote_amount)
-                self.log_info('[pair increased]')
-                self.log_info(f"- [spot] {spot_order['market']}: {spot_order['side']} amount {spot_order['size']}")
-                self.log_info(f"- [perp] {perp_order['market']}: {perp_order['side']} amount {perp_order['size']}")
+            if not pair:
+                self.log_info(f'[no pair to increase]')
+            else:
+                # only applicable to single side
+                if self.config.always_increase_pair.enabled and pair['increase_spread_rate'] > self.config.always_increase_pair.gt_spread_rate:
+                    self.log_info(f'[pair always increasing...]')
+                    spot_order, perp_order = await self.increase_pair(pair, fixed_quote_amount=self.config.always_increase_pair.quote_amount)
+                    self.log_info(f'[pair always increased]')
+                    self.log_info(f"- [spot] {spot_order['market']}: {spot_order['side']} amount {spot_order['size']}")
+                    self.log_info(f"- [perp] {perp_order['market']}: {perp_order['side']} amount {perp_order['size']}")
+                elif (
+                    self.config.increase_pair.enabled and
+                    current_leverage < self.config.increase_pair.lt_leverage and
+                    abs(pair['increase_spread_rate']) > self.config.increase_pair.gt_spread_rate
+                ):
+                    leverage_diff = self.config.increase_pair.lt_leverage - current_leverage
+                    fixed_quote_amount = FTXSpotFuturesArbitrageStrategy.get_quote_amount_from_rules(
+                        abs(leverage_diff), self.config.increase_pair.leverage_diff_to_quote_amount_rules)
+                    self.log_info(f'[pair increasing...] at leverage {current_leverage}')
+                    spot_order, perp_order = await self.increase_pair(pair, fixed_quote_amount=fixed_quote_amount)
+                    self.log_info('[pair increased]')
+                    self.log_info(f"- [spot] {spot_order['market']}: {spot_order['side']} amount {spot_order['size']}")
+                    self.log_info(f"- [perp] {perp_order['market']}: {perp_order['side']} amount {perp_order['size']}")
 
         # decrease pairs
         if self.config.always_decrease_pair.enabled or self.config.decrease_pair.enabled:
