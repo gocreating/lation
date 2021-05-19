@@ -30,7 +30,7 @@ class FtxArbitrageStrategyConfig(BaseModel):
         quote_amount: Decimal = Decimal('80')
 
     class DecreasePairConfig(BaseModel):
-        enabled: bool = False
+        enabled: bool = True
         gt_leverage: float = 17.0
         lt_spread_rate: float = 0.0005
         leverage_diff_to_quote_amount_rules: List[FtxArbitrageStrategyConfig.LeverageDiffToQuoteAmountRule] = []
