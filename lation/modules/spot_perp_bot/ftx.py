@@ -146,11 +146,17 @@ class FTXSpotFuturesArbitrageStrategy():
                 return
             spot_price = (spot_ticker['bid'] + spot_ticker['ask']) / 2
             perp_price = (perp_ticker['bid'] + perp_ticker['ask']) / 2
-            spread_rate = (perp_price - spot_price) / spot_price
+            increase_spot_price = spot_ticker['ask']
+            increase_perp_price = perp_ticker['bid']
+            decrease_spot_price = spot_ticker['bid']
+            decrease_perp_price = perp_ticker['ask']
+            increase_spread_rate = (increase_perp_price - increase_spot_price) / increase_spot_price
+            decrease_spread_rate = (decrease_perp_price - decrease_spot_price) / decrease_spot_price
             cls.pair_map[pair_key].update({
                 'spot_price': spot_price,
                 'perp_price': perp_price,
-                'spread_rate': spread_rate,
+                'increase_spread_rate': increase_spread_rate,
+                'decrease_spread_rate': decrease_spread_rate,
             })
 
     def should_update_funding_rate(self):
@@ -202,9 +208,15 @@ class FTXSpotFuturesArbitrageStrategy():
                 too_much_currencies.append(base_currency)
         return too_much_currencies
 
-    def get_sorted_pairs_from_market(self, reverse=False) -> List[dict]:
+    def get_sorted_pairs_from_market(self, order_direction: OrderDirection, reverse=False) -> List[dict]:
         cls = self.__class__
         self.update_spread_rate()
+
+        spread_rate_key = None
+        if order_direction == cls.OrderDirection.SPOT_LONG_PERP_SHORT:
+            spread_rate_key = 'increase_spread_rate'
+        elif order_direction == cls.OrderDirection.SPOT_SHORT_PERP_LONG:
+            spread_rate_key = 'decrease_spread_rate'
 
         # won't update funding rate within the same hour
         if self.should_update_funding_rate():
@@ -213,14 +225,18 @@ class FTXSpotFuturesArbitrageStrategy():
 
         # filter out risking pairs
         pair_map = {key: pair for key, pair in cls.pair_map.items()
-                    if pair['is_valid'] and pair['spread_rate'] * pair['funding_rate'] > 0}
+                    if pair['is_valid'] and pair[spread_rate_key] * pair['funding_rate'] > 0}
         pairs = pair_map.values()
 
         # sort by spread rate
+        sort_key_getter = None
         if self.config.increase_pair.allow_spot_short_perp_long:
-            spread_rate_pairs = [pair for pair in sorted(pairs, key=lambda pair: abs(pair['spread_rate']), reverse=True)]
+            sort_key_getter = lambda pair: abs(pair[spread_rate_key])
         else:
-            spread_rate_pairs = [pair for pair in sorted(pairs, key=lambda pair: pair['spread_rate'], reverse=True)]
+            sort_key_getter = lambda pair: pair[spread_rate_key]
+
+        spread_rate_pairs = [pair for pair in sorted(pairs, key=sort_key_getter, reverse=True)]
+
         for i, pair in enumerate(spread_rate_pairs):
             pair_map[(pair['base_currency'], pair['quote_currency'])].update({
                 'spread_rate_rank': i,
@@ -237,16 +253,18 @@ class FTXSpotFuturesArbitrageStrategy():
         return sorted_pairs
 
     def get_best_pair_from_market(self) -> dict:
+        cls = self.__class__
         balance_map = self.get_balance_map()
         too_much_currencies = self.get_too_much_currencies(balance_map)
-        sorted_pairs = self.get_sorted_pairs_from_market()
+        sorted_pairs = self.get_sorted_pairs_from_market(cls.OrderDirection.SPOT_LONG_PERP_SHORT)
         if self.config.increase_pair.allow_spot_short_perp_long:
             return next(pair for pair in sorted_pairs if pair['base_currency'] not in too_much_currencies)
         else:
             return next(pair for pair in sorted_pairs if pair['base_currency'] not in too_much_currencies and pair['funding_rate'] > 0)
 
     def get_worst_pair_collections_from_asset(self) -> List[Tuple[dict, dict, dict]]:
-        sorted_pairs = self.get_sorted_pairs_from_market(reverse=True)
+        cls = self.__class__
+        sorted_pairs = self.get_sorted_pairs_from_market(cls.OrderDirection.SPOT_SHORT_PERP_LONG, reverse=True)
         balance_map, position_map = self.get_asset_map()
         pair_collections = []
         for pair in sorted_pairs:
@@ -443,7 +461,7 @@ class FTXSpotFuturesArbitrageStrategy():
         if self.config.always_increase_pair.enabled or self.config.increase_pair.enabled:
             pair = self.get_best_pair_from_market()
             # only applicable to single side
-            if self.config.always_increase_pair.enabled and pair['spread_rate'] > self.config.always_increase_pair.gt_spread_rate:
+            if self.config.always_increase_pair.enabled and pair['increase_spread_rate'] > self.config.always_increase_pair.gt_spread_rate:
                 self.log_info(f'[pair always increasing...]')
                 spot_order, perp_order = await self.increase_pair(pair, fixed_quote_amount=self.config.always_increase_pair.quote_amount)
                 self.log_info(f'[pair always increased]')
@@ -452,7 +470,7 @@ class FTXSpotFuturesArbitrageStrategy():
             elif (
                 self.config.increase_pair.enabled and
                 current_leverage < self.config.increase_pair.lt_leverage and
-                abs(pair['spread_rate']) > self.config.increase_pair.gt_spread_rate
+                abs(pair['increase_spread_rate']) > self.config.increase_pair.gt_spread_rate
             ):
                 leverage_diff = self.config.increase_pair.lt_leverage - current_leverage
                 fixed_quote_amount = FTXSpotFuturesArbitrageStrategy.get_quote_amount_from_rules(
@@ -469,7 +487,7 @@ class FTXSpotFuturesArbitrageStrategy():
             # only applicable to single side
             if self.config.always_decrease_pair.enabled:
                 for pair, balance, position in pair_collections:
-                    if pair['spread_rate'] < self.config.always_decrease_pair.lt_spread_rate:
+                    if pair['decrease_spread_rate'] < self.config.always_decrease_pair.lt_spread_rate:
                         self.log_info('[pair always decreasing...]')
                         self.log_info(f"- [base currency] {pair['base_currency']}")
                         spot_order, perp_order = await self.decrease_pair(pair, balance, position, fixed_quote_amount=self.config.always_decrease_pair.quote_amount)
@@ -482,7 +500,7 @@ class FTXSpotFuturesArbitrageStrategy():
             elif (
                 self.config.decrease_pair.enabled and
                 self.config.decrease_pair.gt_leverage < current_leverage <= self.config.close_pair.gt_leverage and
-                pair and abs(pair['spread_rate']) < self.config.decrease_pair.lt_spread_rate
+                pair and abs(pair['decrease_spread_rate']) < self.config.decrease_pair.lt_spread_rate
             ):
                 pair, balance, position = pair_collections[0]
                 leverage_diff = current_leverage - self.config.decrease_pair.gt_leverage
@@ -547,7 +565,7 @@ class FTXSpotFuturesArbitrageStrategy():
         market_name_map = self.get_market_name_map()
         self.update_spread_rate(market_name_map)
         for pair, balance, position in evictable_candidates:
-            if abs(pair['spread_rate']) < self.config.garbage_collect.lt_spread_rate:
+            if abs(pair['decrease_spread_rate']) < self.config.garbage_collect.lt_spread_rate:
                 spot_order, perp_order = await self.decrease_pair(pair, balance, position)
 
     def should_raise_leverage_alarm(self) -> Tuple[bool, float]:
