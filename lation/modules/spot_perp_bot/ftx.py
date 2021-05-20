@@ -3,6 +3,7 @@ import asyncio
 import enum
 import hmac
 import json
+import random
 import statistics
 import time
 import urllib.parse
@@ -251,12 +252,17 @@ class FTXSpotFuturesArbitrageStrategy():
         sorted_pairs = sorted(pair_map.values(), key=lambda pair: pair['spread_rate_rank'] + pair['funding_rate_rank'], reverse=reverse)
         return sorted_pairs
 
-    def get_best_pair_from_market(self) -> Optional[dict]:
+    def get_best_pair_from_market(self, random_from_top_n: int = 3) -> Optional[dict]:
         cls = self.__class__
         balance_map = self.get_balance_map()
         too_much_currencies = self.get_too_much_currencies(balance_map)
         sorted_pairs = self.get_sorted_pairs_from_market(cls.PairDirection.INCREASE)
-        return next((pair for pair in sorted_pairs if pair['base_currency'] not in too_much_currencies and pair['funding_rate'] > 0), None)
+        filtered_pairs = [pair for pair in sorted_pairs if pair['base_currency'] not in too_much_currencies and pair['funding_rate'] > 0]
+        random_from_top_n = min(random_from_top_n, len(filtered_pairs))
+        if random_from_top_n == 0:
+            return None
+        random_index = random.randint(0, random_from_top_n - 1)
+        return filtered_pairs[random_index]
 
     def get_worst_pair_collections_from_asset(self) -> List[Tuple[dict, dict, dict]]:
         cls = self.__class__
