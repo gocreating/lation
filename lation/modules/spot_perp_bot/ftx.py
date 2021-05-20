@@ -461,7 +461,7 @@ class FTXSpotFuturesArbitrageStrategy():
         if self.config.always_increase_pair.enabled or self.config.increase_pair.enabled:
             pair = self.get_best_pair_from_market()
             if not pair:
-                self.log_info(f'[no pair to increase]')
+                self.log_info(f'[no pair to (always) increase]')
             else:
                 # only applicable to single side
                 if self.config.always_increase_pair.enabled and pair['increase_spread_rate'] > self.config.always_increase_pair.gt_spread_rate:
