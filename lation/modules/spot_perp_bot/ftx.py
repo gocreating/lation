@@ -557,7 +557,9 @@ class FTXSpotFuturesArbitrageStrategy():
         balance_map, position_map = self.get_asset_map()
         for perp_market_name, payments in funding_payment_map.items():
             if all([p > 0 for p in payments]):
-                pair = next(pair for pair in cls.pair_map.values() if pair['perp_market_name'] == perp_market_name)
+                pair = next((pair for pair in cls.pair_map.values() if pair['perp_market_name'] == perp_market_name), None)
+                if not pair:
+                    continue
                 balance = balance_map.get(pair['base_currency'])
                 position = position_map.get(pair['perp_market_name'])
                 if not balance or not position:
@@ -568,8 +570,7 @@ class FTXSpotFuturesArbitrageStrategy():
         if not evictable_candidates:
             return
 
-        market_name_map = self.get_market_name_map()
-        self.update_spread_rate(market_name_map)
+        self.update_spread_rate()
         for pair, balance, position in evictable_candidates:
             if abs(pair['decrease_spread_rate']) < self.config.garbage_collect.lt_spread_rate:
                 spot_order, perp_order = await self.decrease_pair(pair, balance, position)
