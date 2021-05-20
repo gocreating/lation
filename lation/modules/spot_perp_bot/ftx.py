@@ -520,14 +520,15 @@ class FTXSpotFuturesArbitrageStrategy():
 
         # close pairs
         if self.config.close_pair.gt_leverage < current_leverage:
-            pair, balance, position = self.get_worst_pair_from_asset()
-            if pair:
-                fixed_amount = Decimal(str(min(abs(balance['total']), abs(position['net_size']))))
-                self.log_info(f'[pair closing...] at leverage {current_leverage}')
-                spot_order, perp_order = await self.decrease_pair(pair, balance, position, fixed_amount=fixed_amount)
-                self.log_info('[pair closed]')
-                self.log_info(f"- [spot] {spot_order['market']}: {spot_order['side']} amount {spot_order['size']}")
-                self.log_info(f"- [perp] {perp_order['market']}: {perp_order['side']} amount {perp_order['size']}")
+            pair_collections = self.get_worst_pair_collections_from_asset()
+            if pair_collections:
+                for pair, balance, position in pair_collections:
+                    fixed_amount = Decimal(str(min(abs(balance['total']), abs(position['net_size']))))
+                    self.log_info(f'[pair closing...] at leverage {current_leverage}')
+                    spot_order, perp_order = await self.decrease_pair(pair, balance, position, fixed_amount=fixed_amount)
+                    self.log_info('[pair closed]')
+                    self.log_info(f"- [spot] {spot_order['market']}: {spot_order['side']} amount {spot_order['size']}")
+                    self.log_info(f"- [perp] {perp_order['market']}: {perp_order['side']} amount {perp_order['size']}")
 
         # balance pairs
         balance_map, position_map = self.get_asset_map()
