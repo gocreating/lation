@@ -341,7 +341,7 @@ class FTXSpotFuturesArbitrageStrategy():
         if isinstance(spot_order, Exception):
             exception_descriptions.append('Failed to create spot order')
         if isinstance(perp_order, Exception):
-            exception_descriptions.append('Failed to create spot order')
+            exception_descriptions.append('Failed to create perp order')
         if exception_descriptions:
             self.log_error('[pair failed]')
             if isinstance(spot_order, Exception):
