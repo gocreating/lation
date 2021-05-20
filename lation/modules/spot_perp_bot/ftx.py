@@ -268,7 +268,9 @@ class FTXSpotFuturesArbitrageStrategy():
             position = position_map.get(pair['perp_market_name'])
             if not balance or not position:
                 continue
-            if abs(balance['total']) < pair['min_provide_size'] or abs(position['net_size']) < pair['min_provide_size']:
+            if balance['total'] <= 0 or position['net_size'] >= 0:
+                continue
+            if balance['total'] < pair['min_provide_size'] or -position['net_size'] < pair['min_provide_size']:
                 continue
             pair_collections.append((pair, balance, position))
         return pair_collections
