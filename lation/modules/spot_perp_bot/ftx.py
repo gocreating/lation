@@ -463,14 +463,14 @@ class FTXSpotFuturesArbitrageStrategy():
                 self.log_info(f'[no pair to (always) increase]')
             else:
                 if self.config.always_increase_pair.enabled and pair['increase_spread_rate'] > self.config.always_increase_pair.gt_spread_rate:
-                    self.log_info(f"[pair always increasing...] @spread={pair['increase_spread_rate']}")
+                    self.log_info(f"[pair always increasing...] @base_currency={pair['base_currency']} @spread={pair['increase_spread_rate']}")
                     try:
                         spot_order, perp_order = await self.increase_pair(pair, fixed_quote_amount=self.config.always_increase_pair.quote_amount)
                         self.log_info(f'- [pair always increased]')
                         self.log_info(f"- [spot] {spot_order['market']}: {spot_order['side']} amount {spot_order['size']}")
                         self.log_info(f"- [perp] {perp_order['market']}: {perp_order['side']} amount {perp_order['size']}")
                     except Exception as e:
-                        self.log_info(f'- [pair unable to increase] {e}')
+                        self.log_error(f'- [pair unable to increase] {e}')
                 elif (
                     self.config.increase_pair.enabled and
                     current_leverage < self.config.increase_pair.lt_leverage and
@@ -486,9 +486,9 @@ class FTXSpotFuturesArbitrageStrategy():
                         self.log_info(f"- [spot] {spot_order['market']}: {spot_order['side']} amount {spot_order['size']}")
                         self.log_info(f"- [perp] {perp_order['market']}: {perp_order['side']} amount {perp_order['size']}")
                     except Exception as e:
-                        self.log_info(f'- [pair unable to increase] {e}')
+                        self.log_error(f'- [pair unable to increase] {e}')
                 else:
-                    self.log_info(f"[pair skipped increase] @base_currency={pair['base_currency']} @leverage={current_leverage} @spread={pair['increase_spread_rate']}")
+                    self.log_info(f"[pair skipped increase] @leverage={current_leverage} @base_currency={pair['base_currency']} @spread={pair['increase_spread_rate']}")
 
         # decrease pairs
         if self.config.always_decrease_pair.enabled or self.config.decrease_pair.enabled:
@@ -497,8 +497,7 @@ class FTXSpotFuturesArbitrageStrategy():
             if self.config.always_decrease_pair.enabled:
                 for pair, balance, position in pair_collections:
                     if pair['decrease_spread_rate'] < self.config.always_decrease_pair.lt_spread_rate:
-                        self.log_info(f"[pair always decreasing...] @spread={pair['decrease_spread_rate']}")
-                        self.log_info(f"- [base currency] {pair['base_currency']}")
+                        self.log_info(f"[pair always decreasing...] @base_currency={pair['base_currency']} @spread={pair['decrease_spread_rate']}")
                         try:
                             spot_order, perp_order = await self.decrease_pair(pair, balance, position, fixed_quote_amount=self.config.always_decrease_pair.quote_amount)
                             is_always_decreased = True
@@ -506,7 +505,7 @@ class FTXSpotFuturesArbitrageStrategy():
                             self.log_info(f"- [spot] {spot_order['market']}: {spot_order['side']} amount {spot_order['size']}")
                             self.log_info(f"- [perp] {perp_order['market']}: {perp_order['side']} amount {perp_order['size']}")
                         except Exception as e:
-                            self.log_info(f'- [pair unable to always decrease] {e}')
+                            self.log_error(f'- [pair unable to always decrease] {e}')
             if not is_always_decreased and (
                 self.config.decrease_pair.enabled and
                 self.config.decrease_pair.gt_leverage < current_leverage <= self.config.close_pair.gt_leverage and
@@ -517,15 +516,14 @@ class FTXSpotFuturesArbitrageStrategy():
                     leverage_diff = current_leverage - self.config.decrease_pair.gt_leverage
                     fixed_quote_amount = FTXSpotFuturesArbitrageStrategy.get_quote_amount_from_rules(
                         abs(leverage_diff), self.config.decrease_pair.leverage_diff_to_quote_amount_rules)
-                    self.log_info(f"[pair decreasing...] @leverage={current_leverage} @spread={pair['decrease_spread_rate']}")
-                    self.log_info(f"- [base currency] {pair['base_currency']}")
+                    self.log_info(f"[pair decreasing...] @leverage={current_leverage} @base_currency={pair['base_currency']} @spread={pair['decrease_spread_rate']}")
                     try:
                         spot_order, perp_order = await self.decrease_pair(pair, balance, position, fixed_quote_amount=fixed_quote_amount)
                         self.log_info('- [pair decreased]')
                         self.log_info(f"- [spot] {spot_order['market']}: {spot_order['side']} amount {spot_order['size']}")
                         self.log_info(f"- [perp] {perp_order['market']}: {perp_order['side']} amount {perp_order['size']}")
                     except Exception as e:
-                        self.log_info(f'- [pair unable to decrease] {e}')
+                        self.log_error(f'- [pair unable to decrease] {e}')
 
         # close pairs
         if self.config.close_pair.gt_leverage < current_leverage:
@@ -534,10 +532,13 @@ class FTXSpotFuturesArbitrageStrategy():
                 for pair, balance, position in pair_collections:
                     fixed_amount = Decimal(str(min(abs(balance['total']), abs(position['net_size']))))
                     self.log_info(f'[pair closing...] @leverage={current_leverage}')
-                    spot_order, perp_order = await self.decrease_pair(pair, balance, position, fixed_amount=fixed_amount)
-                    self.log_info('- [pair closed]')
-                    self.log_info(f"- [spot] {spot_order['market']}: {spot_order['side']} amount {spot_order['size']}")
-                    self.log_info(f"- [perp] {perp_order['market']}: {perp_order['side']} amount {perp_order['size']}")
+                    try:
+                        spot_order, perp_order = await self.decrease_pair(pair, balance, position, fixed_amount=fixed_amount)
+                        self.log_info('- [pair closed]')
+                        self.log_info(f"- [spot] {spot_order['market']}: {spot_order['side']} amount {spot_order['size']}")
+                        self.log_info(f"- [perp] {perp_order['market']}: {perp_order['side']} amount {perp_order['size']}")
+                    except Exception as e:
+                        self.log_error(f'- [pair unable to close] {e}')
 
         # balance pairs
         balance_map, position_map = self.get_asset_map()
