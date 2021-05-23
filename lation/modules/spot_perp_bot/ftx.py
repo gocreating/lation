@@ -19,7 +19,7 @@ from pydantic.utils import deep_update
 from requests import Request, Session, Response
 
 from lation.core.logger import create_logger
-from lation.core.utils import RateLimiter
+from lation.core.utils import RateLimiter, SingletonMetaclass
 from lation.modules.spot_perp_bot.schemas import FtxArbitrageStrategyConfig
 from lation.modules.spot_perp_bot.websocket_manager import WebsocketManager
 
@@ -717,7 +717,7 @@ class FTXRestAPIClient:
         return self.auth_get('/spot_margin/borrow_history', FTXRestAPIClient.get_page_params(**kwargs))
 
 
-class FtxWebsocketClient(WebsocketManager):
+class FtxWebsocketClient(WebsocketManager, metaclass=SingletonMetaclass):
     _ENDPOINT = 'wss://ftx.com/ws/'
 
     def __init__(self, api_key: str = None, api_secret: str = None) -> None:
