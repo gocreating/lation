@@ -40,7 +40,7 @@ class FTXSpotFuturesArbitrageStrategy():
         # non-spot-margin coins
         'FTT', 'TUSD', 'USDC', 'PAX', 'BUSD', 'HUSD', 'HKD', 'SGD', 'TRY', 'ZAR', 'CHF', 'COMP', 'SRM', 'SOL', 'HXRO', 'WUSDC', 'FIDA', 'HOLY', 'SECO', 'BAO', 'BADGER', 'RAY', 'KIN', 'ZRX', 'FTM', 'LRC', 'WUSDT', 'COPE', 'BVOL', 'IBVOL',
         # custom selected coins
-        'USDT', 'CUSDT',
+        'USDT', 'CUSDT', 'XAUT', 'PAXG'
     ])
     white_list_coins = set(['FTT'])
 
