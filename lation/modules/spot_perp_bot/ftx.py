@@ -479,7 +479,7 @@ class FTXSpotFuturesArbitrageStrategy():
                     leverage_diff = self.config.increase_pair.lt_leverage - current_leverage
                     fixed_quote_amount = FTXSpotFuturesArbitrageStrategy.get_quote_amount_from_rules(
                         abs(leverage_diff), self.config.increase_pair.leverage_diff_to_quote_amount_rules)
-                    self.log_info(f'[pair increasing...] @leverage={current_leverage}')
+                    self.log_info(f"[pair increasing...] @leverage={current_leverage} @base_currency={pair['base_currency']} @spread={pair['increase_spread_rate']}")
                     try:
                         spot_order, perp_order = await self.increase_pair(pair, fixed_quote_amount=fixed_quote_amount)
                         self.log_info('- [pair increased]')
