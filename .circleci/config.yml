@@ -307,7 +307,7 @@ jobs:
             certbot certonly \
               --dns-google \
               --dns-google-credentials /tmp/dns-google-credentials.json \
-              --dns-google-propagation-seconds 60 \
+              --dns-google-propagation-seconds 120 \
               --agree-tos \
               --non-interactive \
               --email $CERTBOT_EMAIL \
