@@ -35,3 +35,4 @@
         0.28% * 1.2 = 0.336%
         則可以在 spread rate > 0.336% 時建倉； spread rate < 0% 時關倉，全倉完成一輪開關倉循環時應當自動攤平交易手續費
     - 紀錄實際購買到的 spread rate
+    - coin whitelist & blacklist
